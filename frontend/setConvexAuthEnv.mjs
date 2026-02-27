@@ -19,8 +19,8 @@ const isProd = process.argv.includes("--prod");
 const convexExtra = isProd ? " --prod" : "";
 
 const keys = await generateKeyPair("RS256", { extractable: true });
-const privateKey = await exportPKCS8(keys.privateKey);
-const privateKeyOneLine = privateKey.trimEnd().replace(/\n/g, " ");
+const privateKey = (await exportPKCS8(keys.privateKey)).trimEnd();
+// Keep newlines for PEM – importPKCS8 expects valid PEM format
 const publicKey = await exportJWK(keys.publicKey);
 const jwks = JSON.stringify({ keys: [{ use: "sig", ...publicKey }] });
 
@@ -54,7 +54,7 @@ function runConvexEnvSetStdin(name, value) {
 
 console.log(isProd ? "Target: production Convex deployment." : "Target: current (dev) Convex deployment.");
 console.log("Setting JWT_PRIVATE_KEY...");
-runConvexEnvSetStdin("JWT_PRIVATE_KEY", privateKeyOneLine);
+runConvexEnvSetStdin("JWT_PRIVATE_KEY", privateKey);
 console.log("Setting JWKS...");
 runConvexEnvSetStdin("JWKS", jwks);
 console.log("Done. JWT_PRIVATE_KEY and JWKS are set on your Convex deployment.");
