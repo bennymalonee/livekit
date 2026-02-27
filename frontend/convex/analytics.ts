@@ -20,7 +20,7 @@ export const getOverview = query({
     const metrics = await ctx.db
       .query("trafficMetrics")
       .withIndex("by_metric_region", (q) => q.eq("metric", "egress_bps"))
-      .filter((q) => q.gt("windowStart", since))
+      .filter((q) => q.gt("windowStart", q.literal(since)))
       .take(500);
 
     const byRegion = new Map<
