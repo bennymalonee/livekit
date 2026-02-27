@@ -6,11 +6,11 @@ RUN npm ci && npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-RUN apk add --no-cache wget
+RUN apk add --no-cache wget curl
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -q -O /dev/null http://localhost:3000/api/health || exit 1
+  CMD curl -sf http://localhost:3000/api/health || exit 1
 CMD ["node", "server.js"]
