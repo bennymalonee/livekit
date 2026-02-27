@@ -8,10 +8,13 @@ The **production** Convex deployment (`tidy-ox-195`) must have Convex Auth env v
 
 1. Open [Convex Dashboard](https://dashboard.convex.dev) → your project → **production** deployment (tidy-ox-195).
 2. Go to **Settings** → **Environment variables**.
-3. Set **JWT_PRIVATE_KEY** and **JWKS** (same values as dev, or generate new ones with `npm run convex:auth:env` from `frontend/` while targeting prod: `npx convex env set --prod`).
-4. Ensure **CONVEX_SITE_URL** = `https://tidy-ox-195.eu-west-1.convex.site`.
+3. Set **JWT_PRIVATE_KEY** and **JWKS**: from `frontend/` run:
+   ```bash
+   npm run convex:auth:env -- --prod
+   ```
+   This generates a new key pair and sets both vars on the **production** deployment. (CONVEX_SITE_URL is built-in and set automatically by Convex.)
 
-Without these, the auth backend returns "Server Error" and the login/signup request returns 400.
+Without JWT_PRIVATE_KEY and JWKS, the auth backend returns "Server Error" and the login/signup request returns 400.
 
 To create your account in **production** (`tidy-ox-195`) so you can later log in on the deployed app:
 
