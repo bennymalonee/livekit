@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -13,4 +17,127 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Phoenix landing */
+.glow-text {
+  text-shadow: 0 0 20px rgba(255, 77, 0, 0.6), 0 0 10px rgba(255, 77, 0, 0.3);
+}
+.glass-panel {
+  background: rgba(22, 24, 29, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+.glass-panel:hover {
+  border-color: rgba(255, 77, 0, 0.4);
+  box-shadow: 0 0 20px rgba(255, 77, 0, 0.1);
+}
+.tech-grid {
+  background-size: 40px 40px;
+  mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+}
+
+/* Global Stream Dashboard */
+.glow-orange {
+  filter: drop-shadow(0 0 8px rgba(255, 107, 0, 0.6));
+}
+.stream-path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: stream-dash 5s linear infinite;
+}
+@keyframes stream-dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.bg-mesh {
+  background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+.light .bg-mesh {
+  background-image: radial-gradient(circle at 2px 2px, rgba(0, 0, 0, 0.05) 1px, transparent 0);
+}
+
+/* Edge Diagnostics */
+.energy-path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: energy-dash 5s linear infinite;
+}
+@keyframes energy-dash {
+  to { stroke-dashoffset: 0; }
+}
+.text-glow {
+  text-shadow: 0 0 10px rgba(255, 107, 0, 0.5);
+}
+
+/* Session Monitor */
+.orange-divider::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 107, 0, 0) 0%, rgba(255, 107, 0, 0.4) 50%, rgba(255, 107, 0, 0) 100%);
+}
+.waveform-bar {
+  animation: waveform-pulse 1.5s ease-in-out infinite;
+}
+@keyframes waveform-pulse {
+  0%, 100% { height: 40%; }
+  50% { height: 90%; }
+}
+
+/* Traffic Analytics */
+.flow-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: flow-line 5s linear infinite;
+}
+@keyframes flow-line {
+  to { stroke-dashoffset: 0; }
+}
+.grid-pattern-dash {
+  background-image: radial-gradient(rgba(249, 115, 22, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Terminal */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+.scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: rgba(249, 115, 22, 0.05);
+  animation: scanline 8s linear infinite;
+  pointer-events: none;
+}
+.indicator-on {
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.6);
+  background: linear-gradient(to right, #f97316, #fb923c);
+}
+.pulse-orange {
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Vault */
+.key-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: key-line 3s linear forwards;
+}
+@keyframes key-line {
+  to { stroke-dashoffset: 0; }
 }

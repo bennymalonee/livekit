@@ -1,6 +1,5 @@
 "use client";
 
-import { DashboardNav } from "@/components/DashboardNav";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
@@ -79,8 +78,7 @@ export default function DeployPage() {
   }, [deploySettings?.webhookUrl, deploySettings?.livekitUrl]);
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100">
-      <DashboardNav />
+    <main className="min-h-screen bg-zinc-950 text-zinc-100 pt-4 pl-16 sm:pl-20">
       <div className="max-w-2xl mx-auto p-6">
         <h1 className="text-2xl font-semibold mb-2">Deploy LiveKit to VPS</h1>
         <p className="text-zinc-400 mb-6">

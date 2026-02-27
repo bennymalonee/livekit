@@ -1,5 +1,5 @@
-import { StitchScreen } from "@/components/StitchScreen";
+import { EnterpriseLanding } from "@/components/EnterpriseLanding";
 
 export default function Home() {
-  return <StitchScreen screenId="92b42bcc02f24770b6a27a7db35cf194" title="Enterprise Infrastructure Landing" />;
+  return <EnterpriseLanding />;
 }

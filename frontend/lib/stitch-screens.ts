@@ -11,5 +11,4 @@ export const STITCH_SCREENS = [
   { name: "Terminal Diagnostic Streamer", id: "385863d4f1a649a28eca8d8eeef06ab2", path: "/terminal" },
   { name: "Vault-Grade Key Management", id: "7c0ba31c64e74896991c1cde42fcd9cf", path: "/vault" },
   { name: "Node Initialization System", id: "914e9fa6719a4ffebf47dfaa76700c47", path: "/nodes" },
-  { name: "Enterprise Infrastructure Landing (alt)", id: "3b99c4316ad946498d8442b63cb508f5", path: "/landing-alt" },
 ] as const;

@@ -67,6 +67,17 @@ See [frontend/.env.example](frontend/.env.example) for a template.
 
 From `frontend/`: `npm run convex:dev` (dev), `npm run convex:deploy` (prod), `npm run convex:codegen` (regenerate API).
 
+### Convex Auth (JWT keys)
+
+If you see `Missing environment variable JWT_PRIVATE_KEY`, set the auth keys on your Convex deployment:
+
+```bash
+cd frontend
+npm run convex:auth:env
+```
+
+This generates a key pair and sets `JWT_PRIVATE_KEY` and `JWKS` via `npx convex env set`. Run once per deployment (dev and prod).
+
 ## Stitch screens
 
 Dashboard pages (Landing, Global Stream Flow, Modules, Diagnostics, etc.) are powered by Stitch. To populate images and HTML:

@@ -1,5 +1,5 @@
-import { StitchScreen } from "@/components/StitchScreen";
+import { GlobalStreamDashboard } from "@/components/GlobalStreamDashboard";
 
 export default function Dashboard() {
-  return <StitchScreen screenId="580f150fc10d4ce9bb1dbaf827ffcc64" title="Global Stream Flow Dashboard" />;
+  return <GlobalStreamDashboard />;
 }

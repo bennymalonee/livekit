@@ -1,7 +1,5 @@
 "use client";
 
-import { DashboardNav } from "@/components/DashboardNav";
-
 type StitchScreenProps = {
   screenId: string;
   title: string;
@@ -12,10 +10,9 @@ export function StitchScreen({ screenId, title }: StitchScreenProps) {
 
   return (
     <div className="stitch-screen">
-      <DashboardNav />
       <main style={{ padding: "1rem", minHeight: "80vh" }}>
         <h1 style={{ marginBottom: "1rem", fontSize: "1.5rem" }}>{title}</h1>
-        <div style={{ border: "1px solid #ddd", borderRadius: "8px", overflow: "hidden" }}>
+        <div style={{ border: "1px solid #333", borderRadius: "8px", overflow: "hidden", background: "#05060a" }}>
           <iframe
             src={htmlPath}
             title={title}
