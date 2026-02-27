@@ -1,7 +1,6 @@
 import { httpRouter } from "convex/server";
 import { auth } from "./auth";
 import { httpAction } from "./_generated/server";
-import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
 const http = httpRouter();
@@ -29,7 +28,7 @@ const coolifyWebhook = httpAction(async (ctx, request) => {
       ? ((payload as any).status as string)
       : "success";
 
-  await ctx.runMutation(internal.deployments.updateLatestFromWebhook, {
+  await ctx.runMutation(internal.deployments_internal.updateLatestFromWebhook, {
     status,
   });
 
