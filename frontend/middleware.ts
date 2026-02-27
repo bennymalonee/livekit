@@ -28,29 +28,29 @@ const authMiddleware = convexAuthNextjsMiddleware(async (request, { convexAuth }
 });
 
 /**
- * Normalize Host so the auth proxy CORS check passes (Origin must match Host; else 403).
- * Behind a proxy, Host may be internal; use X-Forwarded-Host or Origin so Host matches
- * what the browser sent.
+ * Resolve the public host so cookie names and CORS match (set and read use same Host).
+ * Order: X-Forwarded-Host, Origin, Referer (for GET/link clicks), request.url.
  */
+function getCanonicalHost(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0].trim();
+  if (forwarded) return forwarded;
+  try {
+    const o = request.headers.get("origin");
+    if (o) return new URL(o).host;
+  } catch {}
+  try {
+    const r = request.headers.get("referer");
+    if (r) return new URL(r).host;
+  } catch {}
+  try {
+    return new URL(request.url).host;
+  } catch {}
+  return "";
+}
+
 function withNormalizedHost(request: NextRequest): NextRequest {
   const currentHost = request.headers.get("host") ?? "";
-  let canonicalHost =
-    request.headers.get("x-forwarded-host")?.split(",")[0].trim() ||
-    (() => {
-      try {
-        const o = request.headers.get("origin");
-        return o ? new URL(o).host : "";
-      } catch {
-        return "";
-      }
-    })() ||
-    (() => {
-      try {
-        return new URL(request.url).host;
-      } catch {
-        return "";
-      }
-    })();
+  const canonicalHost = getCanonicalHost(request);
   if (!canonicalHost || canonicalHost === currentHost) return request;
   const headers = new Headers(request.headers);
   headers.set("host", canonicalHost);
