@@ -40,7 +40,7 @@ See [frontend/.env.example](frontend/.env.example) for a template.
 - **Port:** 3000.
 - **Environment:** Set `NEXT_PUBLIC_CONVEX_URL` to the **production** Convex URL: `https://tidy-ox-195.eu-west-1.convex.cloud`.
 - Optional: set `COOLIFY_DEPLOY_WEBHOOK_URL` and `NEXT_PUBLIC_LIVEKIT_URL` for the Deploy page.
-- **Health check (optional):** To clear "Unhealthy" in Coolify, set the application’s health check to **path** `/api/health`, **port** `3000`, **expected status** `200`. Or rely on the Dockerfile `HEALTHCHECK` (Coolify may use it depending on setup).
+- **Health check (optional):** To clear "Unhealthy" in Coolify, set the application’s health check to **path** `/api/health`, **port** `3000`, **expected status** `200`. The image includes `curl` and a Dockerfile `HEALTHCHECK`. If Coolify skips the build ("image found") and the check still fails, use **Force Rebuild** so the new image (with curl and healthcheck) is built.
 
 ### 2. LiveKit Stack app (Docker Compose)
 
