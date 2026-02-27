@@ -28,16 +28,32 @@ const authMiddleware = convexAuthNextjsMiddleware(async (request, { convexAuth }
 });
 
 /**
- * Normalize Host from request URL so cookie names match behind proxies (Coolify, etc.).
- * Auth cookies use __Host- prefix when not localhost; the name depends on the Host header.
+ * Normalize Host so the auth proxy CORS check passes (Origin must match Host; else 403).
+ * Behind a proxy, Host may be internal; use X-Forwarded-Host or Origin so Host matches
+ * what the browser sent.
  */
 function withNormalizedHost(request: NextRequest): NextRequest {
-  const url = new URL(request.url);
-  const hostFromUrl = url.host;
-  const hostFromHeader = request.headers.get("host") ?? "";
-  if (!hostFromUrl || hostFromUrl === hostFromHeader) return request;
+  const currentHost = request.headers.get("host") ?? "";
+  let canonicalHost =
+    request.headers.get("x-forwarded-host")?.split(",")[0].trim() ||
+    (() => {
+      try {
+        const o = request.headers.get("origin");
+        return o ? new URL(o).host : "";
+      } catch {
+        return "";
+      }
+    })() ||
+    (() => {
+      try {
+        return new URL(request.url).host;
+      } catch {
+        return "";
+      }
+    })();
+  if (!canonicalHost || canonicalHost === currentHost) return request;
   const headers = new Headers(request.headers);
-  headers.set("host", hostFromUrl);
+  headers.set("host", canonicalHost);
   return new NextRequest(request.url, {
     method: request.method,
     headers,
