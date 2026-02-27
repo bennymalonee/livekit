@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as deployments from "../deployments.js";
 import type * as http from "../http.js";
+import type * as settings from "../settings.js";
 
 import type {
   ApiFromModules,
@@ -22,6 +23,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   deployments: typeof deployments;
   http: typeof http;
+  settings: typeof settings;
 }>;
 
 /**

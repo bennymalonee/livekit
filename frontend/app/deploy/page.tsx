@@ -1,30 +1,53 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import Link from "next/link";
-import { useState } from "react";
+import { DashboardNav } from "@/components/DashboardNav";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
 
 export default function DeployPage() {
   const deployments = useQuery(api.deployments.listByUser);
+  const deploySettings = useQuery(api.settings.getDeploySettings);
   const createDeployment = useMutation(api.deployments.create);
+  const updateDeploymentStatus = useMutation(api.deployments.updateStatus);
+  const setDeploySettings = useMutation(api.settings.setDeploySettings);
+  const triggerDeploy = useAction(api.settings.triggerDeploy);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [settingsWebhook, setSettingsWebhook] = useState("");
+  const [settingsLivekit, setSettingsLivekit] = useState("");
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
 
   const livekitUrl =
-    process.env.NEXT_PUBLIC_LIVEKIT_URL || "https://your-livekit-url.example.com";
+    deploySettings?.livekitUrl ||
+    process.env.NEXT_PUBLIC_LIVEKIT_URL ||
+    "https://your-livekit-url.example.com";
 
   async function handleDeploy() {
     setError(null);
+    setSuccess(false);
     setLoading(true);
     try {
-      await createDeployment({ status: "pending" });
-      const res = await fetch("/api/deploy", { method: "POST" });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error || `Deploy failed (${res.status})`);
-        return;
+      const deploymentId = await createDeployment({ status: "pending" });
+      try {
+        await triggerDeploy();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "";
+        if (msg.includes("not configured")) {
+          const res = await fetch("/api/deploy", { method: "POST" });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            setError(data.error || `Deploy failed (${res.status})`);
+            return;
+          }
+        } else {
+          throw e;
+        }
       }
+      await updateDeploymentStatus({ deploymentId, status: "running" });
+      setSuccess(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Deploy failed");
     } finally {
@@ -32,19 +55,33 @@ export default function DeployPage() {
     }
   }
 
+  async function handleSaveSettings(e: React.FormEvent) {
+    e.preventDefault();
+    setSettingsSaving(true);
+    setSettingsSaved(false);
+    try {
+      await setDeploySettings({
+        webhookUrl: settingsWebhook.trim(),
+        livekitUrl: settingsLivekit.trim(),
+      });
+      setSettingsSaved(true);
+    } finally {
+      setSettingsSaving(false);
+    }
+  }
+
   const latest = deployments?.[0];
 
+  useEffect(() => {
+    if (deploySettings === undefined) return;
+    setSettingsWebhook(deploySettings.webhookUrl ?? "");
+    setSettingsLivekit(deploySettings.livekitUrl ?? "");
+  }, [deploySettings?.webhookUrl, deploySettings?.livekitUrl]);
+
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100 p-6">
-      <div className="max-w-2xl mx-auto">
-        <nav className="mb-8">
-          <Link
-            href="/dashboard"
-            className="text-zinc-400 hover:text-zinc-200 text-sm"
-          >
-            ← Dashboard
-          </Link>
-        </nav>
+    <main className="min-h-screen bg-zinc-950 text-zinc-100">
+      <DashboardNav />
+      <div className="max-w-2xl mx-auto p-6">
         <h1 className="text-2xl font-semibold mb-2">Deploy LiveKit to VPS</h1>
         <p className="text-zinc-400 mb-6">
           Trigger a deployment of the LiveKit stack on your VPS via Coolify.
@@ -65,6 +102,12 @@ export default function DeployPage() {
             </div>
           )}
 
+          {success && (
+            <div className="rounded-md bg-green-950/50 border border-green-800 text-green-200 px-4 py-3 text-sm">
+              Deploy triggered. Check Coolify for status.
+            </div>
+          )}
+
           <div>
             <h2 className="text-sm font-medium text-zinc-400 mb-2">
               LiveKit URL
@@ -72,15 +115,65 @@ export default function DeployPage() {
             <p className="text-zinc-200 font-mono text-sm break-all">
               {latest?.livekitUrl || livekitUrl}
             </p>
-            {latest?.livekitUrl && (
+            {(latest?.livekitUrl || deploySettings?.livekitUrl) && (
               <a
-                href={latest.livekitUrl}
+                href={latest?.livekitUrl || livekitUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-amber-500 hover:underline text-sm mt-1 inline-block"
               >
                 Open LiveKit →
               </a>
+            )}
+          </div>
+
+          <div>
+            <h2 className="text-sm font-medium text-zinc-400 mb-2">
+              Deploy settings
+            </h2>
+            <p className="text-zinc-500 text-xs mb-3">
+              Set the Coolify webhook URL and LiveKit URL here, or use{" "}
+              <code className="bg-zinc-800 px-1 rounded">
+                COOLIFY_DEPLOY_WEBHOOK_URL
+              </code>{" "}
+              and{" "}
+              <code className="bg-zinc-800 px-1 rounded">
+                NEXT_PUBLIC_LIVEKIT_URL
+              </code>{" "}
+              in your environment.
+            </p>
+            <form onSubmit={handleSaveSettings} className="space-y-3">
+              <input
+                type="url"
+                placeholder="Coolify deploy webhook URL"
+                value={settingsWebhook}
+                onChange={(e) => setSettingsWebhook(e.target.value)}
+                className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-zinc-100 placeholder:text-zinc-500 text-sm"
+              />
+              <input
+                type="url"
+                placeholder="LiveKit server URL"
+                value={settingsLivekit}
+                onChange={(e) => setSettingsLivekit(e.target.value)}
+                className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-zinc-100 placeholder:text-zinc-500 text-sm"
+              />
+              <button
+                type="submit"
+                disabled={settingsSaving}
+                className="rounded-md bg-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-600 disabled:opacity-50"
+              >
+                {settingsSaving ? "Saving…" : "Save settings"}
+              </button>
+              {settingsSaved && (
+                <span className="text-green-400 text-sm ml-2">Saved.</span>
+              )}
+            </form>
+            {deploySettings && (
+              <p className="text-zinc-500 text-xs mt-2">
+                Current: webhook{" "}
+                {deploySettings.webhookUrl ? "set" : "not set"}, LiveKit URL{" "}
+                {deploySettings.livekitUrl ? "set" : "not set"}.
+              </p>
             )}
           </div>
 
@@ -122,14 +215,6 @@ export default function DeployPage() {
               </ul>
             )}
           </div>
-
-          <p className="text-zinc-500 text-xs">
-            Configure the Coolify deploy webhook in your Coolify project and set{" "}
-            <code className="bg-zinc-800 px-1 rounded">
-              COOLIFY_DEPLOY_WEBHOOK_URL
-            </code>{" "}
-            in the dashboard environment to enable one-click deploy.
-          </p>
         </div>
       </div>
     </main>
