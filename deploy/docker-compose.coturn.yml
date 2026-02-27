@@ -1,0 +1,18 @@
+# Coturn TURN server - include when TLS certs are available
+# docker compose -f docker-compose.yml -f docker-compose.coturn.yml up -d
+
+services:
+  coturn:
+    image: coturn/coturn:latest
+    container_name: livekit-coturn
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - ./certs:/etc/coturn/certs:ro
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "2"

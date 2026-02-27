@@ -1,0 +1,22 @@
+{
+  "room_name": "my-room",
+  "layout": "grid",
+  "preset": "H264_720P_30",
+  "audio_only": false,
+  "segment_outputs": [
+    {
+      "filename_prefix": "recordings/{room_name}_{egress_id}",
+      "playlist_name": "playlist.m3u8",
+      "live_playlist_name": "live.m3u8",
+      "segment_duration": 2,
+      "s3": {
+        "access_key": "minioadmin",
+        "secret": "minioadmin",
+        "region": "us-east-1",
+        "endpoint": "http://127.0.0.1:9000",
+        "bucket": "livekit-hls",
+        "force_path_style": true
+      }
+    }
+  ]
+}

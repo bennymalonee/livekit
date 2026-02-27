@@ -1,0 +1,8 @@
+# Dependencies
+frontend/node_modules/
+frontend/.next/
+
+# Stitch assets (downloaded)
+frontend/public/stitch/images/*.png
+frontend/public/stitch/images/*.webp
+frontend/public/stitch/html/*.html

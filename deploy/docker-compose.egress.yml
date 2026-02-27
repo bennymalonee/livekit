@@ -1,0 +1,63 @@
+# LiveKit Egress + MinIO for HLS output
+# Requires: docker-compose.yml (LiveKit + Redis)
+
+services:
+  egress:
+    image: livekit/egress:latest
+    container_name: livekit-egress
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - SYS_ADMIN
+    environment:
+      EGRESS_CONFIG_FILE: /etc/egress/egress.yaml
+    volumes:
+      - ./egress/egress.yaml:/etc/egress/egress.yaml:ro
+    depends_on:
+      minio:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  minio:
+    image: minio/minio:latest
+    container_name: livekit-minio
+    restart: unless-stopped
+    command: server /data
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "2"
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: livekit-minio-init
+    restart: "no"
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc config host add local http://minio:9000 $${MINIO_ROOT_USER:-minioadmin} $${MINIO_ROOT_PASSWORD:-minioadmin} || true;
+      mc mb local/livekit-hls --ignore-existing;
+      mc anonymous set download local/livekit-hls;
+      echo 'MinIO bucket livekit-hls ready';
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+
+volumes:
+  minio-data:

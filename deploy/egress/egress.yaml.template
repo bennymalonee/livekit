@@ -1,0 +1,20 @@
+# LiveKit Egress - generated from template
+# Placeholders: API_KEY, API_SECRET, WS_URL, REDIS_PASSWORD, MINIO_USER, MINIO_PASS
+
+api_key: API_KEY
+api_secret: API_SECRET
+ws_url: WS_URL
+insecure: true
+
+redis:
+  address: 127.0.0.1:6379
+  password: REDIS_PASSWORD
+  db: 0
+
+s3:
+  access_key: MINIO_USER
+  secret: MINIO_PASS
+  region: us-east-1
+  endpoint: http://127.0.0.1:9000
+  bucket: livekit-hls
+  force_path_style: true

@@ -1,0 +1,44 @@
+# LiveKit cluster-ready deployment
+# https://github.com/livekit/livekit
+# Base: livekit-server + redis. Coturn added via docker-compose.coturn.yml when certs present.
+
+services:
+  livekit-server:
+    image: livekit/livekit-server:v1.9
+    container_name: livekit-server
+    command: --config /etc/livekit/livekit.yaml
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./livekit.yaml:/etc/livekit/livekit.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: livekit-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "2"
+
+volumes:
+  redis-data:
