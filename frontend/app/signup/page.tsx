@@ -7,6 +7,23 @@ import { useState } from "react";
 export default function SignupPage() {
   const { signIn } = useAuthActions();
   const [step, setStep] = useState<"signUp" | "signIn">("signUp");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const formData = new FormData(e.currentTarget);
+      await signIn("password", formData);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Sign up failed";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100 p-4">
@@ -14,14 +31,17 @@ export default function SignupPage() {
         <h1 className="text-xl font-semibold mb-4">
           {step === "signIn" ? "Sign in" : "Create account"}
         </h1>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget as HTMLFormElement);
-            void signIn("password", formData);
-          }}
-          className="space-y-4"
-        >
+        {error && (
+          <div className="mb-4 rounded-md bg-red-950/50 border border-red-800 text-red-200 px-3 py-2 text-sm">
+            {error}
+            {error.includes("Server Error") && (
+              <p className="mt-2 text-red-300/90 text-xs">
+                Check your Convex production deployment: set JWT_PRIVATE_KEY and JWKS in Environment variables (Dashboard → Settings).
+              </p>
+            )}
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className="space-y-4">
           <input
             name="email"
             type="email"
@@ -40,9 +60,10 @@ export default function SignupPage() {
           <input name="flow" type="hidden" value={step} />
           <button
             type="submit"
-            className="w-full rounded-md bg-amber-600 px-4 py-2 font-medium text-white hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900"
+            disabled={loading}
+            className="w-full rounded-md bg-amber-600 px-4 py-2 font-medium text-white hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900"
           >
-            {step === "signIn" ? "Sign in" : "Sign up"}
+            {loading ? "Please wait…" : step === "signIn" ? "Sign in" : "Sign up"}
           </button>
         </form>
         <button
