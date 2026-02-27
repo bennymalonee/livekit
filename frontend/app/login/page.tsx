@@ -10,6 +10,16 @@ export default function LoginPage() {
   const [step, setStep] = useState<"signUp" | "signIn">("signIn");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+
+  function goToDashboard() {
+    setRedirecting(true);
+    window.location.replace("/dashboard");
+    // Fallback: force navigation after 2s in case replace was blocked or didn't apply
+    setTimeout(() => {
+      window.location.href = "/dashboard";
+    }, 2000);
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -18,10 +28,7 @@ export default function LoginPage() {
     try {
       const formData = new FormData(e.currentTarget);
       await signIn("password", formData);
-      // Full navigation so cookies are sent; brief delay so browser applies Set-Cookie
-      setTimeout(() => {
-        window.location.replace("/dashboard");
-      }, 100);
+      goToDashboard();
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Sign in failed";
       setError(raw);
@@ -33,7 +40,7 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100 p-4">
       <div className="w-full max-w-sm rounded-lg border border-zinc-800 bg-zinc-900/50 p-6 shadow-xl">
         <h1 className="text-xl font-semibold mb-4">
-          {step === "signIn" ? "Sign in" : "Sign up"}
+          {redirecting ? "Redirecting to dashboard…" : step === "signIn" ? "Sign in" : "Sign up"}
         </h1>
         {error && (
           <div className="mb-4 rounded-md bg-red-950/50 border border-red-800 text-red-200 px-3 py-2 text-sm">
@@ -63,12 +70,19 @@ export default function LoginPage() {
           <input name="flow" type="hidden" value={step} />
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || redirecting}
             className="w-full rounded-md bg-amber-600 px-4 py-2 font-medium text-white hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900"
           >
-            {loading ? "Please wait…" : step === "signIn" ? "Sign in" : "Sign up"}
+            {redirecting ? "Redirecting…" : loading ? "Please wait…" : step === "signIn" ? "Sign in" : "Sign up"}
           </button>
         </form>
+        {redirecting && (
+          <p className="mt-4 text-center text-sm text-amber-400">
+            <Link href="/dashboard" className="hover:underline">
+              Click here if you are not redirected
+            </Link>
+          </p>
+        )}
         <button
           type="button"
           onClick={() => setStep(step === "signIn" ? "signUp" : "signIn")}
