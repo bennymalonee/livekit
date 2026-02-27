@@ -16,6 +16,8 @@ The **production** Convex deployment (`tidy-ox-195`) must have Convex Auth env v
 
 Without JWT_PRIVATE_KEY and JWKS, the auth backend returns "Server Error" and the login/signup request returns 400.
 
+**If Convex logs show `InvalidSecret`:** The account exists but the password does not match. Use the password you set when you signed up on **this** deployment (production). If you only signed up on dev, create an account on production first (e.g. run the app locally with `NEXT_PUBLIC_CONVEX_URL` set to production, open `/signup`, then sign in on the deployed app with that password).
+
 To create your account in **production** (`tidy-ox-195`) so you can later log in on the deployed app:
 
 ## 1. Create the user from your machine

@@ -3,6 +3,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import Link from "next/link";
 import { useState } from "react";
+import { getAuthErrorMessage, getAuthErrorHint } from "@/lib/authErrors";
 
 export default function SignupPage() {
   const { signIn } = useAuthActions();
@@ -18,8 +19,8 @@ export default function SignupPage() {
       const formData = new FormData(e.currentTarget);
       await signIn("password", formData);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Sign up failed";
-      setError(message);
+      const raw = err instanceof Error ? err.message : "Sign up failed";
+      setError(raw);
     } finally {
       setLoading(false);
     }
@@ -33,10 +34,10 @@ export default function SignupPage() {
         </h1>
         {error && (
           <div className="mb-4 rounded-md bg-red-950/50 border border-red-800 text-red-200 px-3 py-2 text-sm">
-            {error}
-            {error.includes("Server Error") && (
+            {getAuthErrorMessage(error)}
+            {getAuthErrorHint(error) && (
               <p className="mt-2 text-red-300/90 text-xs">
-                Check your Convex production deployment: set JWT_PRIVATE_KEY and JWKS in Environment variables (Dashboard → Settings).
+                {getAuthErrorHint(error)}
               </p>
             )}
           </div>
