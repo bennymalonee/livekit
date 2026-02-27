@@ -2,10 +2,12 @@
 
 import { useAuthActions } from "@convex-dev/auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getAuthErrorMessage, getAuthErrorHint } from "@/lib/authErrors";
 
 export default function SignupPage() {
+  const router = useRouter();
   const { signIn } = useAuthActions();
   const [step, setStep] = useState<"signUp" | "signIn">("signUp");
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +20,7 @@ export default function SignupPage() {
     try {
       const formData = new FormData(e.currentTarget);
       await signIn("password", formData);
+      router.push("/dashboard");
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Sign up failed";
       setError(raw);
