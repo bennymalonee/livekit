@@ -18,11 +18,13 @@ export default function LoginPage() {
     try {
       const formData = new FormData(e.currentTarget);
       await signIn("password", formData);
-      window.location.href = "/dashboard";
+      // Full navigation so cookies are sent; brief delay so browser applies Set-Cookie
+      setTimeout(() => {
+        window.location.replace("/dashboard");
+      }, 100);
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Sign in failed";
       setError(raw);
-    } finally {
       setLoading(false);
     }
   }

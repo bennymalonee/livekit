@@ -18,11 +18,12 @@ export default function SignupPage() {
     try {
       const formData = new FormData(e.currentTarget);
       await signIn("password", formData);
-      window.location.href = "/dashboard";
+      setTimeout(() => {
+        window.location.replace("/dashboard");
+      }, 100);
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Sign up failed";
       setError(raw);
-    } finally {
       setLoading(false);
     }
   }
