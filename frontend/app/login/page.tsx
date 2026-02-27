@@ -2,8 +2,10 @@
 
 import { useAuthActions } from "@convex-dev/auth/react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getAuthErrorMessage, getAuthErrorHint } from "@/lib/authErrors";
+
+const LOGIN_REDIRECT_KEY = "login_redirect_pending";
 
 export default function LoginPage() {
   const { signIn } = useAuthActions();
@@ -11,14 +13,25 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [showDashboardLink, setShowDashboardLink] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem(LOGIN_REDIRECT_KEY)) {
+      setShowDashboardLink(true);
+    }
+  }, []);
+
+  function clearRedirectFlag() {
+    if (typeof window !== "undefined") sessionStorage.removeItem(LOGIN_REDIRECT_KEY);
+  }
 
   function goToDashboard() {
+    if (typeof window !== "undefined") sessionStorage.setItem(LOGIN_REDIRECT_KEY, "1");
     setRedirecting(true);
     window.location.replace("/dashboard");
-    // Fallback: force navigation after 2s in case replace was blocked or didn't apply
     setTimeout(() => {
       window.location.href = "/dashboard";
-    }, 2000);
+    }, 5000);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -39,6 +52,18 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100 p-4">
       <div className="w-full max-w-sm rounded-lg border border-zinc-800 bg-zinc-900/50 p-6 shadow-xl">
+        {showDashboardLink && (
+          <div className="mb-4 rounded-md bg-amber-950/50 border border-amber-700 p-3 text-center">
+            <p className="text-amber-200 text-sm mb-2">You are signed in.</p>
+            <a
+              href="/dashboard"
+              onClick={clearRedirectFlag}
+              className="text-amber-400 font-medium hover:underline underline-offset-2"
+            >
+              Open dashboard →
+            </a>
+          </div>
+        )}
         <h1 className="text-xl font-semibold mb-4">
           {redirecting ? "Redirecting to dashboard…" : step === "signIn" ? "Sign in" : "Sign up"}
         </h1>
@@ -76,11 +101,11 @@ export default function LoginPage() {
             {redirecting ? "Redirecting…" : loading ? "Please wait…" : step === "signIn" ? "Sign in" : "Sign up"}
           </button>
         </form>
-        {redirecting && (
+        {(redirecting || showDashboardLink) && (
           <p className="mt-4 text-center text-sm text-amber-400">
-            <Link href="/dashboard" className="hover:underline">
-              Click here if you are not redirected
-            </Link>
+            <a href="/dashboard" onClick={clearRedirectFlag} className="hover:underline">
+              {showDashboardLink ? "Open dashboard" : "Click here if you are not redirected"}
+            </a>
           </p>
         )}
         <button
