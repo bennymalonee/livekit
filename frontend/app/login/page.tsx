@@ -28,10 +28,29 @@ export default function LoginPage() {
   function goToDashboard() {
     if (typeof window !== "undefined") sessionStorage.setItem(LOGIN_REDIRECT_KEY, "1");
     setRedirecting(true);
-    window.location.replace("/dashboard");
+    const target = "/dashboard";
+    window.location.replace(target);
+    const maxAttempts = 20;
+    let attempts = 0;
+    const poll = () => {
+      attempts += 1;
+      fetch("/api/auth-status", { credentials: "same-origin" })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.authenticated === true) {
+            window.location.href = target;
+            return;
+          }
+          if (attempts < maxAttempts) setTimeout(poll, 400);
+        })
+        .catch(() => {
+          if (attempts < maxAttempts) setTimeout(poll, 400);
+        });
+    };
+    setTimeout(poll, 300);
     setTimeout(() => {
-      window.location.href = "/dashboard";
-    }, 5000);
+      window.location.href = target;
+    }, 8000);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -53,15 +72,25 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100 p-4">
       <div className="w-full max-w-sm rounded-lg border border-zinc-800 bg-zinc-900/50 p-6 shadow-xl">
         {showDashboardLink && (
-          <div className="mb-4 rounded-md bg-amber-950/50 border border-amber-700 p-3 text-center">
-            <p className="text-amber-200 text-sm mb-2">You are signed in.</p>
+          <div className="mb-4 rounded-md bg-amber-950/50 border border-amber-700 p-3 text-center space-y-2">
+            <p className="text-amber-200 text-sm">You are signed in.</p>
             <a
               href="/dashboard"
               onClick={clearRedirectFlag}
-              className="text-amber-400 font-medium hover:underline underline-offset-2"
+              className="text-amber-400 font-medium hover:underline underline-offset-2 block"
             >
-              Open dashboard →
+              Open dashboard (link) →
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                clearRedirectFlag();
+                window.location.href = "/dashboard";
+              }}
+              className="w-full rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500"
+            >
+              Open dashboard (button)
+            </button>
           </div>
         )}
         <h1 className="text-xl font-semibold mb-4">
@@ -106,6 +135,14 @@ export default function LoginPage() {
             <a href="/dashboard" onClick={clearRedirectFlag} className="hover:underline">
               {showDashboardLink ? "Open dashboard" : "Click here if you are not redirected"}
             </a>
+            {" · "}
+            <button
+              type="button"
+              onClick={() => { clearRedirectFlag(); window.location.href = "/dashboard"; }}
+              className="underline hover:no-underline"
+            >
+              Go now
+            </button>
           </p>
         )}
         <button
