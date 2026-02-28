@@ -80,6 +80,9 @@ npm run convex:auth:env
 
 This generates a key pair and sets `JWT_PRIVATE_KEY` and `JWKS` via `npx convex env set`. Run once per deployment (dev and prod).
 
+**Insight: "Retried due to write conflicts" on `auth:store` / `authRefreshTokens`**  
+Convex Auth uses single-use refresh tokens. When several requests refresh at once (e.g. multiple tabs, or middleware + client), Convex may report write conflicts on `authRefreshTokens`. Convex retries these mutations; occasional retries are normal. If retries persist or users are logged out often, reduce concurrent auth (e.g. avoid many tabs or rapid reloads during login).
+
 ## Stitch screens
 
 Dashboard pages (Landing, Global Stream Flow, Modules, Diagnostics, etc.) are powered by Stitch. To populate images and HTML:
