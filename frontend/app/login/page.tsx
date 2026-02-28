@@ -29,8 +29,7 @@ export default function LoginPage() {
     if (typeof window !== "undefined") sessionStorage.setItem(LOGIN_REDIRECT_KEY, "1");
     setRedirecting(true);
     const target = "/dashboard";
-    window.location.replace(target);
-    const maxAttempts = 20;
+    const maxAttempts = 50; // ~20s at 400ms
     let attempts = 0;
     const poll = () => {
       attempts += 1;
@@ -38,7 +37,7 @@ export default function LoginPage() {
         .then((r) => r.json())
         .then((data) => {
           if (data.authenticated === true) {
-            window.location.href = target;
+            window.location.replace(target);
             return;
           }
           if (attempts < maxAttempts) setTimeout(poll, 400);
@@ -47,10 +46,8 @@ export default function LoginPage() {
           if (attempts < maxAttempts) setTimeout(poll, 400);
         });
     };
+    // Wait for auth cookie to be set before first check
     setTimeout(poll, 300);
-    setTimeout(() => {
-      window.location.href = target;
-    }, 8000);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
