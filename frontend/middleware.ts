@@ -36,7 +36,8 @@ const authMiddleware = convexAuthNextjsMiddleware(
 
 /**
  * Resolve the public host so cookie names and CORS match (set and read use same Host).
- * Order: X-Forwarded-Host, Origin, Referer (for GET/link clicks), request.url.
+ * Order: X-Forwarded-Host, Origin, Referer, NEXT_PUBLIC_APP_URL (when behind proxy), request.url.
+ * Set NEXT_PUBLIC_APP_URL in Coolify (e.g. http://your-app.31.97.34.56.sslip.io) so auth cookies use the right domain when the proxy does not send X-Forwarded-Host.
  */
 function getCanonicalHost(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0].trim();
@@ -49,10 +50,26 @@ function getCanonicalHost(request: NextRequest): string {
     const r = request.headers.get("referer");
     if (r) return new URL(r).host;
   } catch {}
-  try {
-    return new URL(request.url).host;
-  } catch {}
-  return "";
+  const requestHost = (() => {
+    try {
+      return new URL(request.url).host;
+    } catch {
+      return "";
+    }
+  })();
+  const isLikelyInternal =
+    !requestHost ||
+    requestHost.startsWith("localhost") ||
+    requestHost.startsWith("127.") ||
+    requestHost.startsWith("10.") ||
+    requestHost.startsWith("172.") ||
+    requestHost.startsWith("192.168.");
+  if (isLikelyInternal && process.env.NEXT_PUBLIC_APP_URL) {
+    try {
+      return new URL(process.env.NEXT_PUBLIC_APP_URL).host;
+    } catch {}
+  }
+  return requestHost;
 }
 
 function withNormalizedHost(request: NextRequest): NextRequest {
