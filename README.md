@@ -25,7 +25,7 @@ LivKit dashboard: Convex auth, Coolify deploy, and LiveKit stack. One app to log
 
 | Variable | Development | Production |
 | -------- | ----------- | ---------- |
-| `NEXT_PUBLIC_CONVEX_URL` | `https://tame-aardvark-57.eu-west-1.convex.cloud` | `https://tidy-ox-195.eu-west-1.convex.cloud` |
+| `NEXT_PUBLIC_CONVEX_URL` | `https://tame-aardvark-57.eu-west-1.convex.cloud` | `https://patient-crocodile-0.eu-west-1.convex.cloud` |
 | `COOLIFY_DEPLOY_WEBHOOK_URL` | (optional) | Coolify webhook URL for LiveKit Stack app |
 | `NEXT_PUBLIC_LIVEKIT_URL` | (optional) | Your LiveKit server URL (e.g. `https://live.yourdomain.com`) |
 
@@ -38,7 +38,7 @@ See [frontend/.env.example](frontend/.env.example) for a template.
 - **Source:** GitHub repo `bennymalonee/livekit`.
 - **Build:** Dockerfile at repo root (builds `frontend/`).
 - **Port:** 3000.
-- **Environment:** Set `NEXT_PUBLIC_CONVEX_URL` to the **production** Convex URL: `https://tidy-ox-195.eu-west-1.convex.cloud`.
+- **Environment:** Set `NEXT_PUBLIC_CONVEX_URL` to the **production** Convex URL: `https://patient-crocodile-0.eu-west-1.convex.cloud`.
 - Optional: set `COOLIFY_DEPLOY_WEBHOOK_URL` and `NEXT_PUBLIC_LIVEKIT_URL` for the Deploy page.
 - **Health check (fix "Unhealthy" in Coolify):** In Coolify, open the Dashboard app → **Health Check**, enable it and set **path** to `/api/health` and **port** to `3000`. The app skips auth for this path so the check always gets HTTP 200. Optionally the Dockerfile defines a container HEALTHCHECK; Coolify’s own check is usually enough.
 - **Login / "Go to dashboard" not working (Convex logs show auth success):** The app needs the **public host** so the auth cookie is set and sent correctly. In Coolify, for the Dashboard app, set the proxy to forward **Host** or **X-Forwarded-Host** to your public domain (e.g. `your-app.sslip.io`). The app also waits ~1.2s after sign-in so the Convex Auth Next.js client can sync the token to the server cookie before redirecting.
@@ -60,12 +60,13 @@ See [frontend/.env.example](frontend/.env.example) for a template.
   cd frontend
   npm run convex:deploy
   ```
-- Use the production deployment (e.g. `tidy-ox-195`) and set `NEXT_PUBLIC_CONVEX_URL` in Coolify to the production Cloud URL.
+- Use the production deployment (`patient-crocodile-0`) and set `NEXT_PUBLIC_CONVEX_URL` in Coolify to the production Cloud URL.
 
 ## Convex
 
 - **Development:** `tame-aardvark-57` — Cloud URL: `https://tame-aardvark-57.eu-west-1.convex.cloud`
-- **Production:** `tidy-ox-195` — Cloud URL: `https://tidy-ox-195.eu-west-1.convex.cloud`
+- **Production:** `patient-crocodile-0` — Cloud URL: `https://patient-crocodile-0.eu-west-1.convex.cloud`, HTTP Actions: `https://patient-crocodile-0.eu-west-1.convex.site`  
+  First-time setup: see [frontend/CONVEX_PRODUCTION_SETUP.md](frontend/CONVEX_PRODUCTION_SETUP.md).
 
 From `frontend/`: `npm run convex:dev` (dev), `npm run convex:deploy` (prod), `npm run convex:codegen` (regenerate API).
 
