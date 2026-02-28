@@ -4,13 +4,11 @@ COPY frontend/ ./
 RUN npm ci && npm run build
 
 FROM node:20-alpine AS runner
-RUN apk add --no-cache wget
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=10s --start-period=25s --retries=3 \
-  CMD ["wget", "-q", "-O", "/dev/null", "--timeout=5", "http://127.0.0.1:3000/api/health"]
+# No in-image HEALTHCHECK: use Coolify Health Check (path /api/health, port 3000) so the probe runs from outside the container.
 CMD ["node", "server.js"]
