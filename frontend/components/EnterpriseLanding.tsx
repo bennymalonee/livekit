@@ -4,20 +4,18 @@ import Link from "next/link";
 import { useAuthToken, useAuthActions } from "@convex-dev/auth/react";
 import { APP_NAV_STRUCTURE } from "@/lib/app-nav";
 
+type NavLink = { label: string; path: string; icon: string; requireAuth?: boolean; guestOnly?: boolean; signOut?: boolean };
+
 export function EnterpriseLanding() {
   const token = useAuthToken();
   const { signOut } = useAuthActions();
   const isAuthenticated = token != null;
 
-  // All in-app links that require auth (for landing nav when logged in)
-  const authNavLinks = APP_NAV_STRUCTURE.flatMap((group) =>
-    group.links.filter(
-      (link) => "requireAuth" in link && link.requireAuth && !("signOut" in link && link.signOut)
-    )
+  const allLinks = APP_NAV_STRUCTURE.flatMap((group) => group.links) as NavLink[];
+  const authNavLinks = allLinks.filter(
+    (link) => link.requireAuth && !link.signOut
   );
-  const signOutLink = APP_NAV_STRUCTURE.flatMap((g) => g.links).find(
-    (l) => "signOut" in l && l.signOut
-  );
+  const signOutLink = allLinks.find((l) => l.signOut);
 
   return (
     <>
