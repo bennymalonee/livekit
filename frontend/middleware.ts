@@ -72,6 +72,10 @@ export default async function middleware(
   request: NextRequest,
   event: { request: NextRequest }
 ) {
+  // Skip auth for health check so Coolify/lb always get 200 without hitting Convex
+  if (request.nextUrl.pathname === "/api/health") {
+    return NextResponse.next();
+  }
   const normalized = withNormalizedHost(request);
   return authMiddleware(normalized, event as any);
 }
