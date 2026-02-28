@@ -53,6 +53,7 @@ See [frontend/.env.example](frontend/.env.example) for a template.
   - **Base directory:** `deploy`.
 - After the app is created, open its **Settings** and copy the **Deploy webhook URL**.
 - In the **Dashboard app** (first app), add an environment variable: `COOLIFY_DEPLOY_WEBHOOK_URL` = that webhook URL. Redeploy the dashboard so the "Deploy LiveKit to VPS" button triggers the LiveKit stack deploy.
+- **Or** the LiveKit Stack may already exist in Coolify (name: livekit-stack). Full Coolify setup, API-token option, and using LiveKit in your app: see [docs/LIVEKIT-COOLIFY-SETUP.md](docs/LIVEKIT-COOLIFY-SETUP.md).
 
 ### 3. Convex production
 

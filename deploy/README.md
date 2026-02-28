@@ -71,3 +71,7 @@ docker compose -f /opt/livekit/docker-compose.yml logs -f livekit-server
 ## TLS (Not Self-Signed)
 
 Use Let's Encrypt. See `certs/README.md`.
+
+## Using LiveKit from your app (token generation)
+
+If you deployed via **Coolify** (see [docs/LIVEKIT-COOLIFY-SETUP.md](../docs/LIVEKIT-COOLIFY-SETUP.md)), copy **LIVEKIT_API_KEY** and **LIVEKIT_API_SECRET** from the livekit-stack app's environment in Coolify. Set them in your backend (e.g. Convex env or server config) and use the LiveKit server SDK to create access tokens; never expose the secret to the client. The app connects to the LiveKit URL (e.g. `ws://your-vps-ip:7880` or `NEXT_PUBLIC_LIVEKIT_URL`).
