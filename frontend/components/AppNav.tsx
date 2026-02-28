@@ -6,6 +6,26 @@ import { useState, useCallback } from "react";
 import { useAuthToken, useAuthActions } from "@convex-dev/auth/react";
 import { APP_NAV_STRUCTURE } from "@/lib/app-nav";
 
+/** Routes where the hamburger (dashboard nav) is shown. Hidden on landing (/) so landing has only its own nav. */
+const SHOW_HAMBURGER_PATHNAMES = [
+  "/login",
+  "/signup",
+  "/dashboard",
+  "/deploy",
+  "/analytics",
+  "/sessions",
+  "/nodes",
+  "/modules",
+  "/vault",
+  "/terminal",
+  "/diagnostics",
+];
+
+function pathnameShowsHamburger(pathname: string): boolean {
+  if (pathname === "/") return false;
+  return SHOW_HAMBURGER_PATHNAMES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
 export function AppNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -18,6 +38,10 @@ export function AppNav() {
   function handleSignOut() {
     close();
     void signOut();
+  }
+
+  if (!pathnameShowsHamburger(pathname ?? "")) {
+    return null;
   }
 
   return (

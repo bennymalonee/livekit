@@ -1,21 +1,37 @@
 "use client";
 
 import Link from "next/link";
+import { useAuthToken, useAuthActions } from "@convex-dev/auth/react";
+import { APP_NAV_STRUCTURE } from "@/lib/app-nav";
 
 export function EnterpriseLanding() {
+  const token = useAuthToken();
+  const { signOut } = useAuthActions();
+  const isAuthenticated = token != null;
+
+  // All in-app links that require auth (for landing nav when logged in)
+  const authNavLinks = APP_NAV_STRUCTURE.flatMap((group) =>
+    group.links.filter(
+      (link) => "requireAuth" in link && link.requireAuth && !("signOut" in link && link.signOut)
+    )
+  );
+  const signOutLink = APP_NAV_STRUCTURE.flatMap((g) => g.links).find(
+    (l) => "signOut" in l && l.signOut
+  );
+
   return (
     <>
       <nav className="fixed top-0 w-full z-50 glass-panel border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 group cursor-pointer">
+          <Link href="/" className="flex items-center gap-3 group cursor-pointer">
             <span className="material-icons text-primary text-3xl group-hover:animate-pulse shadow-primary drop-shadow-[0_0_8px_rgba(255,77,0,0.8)]">
               bolt
             </span>
             <span className="font-display font-bold text-xl tracking-widest text-white">
               LIVKIT
             </span>
-          </div>
-          <div className="hidden md:flex items-center gap-8">
+          </Link>
+          <div className="hidden md:flex items-center gap-6">
             <a
               className="text-sm font-medium tracking-wide hover:text-primary transition-colors text-gray-400 hover:drop-shadow-[0_0_5px_rgba(255,77,0,0.5)]"
               href="#infrastructure"
@@ -40,29 +56,79 @@ export function EnterpriseLanding() {
             >
               PRICING
             </a>
-            <Link href="/dashboard" className="text-sm font-medium tracking-wide hover:text-primary transition-colors text-gray-400">Dashboard</Link>
-            <Link href="/analytics" className="text-sm font-medium tracking-wide hover:text-primary transition-colors text-gray-400">Statistics</Link>
-            <Link href="/sessions" className="text-sm font-medium tracking-wide hover:text-primary transition-colors text-gray-400">Support</Link>
-            <Link href="/vault" className="text-sm font-medium tracking-wide hover:text-primary transition-colors text-gray-400">Settings</Link>
+            {isAuthenticated ? (
+              <>
+                {authNavLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    href={link.path}
+                    className="text-sm font-medium tracking-wide hover:text-primary transition-colors text-gray-400 hover:drop-shadow-[0_0_5px_rgba(255,77,0,0.5)]"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm font-medium tracking-wide hover:text-primary transition-colors text-gray-400 hover:drop-shadow-[0_0_5px_rgba(255,77,0,0.5)]"
+                >
+                  SIGN IN
+                </Link>
+                <Link
+                  href="/signup"
+                  className="text-sm font-medium tracking-wide hover:text-primary transition-colors text-gray-400 hover:drop-shadow-[0_0_5px_rgba(255,77,0,0.5)]"
+                >
+                  SIGN UP
+                </Link>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <button
               type="button"
               className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              aria-label="Search"
             >
               <span className="material-icons text-gray-400 text-sm">search</span>
             </button>
-            <Link
-              href="/dashboard"
-              className="hidden sm:flex items-center gap-2 bg-surface-dark border border-white/10 hover:border-primary/50 hover:shadow-[0_0_15px_rgba(255,77,0,0.3)] px-4 py-2 rounded-lg transition-all duration-300 group"
-            >
-              <span className="text-xs font-bold tracking-widest text-white">
-                CONSOLE
-              </span>
-              <span className="material-icons text-primary text-xs group-hover:translate-x-1 transition-transform">
-                arrow_forward
-              </span>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="hidden sm:flex items-center gap-2 bg-surface-dark border border-white/10 hover:border-primary/50 hover:shadow-[0_0_15px_rgba(255,77,0,0.3)] px-4 py-2 rounded-lg transition-all duration-300 group"
+                >
+                  <span className="text-xs font-bold tracking-widest text-white">
+                    CONSOLE
+                  </span>
+                  <span className="material-icons text-primary text-xs group-hover:translate-x-1 transition-transform">
+                    arrow_forward
+                  </span>
+                </Link>
+                {signOutLink && (
+                  <button
+                    type="button"
+                    onClick={() => void signOut()}
+                    className="hidden sm:flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-primary transition-colors"
+                  >
+                    SIGN OUT
+                  </button>
+                )}
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden sm:flex items-center gap-2 bg-surface-dark border border-white/10 hover:border-primary/50 hover:shadow-[0_0_15px_rgba(255,77,0,0.3)] px-4 py-2 rounded-lg transition-all duration-300 group"
+              >
+                <span className="text-xs font-bold tracking-widest text-white">
+                  CONSOLE
+                </span>
+                <span className="material-icons text-primary text-xs group-hover:translate-x-1 transition-transform">
+                  arrow_forward
+                </span>
+              </Link>
+            )}
           </div>
         </div>
       </nav>
@@ -96,26 +162,53 @@ export function EnterpriseLanding() {
               Deploy instantly on the world&apos;s most advanced edge network. Ultra-low latency streaming hubs across 40+ global regions. Built for the next generation of data flow and enterprise applications.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start flex-wrap">
-              <Link
-                href="/deploy"
-                className="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-orange-600 text-white font-bold tracking-widest rounded-lg shadow-[0_0_20px_rgba(255,77,0,0.4)] hover:shadow-[0_0_30px_rgba(255,77,0,0.6)] transition-all hover:scale-105 flex items-center justify-center gap-2 group border border-primary/50"
-              >
-                <span>DEPLOY NODE</span>
-                <span className="material-icons text-sm group-hover:translate-x-1 transition-transform">bolt</span>
-              </Link>
-              <Link
-                href="/nodes"
-                className="w-full sm:w-auto px-8 py-4 bg-primary/20 hover:bg-primary/30 text-white font-bold rounded-lg border border-primary/40 hover:scale-105 transition-all flex items-center justify-center gap-2"
-              >
-                Initialize Node <span className="material-icons text-sm">arrow_forward</span>
-              </Link>
-              <Link
-                href="/dashboard"
-                className="w-full sm:w-auto px-8 py-4 bg-transparent border border-gray-700 hover:border-primary text-white font-medium tracking-widest rounded-lg transition-all hover:shadow-[0_0_15px_rgba(255,77,0,0.2)] flex items-center justify-center gap-2"
-              >
-                <span>VIEW DOCS</span>
-                <span className="font-mono text-xs opacity-50">-&gt;</span>
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    href="/deploy"
+                    className="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-orange-600 text-white font-bold tracking-widest rounded-lg shadow-[0_0_20px_rgba(255,77,0,0.4)] hover:shadow-[0_0_30px_rgba(255,77,0,0.6)] transition-all hover:scale-105 flex items-center justify-center gap-2 group border border-primary/50"
+                  >
+                    <span>DEPLOY NODE</span>
+                    <span className="material-icons text-sm group-hover:translate-x-1 transition-transform">bolt</span>
+                  </Link>
+                  <Link
+                    href="/nodes"
+                    className="w-full sm:w-auto px-8 py-4 bg-primary/20 hover:bg-primary/30 text-white font-bold rounded-lg border border-primary/40 hover:scale-105 transition-all flex items-center justify-center gap-2"
+                  >
+                    Initialize Node <span className="material-icons text-sm">arrow_forward</span>
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className="w-full sm:w-auto px-8 py-4 bg-transparent border border-gray-700 hover:border-primary text-white font-medium tracking-widest rounded-lg transition-all hover:shadow-[0_0_15px_rgba(255,77,0,0.2)] flex items-center justify-center gap-2"
+                  >
+                    <span>DASHBOARD</span>
+                    <span className="font-mono text-xs opacity-50">-&gt;</span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/signup"
+                    className="w-full sm:w-auto px-8 py-4 bg-primary hover:bg-orange-600 text-white font-bold tracking-widest rounded-lg shadow-[0_0_20px_rgba(255,77,0,0.4)] hover:shadow-[0_0_30px_rgba(255,77,0,0.6)] transition-all hover:scale-105 flex items-center justify-center gap-2 group border border-primary/50"
+                  >
+                    <span>GET STARTED</span>
+                    <span className="material-icons text-sm group-hover:translate-x-1 transition-transform">bolt</span>
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="w-full sm:w-auto px-8 py-4 bg-primary/20 hover:bg-primary/30 text-white font-bold rounded-lg border border-primary/40 hover:scale-105 transition-all flex items-center justify-center gap-2"
+                  >
+                    Sign in <span className="material-icons text-sm">arrow_forward</span>
+                  </Link>
+                  <Link
+                    href="#pricing"
+                    className="w-full sm:w-auto px-8 py-4 bg-transparent border border-gray-700 hover:border-primary text-white font-medium tracking-widest rounded-lg transition-all hover:shadow-[0_0_15px_rgba(255,77,0,0.2)] flex items-center justify-center gap-2"
+                  >
+                    <span>PRICING</span>
+                    <span className="font-mono text-xs opacity-50">-&gt;</span>
+                  </Link>
+                </>
+              )}
             </div>
             <div className="pt-8 flex items-center justify-center lg:justify-start gap-8 border-t border-white/10">
               <div>
@@ -205,9 +298,15 @@ export function EnterpriseLanding() {
               <h2 className="font-display font-bold text-3xl md:text-4xl text-white mb-2">SYSTEM ARCHITECTURE</h2>
               <p className="text-gray-400 font-light">Visualizing data propagation through edge nodes.</p>
             </div>
-            <Link href="/dashboard" className="text-primary hover:text-white flex items-center gap-2 font-mono text-sm transition-colors hover:drop-shadow-[0_0_5px_#ff4d00]">
-              FULL TOPOLOGY <span className="material-icons text-sm">open_in_new</span>
-            </Link>
+            {isAuthenticated ? (
+              <Link href="/dashboard" className="text-primary hover:text-white flex items-center gap-2 font-mono text-sm transition-colors hover:drop-shadow-[0_0_5px_#ff4d00]">
+                FULL TOPOLOGY <span className="material-icons text-sm">open_in_new</span>
+              </Link>
+            ) : (
+              <Link href="/login" className="text-primary hover:text-white flex items-center gap-2 font-mono text-sm transition-colors hover:drop-shadow-[0_0_5px_#ff4d00]">
+                SIGN IN TO VIEW <span className="material-icons text-sm">open_in_new</span>
+              </Link>
+            )}
           </div>
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="glass-panel p-6 rounded-2xl bg-surface-dark border border-white/10 hover:border-primary/50 transition-all duration-300 group">
@@ -379,9 +478,15 @@ export function EnterpriseLanding() {
                   <span className="text-gray-300">Automated load balancing</span>
                 </li>
               </ul>
-              <Link href="/dashboard" className="inline-flex items-center gap-2 text-primary font-bold tracking-wider hover:gap-4 transition-all hover:text-orange-400 hover:drop-shadow-[0_0_5px_rgba(255,77,0,0.5)]">
-                EXPLORE DASHBOARD <span className="material-icons text-sm">arrow_forward</span>
-              </Link>
+              {isAuthenticated ? (
+                <Link href="/dashboard" className="inline-flex items-center gap-2 text-primary font-bold tracking-wider hover:gap-4 transition-all hover:text-orange-400 hover:drop-shadow-[0_0_5px_rgba(255,77,0,0.5)]">
+                  EXPLORE DASHBOARD <span className="material-icons text-sm">arrow_forward</span>
+                </Link>
+              ) : (
+                <Link href="/login" className="inline-flex items-center gap-2 text-primary font-bold tracking-wider hover:gap-4 transition-all hover:text-orange-400 hover:drop-shadow-[0_0_5px_rgba(255,77,0,0.5)]">
+                  SIGN IN TO EXPLORE <span className="material-icons text-sm">arrow_forward</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -483,18 +588,37 @@ export function EnterpriseLanding() {
             Join the network that powers the next generation of real-time applications. Start deploying nodes in seconds.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link
-              href="/signup"
-              className="px-8 py-4 bg-primary hover:bg-orange-600 text-white font-bold tracking-widest rounded-lg shadow-[0_0_25px_rgba(255,77,0,0.5)] transition-all transform hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(255,77,0,0.7)] border border-primary"
-            >
-              START FREE TRIAL
-            </Link>
-            <Link
-              href="/dashboard"
-              className="px-8 py-4 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white font-medium tracking-widest rounded-lg transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-            >
-              CONTACT SALES
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="px-8 py-4 bg-primary hover:bg-orange-600 text-white font-bold tracking-widest rounded-lg shadow-[0_0_25px_rgba(255,77,0,0.5)] transition-all transform hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(255,77,0,0.7)] border border-primary"
+                >
+                  GO TO DASHBOARD
+                </Link>
+                <Link
+                  href="/deploy"
+                  className="px-8 py-4 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white font-medium tracking-widest rounded-lg transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                >
+                  DEPLOY NODE
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/signup"
+                  className="px-8 py-4 bg-primary hover:bg-orange-600 text-white font-bold tracking-widest rounded-lg shadow-[0_0_25px_rgba(255,77,0,0.5)] transition-all transform hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(255,77,0,0.7)] border border-primary"
+                >
+                  START FREE TRIAL
+                </Link>
+                <Link
+                  href="/login"
+                  className="px-8 py-4 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white font-medium tracking-widest rounded-lg transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                >
+                  SIGN IN
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
