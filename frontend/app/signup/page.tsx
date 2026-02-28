@@ -1,25 +1,35 @@
 "use client";
 
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useAuthActions, useAuthToken } from "@convex-dev/auth/react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getAuthErrorMessage, getAuthErrorHint } from "@/lib/authErrors";
 
 const LOGIN_REDIRECT_KEY = "login_redirect_pending";
+const DASHBOARD_PATH = "/dashboard";
+const REDIRECT_FALLBACK_MS = 4000;
 
 export default function SignupPage() {
   const { signIn } = useAuthActions();
+  const token = useAuthToken();
   const [step, setStep] = useState<"signUp" | "signIn">("signUp");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [showDashboardLink, setShowDashboardLink] = useState(false);
+  const fallbackDone = useRef(false);
 
   useEffect(() => {
     if (typeof window !== "undefined" && sessionStorage.getItem(LOGIN_REDIRECT_KEY)) {
       setShowDashboardLink(true);
     }
   }, []);
+
+  // Redirect as soon as client has token (doesn't rely on server cookie)
+  useEffect(() => {
+    if (!redirecting || !token) return;
+    window.location.replace(DASHBOARD_PATH);
+  }, [redirecting, token]);
 
   function clearRedirectFlag() {
     if (typeof window !== "undefined") sessionStorage.removeItem(LOGIN_REDIRECT_KEY);
@@ -28,8 +38,7 @@ export default function SignupPage() {
   function goToDashboard() {
     if (typeof window !== "undefined") sessionStorage.setItem(LOGIN_REDIRECT_KEY, "1");
     setRedirecting(true);
-    const target = "/dashboard";
-    const maxAttempts = 50; // ~20s at 400ms
+    const maxAttempts = 50;
     let attempts = 0;
     const poll = () => {
       attempts += 1;
@@ -37,7 +46,7 @@ export default function SignupPage() {
         .then((r) => r.json())
         .then((data) => {
           if (data.authenticated === true) {
-            window.location.replace(target);
+            window.location.replace(DASHBOARD_PATH);
             return;
           }
           if (attempts < maxAttempts) setTimeout(poll, 400);
@@ -46,8 +55,13 @@ export default function SignupPage() {
           if (attempts < maxAttempts) setTimeout(poll, 400);
         });
     };
-    // Wait for auth cookie to be set before first check
     setTimeout(poll, 300);
+    // Fallback: if token/cookie never ready (e.g. proxy/cookie issues), still try navigating
+    setTimeout(() => {
+      if (fallbackDone.current) return;
+      fallbackDone.current = true;
+      window.location.replace(DASHBOARD_PATH);
+    }, REDIRECT_FALLBACK_MS);
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
