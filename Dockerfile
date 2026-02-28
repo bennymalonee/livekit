@@ -10,5 +10,6 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 EXPOSE 3000
-# No in-image HEALTHCHECK: use Coolify Health Check (path /api/health, port 3000) so the probe runs from outside the container.
+# No-op HEALTHCHECK so Coolify's inspect .State.Health exists; use Coolify UI health check (path /api/health, port 3000) for real checks.
+HEALTHCHECK --interval=30s --timeout=1s --start-period=0s --retries=1 CMD ["true"]
 CMD ["node", "server.js"]
