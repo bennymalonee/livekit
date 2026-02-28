@@ -29,8 +29,8 @@ const authMiddleware = convexAuthNextjsMiddleware(
   },
   {
     convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL,
-    // Persist cookie so it survives refresh; server can read it for middleware
     cookieConfig: { maxAge: 60 * 60 * 24 * 7 }, // 7 days
+    verbose: false, // avoid "Unexpected missing refreshToken cookie" log spam when proxy/cookie domain differs
   }
 );
 

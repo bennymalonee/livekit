@@ -29,7 +29,7 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="bg-background-dark text-gray-200 font-body antialiased selection:bg-primary selection:text-white">
-        <ConvexAuthNextjsServerProvider>
+        <ConvexAuthNextjsServerProvider verbose={false}>
           <ConvexClientProvider>
             <AppNav />
             {children}

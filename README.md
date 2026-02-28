@@ -42,6 +42,7 @@ See [frontend/.env.example](frontend/.env.example) for a template.
 - Optional: set `COOLIFY_DEPLOY_WEBHOOK_URL` and `NEXT_PUBLIC_LIVEKIT_URL` for the Deploy page.
 - **Health check (fix "Unhealthy" in Coolify):** In Coolify, open the Dashboard app → **Health Check**, enable it and set **path** to `/api/health` and **port** to `3000`. The app skips auth for this path so the check always gets HTTP 200. Optionally the Dockerfile defines a container HEALTHCHECK; Coolify’s own check is usually enough.
 - **Login / "Go to dashboard" not working (Convex logs show auth success):** The app needs the **public host** so the auth cookie is set and sent correctly. In Coolify, for the Dashboard app, set the proxy to forward **Host** or **X-Forwarded-Host** to your public domain (e.g. `your-app.sslip.io`). The app also waits ~1.2s after sign-in so the Convex Auth Next.js client can sync the token to the server cookie before redirecting.
+- **"Unexpected missing refreshToken cookie during client refresh" in logs:** This appears when the server doesn’t receive the auth cookie (e.g. proxy not forwarding the public host). Ensure the proxy forwards **X-Forwarded-Host** (and **X-Forwarded-Proto** if using HTTPS) so cookies are set for the correct domain. Verbose auth logging is disabled by default to reduce log noise.
 
 ### 2. LiveKit Stack app (Docker Compose)
 
