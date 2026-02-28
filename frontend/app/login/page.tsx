@@ -11,6 +11,16 @@ const REDIRECT_FALLBACK_MS = 4000;
 // Give Convex Auth Next.js time to sync token -> server cookie before full-page nav
 const COOKIE_SYNC_DELAY_MS = 1200;
 
+/** Use app's public URL for dashboard so cookies (same origin) are sent; avoids wrong host after "Leave site?" */
+function getDashboardUrl(): string {
+  if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_APP_URL) {
+    try {
+      return new URL(DASHBOARD_PATH, process.env.NEXT_PUBLIC_APP_URL).href;
+    } catch {}
+  }
+  return DASHBOARD_PATH;
+}
+
 export default function LoginPage() {
   const { signIn } = useAuthActions();
   const token = useAuthToken();
@@ -29,11 +39,11 @@ export default function LoginPage() {
   }, []);
 
   // Redirect after token is present and auth provider had time to sync cookie to server.
-  // This runs both after explicit sign-in and when token appears from an already-active session.
+  // Use full app URL so the same-origin request sends auth cookies (avoids ending up back on /login after "Leave site?").
   useEffect(() => {
     if (!token || !redirecting) return;
     const t = setTimeout(() => {
-      window.location.replace(DASHBOARD_PATH);
+      window.location.replace(getDashboardUrl());
     }, COOKIE_SYNC_DELAY_MS);
     return () => clearTimeout(t);
   }, [redirecting, token]);
@@ -60,7 +70,7 @@ export default function LoginPage() {
         .then((r) => r.json())
         .then((data) => {
           if (data.authenticated === true) {
-            window.location.replace(DASHBOARD_PATH);
+            window.location.replace(getDashboardUrl());
             return;
           }
           if (attempts < maxAttempts) setTimeout(poll, 400);
@@ -70,11 +80,11 @@ export default function LoginPage() {
         });
     };
     setTimeout(poll, 300);
-    // Fallback: if token/cookie never ready (e.g. proxy/cookie issues), still try navigating
+    // Fallback: if token/cookie never ready (e.g. proxy/cookie issues), still try navigating with full URL
     setTimeout(() => {
       if (fallbackDone.current) return;
       fallbackDone.current = true;
-      window.location.replace(DASHBOARD_PATH);
+      window.location.replace(getDashboardUrl());
     }, REDIRECT_FALLBACK_MS);
   }
 
@@ -85,6 +95,7 @@ export default function LoginPage() {
     try {
       const formData = new FormData(e.currentTarget);
       await signIn("password", formData);
+      e.currentTarget.reset(); // Clear form so browser is less likely to show "Leave site?"
       goToDashboard();
     } catch (err) {
       const raw = err instanceof Error ? err.message : "Sign in failed";
@@ -100,7 +111,7 @@ export default function LoginPage() {
           <div className="mb-4 rounded-md bg-amber-950/50 border border-amber-700 p-3 text-center space-y-2">
             <p className="text-amber-200 text-sm">You are signed in.</p>
             <a
-              href="/dashboard"
+              href={getDashboardUrl()}
               onClick={clearRedirectFlag}
               className="text-amber-400 font-medium hover:underline underline-offset-2 block"
             >
@@ -110,7 +121,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => {
                 clearRedirectFlag();
-                window.location.href = "/dashboard";
+                window.location.href = getDashboardUrl();
               }}
               className="w-full rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500"
             >
@@ -157,13 +168,13 @@ export default function LoginPage() {
         </form>
         {(redirecting || showDashboardLink) && (
           <p className="mt-4 text-center text-sm text-amber-400">
-            <a href="/dashboard" onClick={clearRedirectFlag} className="hover:underline">
+            <a href={getDashboardUrl()} onClick={clearRedirectFlag} className="hover:underline">
               {showDashboardLink ? "Open dashboard" : "Click here if you are not redirected"}
             </a>
             {" · "}
             <button
               type="button"
-              onClick={() => { clearRedirectFlag(); window.location.href = "/dashboard"; }}
+              onClick={() => { clearRedirectFlag(); window.location.href = getDashboardUrl(); }}
               className="underline hover:no-underline"
             >
               Go now

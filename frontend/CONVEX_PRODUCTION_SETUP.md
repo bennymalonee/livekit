@@ -47,10 +47,14 @@ Redeploy the app after changing env vars.
 
 ## 5. If login fails on the deployed app (redirects back to /login)
 
-1. **Convex Dashboard** → your project → **production** deployment → **Settings** → **Environment variables**
-   - Set **CONVEX_SITE_URL** to the **exact public URL of your app** (same as `NEXT_PUBLIC_APP_URL`, e.g. `http://z4ww800cw0sw0g8gsw0w8ckg.31.97.34.56.sslip.io`). If your dashboard does not allow editing CONVEX_SITE_URL, add your app URL under **Allowed origins** / **Trusted domains** if available.
-2. Ensure **JWT_PRIVATE_KEY** and **JWKS** are set on the production deployment (run `npm run convex:auth:env -- --prod` from `frontend/`).
-3. Redeploy the Next.js app after adding `NEXT_PUBLIC_APP_URL` in Coolify so the auth middleware can use it for cookie host when the proxy does not send `X-Forwarded-Host`.
+**Note:** **CONVEX_SITE_URL** is a built-in Convex variable and cannot be overridden in Environment variables. You will see "Environment variable with name CONVEX_SITE_URL is built-in and cannot be overridden" if you try. Ignore that; you do not need to set it.
+
+Do this instead:
+
+1. Ensure **JWT_PRIVATE_KEY** and **JWKS** are set on the production deployment (run `npm run convex:auth:env -- --prod` from `frontend/`).
+2. In Coolify, set **NEXT_PUBLIC_APP_URL** to your app’s public URL (e.g. `http://z4ww800cw0sw0g8gsw0w8ckg.31.97.34.56.sslip.io`) and redeploy. The middleware uses this to rewrite the request origin so auth cookies use the correct domain.
+3. **Always open the app using that same public URL.** If you use an IP address or a different host, cookies will not match and login will not persist.
+4. If your reverse proxy (e.g. Traefik/Caddy) can forward headers, set **X-Forwarded-Host** and **X-Forwarded-Proto** to the public host and scheme so the middleware sees the correct origin.
 
 ## 6. Create your first user (optional)
 

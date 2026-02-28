@@ -53,12 +53,7 @@ To create your account in **production** (`patient-crocodile-0`) so you can late
 For login/signup to work on the deployed app (e.g. `http://z4ww800cw0sw0g8gsw0w8ckg.31.97.34.56.sslip.io`), do the following.
 
 - In **Convex Dashboard** → your project → **production** deployment (**patient-crocodile-0**) → **Settings** → **Environment variables**:
-  - Set **CONVEX_SITE_URL** to the **exact public URL of your app** (same URL you use in the browser), e.g.:
-    ```text
-    http://z4ww800cw0sw0g8gsw0w8ckg.31.97.34.56.sslip.io
-    ```
-    That way Convex Auth accepts requests from your app’s origin and cookies work.
-  - If the dashboard does not let you change CONVEX_SITE_URL, look for **Allowed origins** or **Trusted domains** and add your app URL there.
+  - **CONVEX_SITE_URL** is built-in and cannot be set in the dashboard (you will see an error if you try). You do not need to set it.
 
 - In **Coolify**, set for the dashboard app:
   - **NEXT_PUBLIC_APP_URL** = that same app URL (so the auth middleware can set cookies for the right host when behind a proxy). Then redeploy.

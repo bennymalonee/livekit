@@ -9,7 +9,9 @@ The **LiveKit Stack** app in Coolify runs the LiveKit server + Redis from this r
 - **Repo:** bennymalonee/livekit, branch main  
 - **Build pack:** Docker Compose  
 
-If the first deploy fails (e.g. "compose file not found"), in Coolify open the **livekit-stack** app → **Configuration** / **Build** and set **Base directory** to `deploy` and **Docker Compose path** to `docker-compose.yml`, then redeploy.
+If you see "Docker Compose file not found at: /deploy/deploy/docker-compose.yml", the compose path is wrong. In Coolify open **livekit-stack** → **Configuration** / **Build** and set **Base directory** to `deploy` and **Docker Compose path** to `docker-compose.yml` (not `deploy/docker-compose.yml` — Coolify joins base dir + path, so this resolves to `deploy/docker-compose.yml` in the repo). Then redeploy.
+
+**If the app shows "Degraded (unhealthy)":** LiveKit does not expose an HTTP health endpoint (it uses WebSocket on port 7880). In Coolify open **livekit-stack** → **Health Check** and **disable** the health check so Coolify does not mark the app unhealthy. If the app is not running at all, check **Logs** for errors (e.g. missing env vars or invalid `livekit.yaml`); ensure all env vars (`LIVEKIT_PUBLIC_IP`, `REDIS_PASSWORD`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `TURN_HOST`, `TURN_CREDENTIAL`, `LIVEKIT_REGION`) are set on the app.
 
 ## "Deploy LiveKit to VPS" button
 

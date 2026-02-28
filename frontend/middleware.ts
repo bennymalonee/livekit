@@ -18,6 +18,10 @@ const isProtectedRoute = createRouteMatcher([
   "/diagnostics(.*)",
 ]);
 
+const isHttpApp =
+  typeof process.env.NEXT_PUBLIC_APP_URL === "string" &&
+  process.env.NEXT_PUBLIC_APP_URL.startsWith("http://");
+
 const authMiddleware = convexAuthNextjsMiddleware(
   async (request, { convexAuth }) => {
     if (isAuthPage(request) && (await convexAuth.isAuthenticated())) {
@@ -29,26 +33,33 @@ const authMiddleware = convexAuthNextjsMiddleware(
   },
   {
     convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL,
-    cookieConfig: { maxAge: 60 * 60 * 24 * 7 }, // 7 days
+    cookieConfig: {
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      ...(isHttpApp && { secure: false }), // allow cookie over HTTP when app URL is http
+    },
     verbose: false, // avoid "Unexpected missing refreshToken cookie" log spam when proxy/cookie domain differs
   }
 );
 
 /**
- * Resolve the public host so cookie names and CORS match (set and read use same Host).
- * Order: X-Forwarded-Host, Origin, Referer, NEXT_PUBLIC_APP_URL (when behind proxy), request.url.
- * Set NEXT_PUBLIC_APP_URL in Coolify (e.g. http://your-app.31.97.34.56.sslip.io) so auth cookies use the right domain when the proxy does not send X-Forwarded-Host.
+ * Resolve the public host and protocol so cookie domain and request URL match the app's public origin.
+ * Order: X-Forwarded-Host / X-Forwarded-Proto, Origin, Referer, NEXT_PUBLIC_APP_URL (when behind proxy), request.url.
+ * Set NEXT_PUBLIC_APP_URL in Coolify so auth cookies use the right domain when the proxy does not send forwarded headers.
  */
-function getCanonicalHost(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0].trim();
-  if (forwarded) return forwarded;
+function getCanonicalOrigin(request: NextRequest): string | null {
+  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0].trim();
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0].trim();
+  if (forwardedHost) {
+    const proto = forwardedProto === "https" ? "https" : "http";
+    return `${proto}://${forwardedHost}`;
+  }
   try {
     const o = request.headers.get("origin");
-    if (o) return new URL(o).host;
+    if (o) return new URL(o).origin;
   } catch {}
   try {
     const r = request.headers.get("referer");
-    if (r) return new URL(r).host;
+    if (r) return new URL(r).origin;
   } catch {}
   const requestHost = (() => {
     try {
@@ -66,19 +77,27 @@ function getCanonicalHost(request: NextRequest): string {
     requestHost.startsWith("192.168.");
   if (isLikelyInternal && process.env.NEXT_PUBLIC_APP_URL) {
     try {
-      return new URL(process.env.NEXT_PUBLIC_APP_URL).host;
+      return new URL(process.env.NEXT_PUBLIC_APP_URL).origin;
     } catch {}
   }
-  return requestHost;
+  return null;
 }
 
 function withNormalizedHost(request: NextRequest): NextRequest {
-  const currentHost = request.headers.get("host") ?? "";
-  const canonicalHost = getCanonicalHost(request);
-  if (!canonicalHost || canonicalHost === currentHost) return request;
+  const canonicalOrigin = getCanonicalOrigin(request);
+  if (!canonicalOrigin) return request;
+  try {
+    const requestUrl = new URL(request.url);
+    const currentOrigin = `${requestUrl.protocol}//${requestUrl.host}`;
+    if (canonicalOrigin === currentOrigin) return request;
+  } catch {
+    return request;
+  }
   const headers = new Headers(request.headers);
-  headers.set("host", canonicalHost);
-  return new NextRequest(request.url, {
+  headers.set("host", new URL(canonicalOrigin).host);
+  const path = request.nextUrl.pathname + request.nextUrl.search;
+  const publicUrl = canonicalOrigin + path;
+  return new NextRequest(publicUrl, {
     method: request.method,
     headers,
     body: request.body,
