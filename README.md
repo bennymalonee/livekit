@@ -41,7 +41,7 @@ See [frontend/.env.example](frontend/.env.example) for a template.
 - **Environment:** Set `NEXT_PUBLIC_CONVEX_URL` to the **production** Convex URL: `https://tidy-ox-195.eu-west-1.convex.cloud`.
 - Optional: set `COOLIFY_DEPLOY_WEBHOOK_URL` and `NEXT_PUBLIC_LIVEKIT_URL` for the Deploy page.
 - **Health check:** Disabled in the Dockerfile. Leave health check off in Coolify, or enable it in the UI with **path** `/api/health`, **port** `3000` (Coolify will need curl/wget in the image or will run the check from outside).
-- **Login / "Go to dashboard" not working:** The app needs the **public host** so auth cookies work. In Coolify, for the Dashboard app, set the proxy to forward **Host** or **X-Forwarded-Host** to your public domain (e.g. `z4ww800cw0sw0g8gsw0w8ckg.31.97.34.56.sslip.io`). Without this, the app may set and read cookies under different host names and redirects to dashboard fail.
+- **Login / "Go to dashboard" not working (Convex logs show auth success):** The app needs the **public host** so the auth cookie is set and sent correctly. In Coolify, for the Dashboard app, set the proxy to forward **Host** or **X-Forwarded-Host** to your public domain (e.g. `your-app.sslip.io`). The app also waits ~1.2s after sign-in so the Convex Auth Next.js client can sync the token to the server cookie before redirecting.
 
 ### 2. LiveKit Stack app (Docker Compose)
 

@@ -18,14 +18,21 @@ const isProtectedRoute = createRouteMatcher([
   "/diagnostics(.*)",
 ]);
 
-const authMiddleware = convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
-  if (isAuthPage(request) && (await convexAuth.isAuthenticated())) {
-    return nextjsMiddlewareRedirect(request, "/dashboard");
+const authMiddleware = convexAuthNextjsMiddleware(
+  async (request, { convexAuth }) => {
+    if (isAuthPage(request) && (await convexAuth.isAuthenticated())) {
+      return nextjsMiddlewareRedirect(request, "/dashboard");
+    }
+    if (isProtectedRoute(request) && !(await convexAuth.isAuthenticated())) {
+      return nextjsMiddlewareRedirect(request, "/login");
+    }
+  },
+  {
+    convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL,
+    // Persist cookie so it survives refresh; server can read it for middleware
+    cookieConfig: { maxAge: 60 * 60 * 24 * 7 }, // 7 days
   }
-  if (isProtectedRoute(request) && !(await convexAuth.isAuthenticated())) {
-    return nextjsMiddlewareRedirect(request, "/login");
-  }
-});
+);
 
 /**
  * Resolve the public host so cookie names and CORS match (set and read use same Host).

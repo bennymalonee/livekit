@@ -8,6 +8,8 @@ import { getAuthErrorMessage, getAuthErrorHint } from "@/lib/authErrors";
 const LOGIN_REDIRECT_KEY = "login_redirect_pending";
 const DASHBOARD_PATH = "/dashboard";
 const REDIRECT_FALLBACK_MS = 4000;
+// Give Convex Auth Next.js time to sync token -> server cookie before full-page nav
+const COOKIE_SYNC_DELAY_MS = 1200;
 
 export default function LoginPage() {
   const { signIn } = useAuthActions();
@@ -25,10 +27,13 @@ export default function LoginPage() {
     }
   }, []);
 
-  // Redirect as soon as client has token (doesn't rely on server cookie)
+  // Redirect after token is present and auth provider had time to sync cookie to server
   useEffect(() => {
     if (!redirecting || !token) return;
-    window.location.replace(DASHBOARD_PATH);
+    const t = setTimeout(() => {
+      window.location.replace(DASHBOARD_PATH);
+    }, COOKIE_SYNC_DELAY_MS);
+    return () => clearTimeout(t);
   }, [redirecting, token]);
 
   function clearRedirectFlag() {
