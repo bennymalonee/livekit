@@ -21,6 +21,13 @@ function getDashboardUrl(): string {
   return DASHBOARD_PATH;
 }
 
+type AuthDiagnostic = {
+  authenticated: boolean;
+  requestHost?: string;
+  forwardedHost?: string;
+  error?: string;
+} | null;
+
 export default function LoginPage() {
   const { signIn } = useAuthActions();
   const token = useAuthToken();
@@ -29,6 +36,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [showDashboardLink, setShowDashboardLink] = useState(false);
+  const [diagnostic, setDiagnostic] = useState<AuthDiagnostic>(null);
+  const [diagnosticLoading, setDiagnosticLoading] = useState(false);
   const fallbackDone = useRef(false);
   const redirectStarted = useRef(false);
 
@@ -37,6 +46,28 @@ export default function LoginPage() {
       setShowDashboardLink(true);
     }
   }, []);
+
+  async function loadDiagnostic() {
+    setDiagnosticLoading(true);
+    setDiagnostic(null);
+    try {
+      const r = await fetch("/api/auth-status?debug=1", { credentials: "same-origin" });
+      const data = await r.json();
+      setDiagnostic({
+        authenticated: data.authenticated === true,
+        requestHost: data.requestHost,
+        forwardedHost: data.forwardedHost,
+        error: data.error,
+      });
+    } catch (e) {
+      setDiagnostic({
+        authenticated: false,
+        error: e instanceof Error ? e.message : "Request failed",
+      });
+    } finally {
+      setDiagnosticLoading(false);
+    }
+  }
 
   // Redirect after token is present and auth provider had time to sync cookie to server.
   // Use full app URL so the same-origin request sends auth cookies (avoids ending up back on /login after "Leave site?").
@@ -181,6 +212,47 @@ export default function LoginPage() {
             </button>
           </p>
         )}
+
+        {/* Troubleshooting: show when redirect likely failed or user wants to see why */}
+        {(showDashboardLink || error) && (
+          <div className="mt-4 rounded-md bg-zinc-800/80 border border-zinc-600 p-3 text-left">
+            <button
+              type="button"
+              onClick={loadDiagnostic}
+              disabled={diagnosticLoading}
+              className="text-sm font-medium text-amber-400 hover:text-amber-300 disabled:opacity-50"
+            >
+              {diagnosticLoading ? "Checking…" : "Why didn’t redirect work? Show troubleshooting"}
+            </button>
+            {diagnostic && (
+              <div className="mt-3 pt-3 border-t border-zinc-600 space-y-2 text-xs font-mono text-zinc-300">
+                <p className="font-sans font-medium text-zinc-200">Diagnostic:</p>
+                <p>Server sees you as authenticated: <strong>{diagnostic.authenticated ? "Yes" : "No"}</strong></p>
+                {diagnostic.requestHost != null && (
+                  <p>Request Host (what server received): <strong>{diagnostic.requestHost || "(empty)"}</strong></p>
+                )}
+                {diagnostic.forwardedHost != null && (
+                  <p>X-Forwarded-Host: <strong>{diagnostic.forwardedHost || "(not set)"}</strong></p>
+                )}
+                {typeof window !== "undefined" && (
+                  <p>Your browser origin: <strong>{window.location.origin}</strong></p>
+                )}
+                {process.env.NEXT_PUBLIC_APP_URL && (
+                  <p>Expected app URL (NEXT_PUBLIC_APP_URL): <strong>{process.env.NEXT_PUBLIC_APP_URL}</strong></p>
+                )}
+                {diagnostic.error && (
+                  <p className="text-red-400">Server error: {diagnostic.error}</p>
+                )}
+                {!diagnostic.authenticated && (
+                  <p className="font-sans text-amber-300/90 mt-2">
+                    If Request Host is not your app’s host (e.g. an internal IP or container name), the auth cookie may not match. Open the app using the exact URL from NEXT_PUBLIC_APP_URL and ensure your proxy sends X-Forwarded-Host.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <button
           type="button"
           onClick={() => setStep(step === "signIn" ? "signUp" : "signIn")}
