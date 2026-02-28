@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [redirecting, setRedirecting] = useState(false);
   const [showDashboardLink, setShowDashboardLink] = useState(false);
   const fallbackDone = useRef(false);
+  const redirectStarted = useRef(false);
 
   useEffect(() => {
     if (typeof window !== "undefined" && sessionStorage.getItem(LOGIN_REDIRECT_KEY)) {
@@ -27,20 +28,28 @@ export default function LoginPage() {
     }
   }, []);
 
-  // Redirect after token is present and auth provider had time to sync cookie to server
+  // Redirect after token is present and auth provider had time to sync cookie to server.
+  // This runs both after explicit sign-in and when token appears from an already-active session.
   useEffect(() => {
-    if (!redirecting || !token) return;
+    if (!token || !redirecting) return;
     const t = setTimeout(() => {
       window.location.replace(DASHBOARD_PATH);
     }, COOKIE_SYNC_DELAY_MS);
     return () => clearTimeout(t);
   }, [redirecting, token]);
 
+  useEffect(() => {
+    if (!token || redirectStarted.current) return;
+    goToDashboard();
+  }, [token]);
+
   function clearRedirectFlag() {
     if (typeof window !== "undefined") sessionStorage.removeItem(LOGIN_REDIRECT_KEY);
   }
 
   function goToDashboard() {
+    if (redirectStarted.current) return;
+    redirectStarted.current = true;
     if (typeof window !== "undefined") sessionStorage.setItem(LOGIN_REDIRECT_KEY, "1");
     setRedirecting(true);
     const maxAttempts = 50;
