@@ -1,0 +1,15 @@
+# Deploy to Coolify on push to main (replaces webhook auto-deploy when using Public GitHub source).
+# Required repo secrets: COOLIFY_TOKEN (API token with Deploy permission), COOLIFY_BASE_URL (e.g. http://31.97.34.56:8000).
+name: Deploy to Coolify
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify deploy
+        run: |
+          curl -sSf -X GET \
+            "${{ secrets.COOLIFY_BASE_URL }}/api/v1/deploy?uuid=z4ww800cw0sw0g8gsw0w8ckg" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
