@@ -537,15 +537,25 @@ export function EdgeDiagnostics() {
                     type="button"
                     onClick={async () => {
                       setCoolifyError(null);
+                      if (!DASHBOARD_APP_UUID.trim()) {
+                        setCoolifyLogs((p) => ({ ...p, dashboard: "[Not configured] Set NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID in your app environment to load Dashboard logs." }));
+                        return;
+                      }
                       setCoolifyLoading("dashboard");
                       try {
-                        const { logs } = await getApplicationLogs({
+                        const result = await getApplicationLogs({
                           applicationUuid: DASHBOARD_APP_UUID,
                           lines: 50,
                         });
-                        setCoolifyLogs((p) => ({ ...p, dashboard: logs }));
+                        if (result.error) {
+                          setCoolifyError(result.error);
+                          setCoolifyLogs((p) => ({ ...p, dashboard: result.error ?? "" }));
+                        } else {
+                          setCoolifyLogs((p) => ({ ...p, dashboard: result.logs || "(empty)" }));
+                        }
                       } catch (e) {
                         setCoolifyError(e instanceof Error ? e.message : "Failed to load logs");
+                        setCoolifyLogs((p) => ({ ...p, dashboard: "" }));
                       } finally {
                         setCoolifyLoading(null);
                       }
@@ -556,8 +566,8 @@ export function EdgeDiagnostics() {
                     {coolifyLoading === "dashboard" ? "Loading…" : "Load"}
                   </button>
                 </div>
-                <pre className="bg-black/40 border border-white/5 rounded p-3 text-[10px] text-slate-400 overflow-x-auto overflow-y-auto max-h-40 whitespace-pre-wrap" title={!coolifyLogs.dashboard ? "Load Coolify logs or check COOLIFY_BASE_URL and token in Convex" : undefined}>
-                  {coolifyLogs.dashboard ?? "—"}
+                <pre className="bg-black/40 border border-white/5 rounded p-3 text-[10px] text-slate-400 overflow-x-auto overflow-y-auto max-h-40 whitespace-pre-wrap" title={!coolifyLogs.dashboard ? "Click Load to fetch logs from Coolify" : undefined}>
+                  {coolifyLogs.dashboard ?? (DASHBOARD_APP_UUID.trim() ? "Click Load to fetch logs." : "Set NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID to enable.")}
                 </pre>
               </div>
               <div className="flex flex-col gap-2">
@@ -567,15 +577,25 @@ export function EdgeDiagnostics() {
                     type="button"
                     onClick={async () => {
                       setCoolifyError(null);
+                      if (!LIVEKIT_STACK_UUID.trim()) {
+                        setCoolifyLogs((p) => ({ ...p, livekit: "[Not configured] Set NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID in your app environment to load LiveKit logs." }));
+                        return;
+                      }
                       setCoolifyLoading("livekit");
                       try {
-                        const { logs } = await getApplicationLogs({
+                        const result = await getApplicationLogs({
                           applicationUuid: LIVEKIT_STACK_UUID,
                           lines: 50,
                         });
-                        setCoolifyLogs((p) => ({ ...p, livekit: logs }));
+                        if (result.error) {
+                          setCoolifyError(result.error);
+                          setCoolifyLogs((p) => ({ ...p, livekit: result.error ?? "" }));
+                        } else {
+                          setCoolifyLogs((p) => ({ ...p, livekit: result.logs || "(empty)" }));
+                        }
                       } catch (e) {
                         setCoolifyError(e instanceof Error ? e.message : "Failed to load logs");
+                        setCoolifyLogs((p) => ({ ...p, livekit: "" }));
                       } finally {
                         setCoolifyLoading(null);
                       }
@@ -586,8 +606,8 @@ export function EdgeDiagnostics() {
                     {coolifyLoading === "livekit" ? "Loading…" : "Load"}
                   </button>
                 </div>
-                <pre className="bg-black/40 border border-white/5 rounded p-3 text-[10px] text-slate-400 overflow-x-auto overflow-y-auto max-h-40 whitespace-pre-wrap" title={!coolifyLogs.livekit ? "Load Coolify logs or check COOLIFY_BASE_URL and token in Convex" : undefined}>
-                  {coolifyLogs.livekit ?? "—"}
+                <pre className="bg-black/40 border border-white/5 rounded p-3 text-[10px] text-slate-400 overflow-x-auto overflow-y-auto max-h-40 whitespace-pre-wrap" title={!coolifyLogs.livekit ? "Click Load to fetch logs from Coolify" : undefined}>
+                  {coolifyLogs.livekit ?? (LIVEKIT_STACK_UUID.trim() ? "Click Load to fetch logs." : "Set NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID to enable.")}
                 </pre>
               </div>
             </div>

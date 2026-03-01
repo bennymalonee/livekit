@@ -174,28 +174,61 @@ export const syncApplicationsToNodes = action({
 
 /**
  * Fetch recent application logs from Coolify.
- * GET /api/v1/applications/{uuid}/logs?lines=100
+ * Returns { logs, error? } so the client can show a clear message instead of a generic Server Error.
+ * GET /api/v1/applications/{uuid}/logs?lines=100 (or Coolify v4 equivalent)
  */
 export const getApplicationLogs = action({
   args: {
     applicationUuid: v.string(),
     lines: v.optional(v.number()),
   },
-  handler: async (ctx, args): Promise<{ logs: string }> => {
-    const { baseUrl, token } = getCoolifyConfig();
-    const lines = args.lines ?? 100;
-    const res = await fetch(
-      `${baseUrl}/api/v1/applications/${encodeURIComponent(args.applicationUuid)}/logs?lines=${lines}`,
-      {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Coolify API getApplicationLogs failed: ${res.status} ${text}`);
+  handler: async (ctx, args): Promise<{ logs: string; error?: string }> => {
+    const uuid = (args.applicationUuid ?? "").trim();
+    if (!uuid) {
+      return {
+        logs: "",
+        error:
+          "Application UUID not set. Set NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID or NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID in your app environment.",
+      };
     }
-    const data = (await res.json()) as { logs?: string };
-    return { logs: typeof data.logs === "string" ? data.logs : "" };
+
+    let baseUrl: string;
+    let token: string;
+    try {
+      const config = getCoolifyConfig();
+      baseUrl = config.baseUrl;
+      token = config.token;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Coolify not configured";
+      return { logs: "", error: msg };
+    }
+
+    const lines = args.lines ?? 100;
+    try {
+      const res = await fetch(
+        `${baseUrl}/api/v1/applications/${encodeURIComponent(uuid)}/logs?lines=${lines}`,
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const text = await res.text();
+      if (!res.ok) {
+        return {
+          logs: "",
+          error: `Coolify API error (${res.status}): ${text.slice(0, 200)}${text.length > 200 ? "…" : ""}`,
+        };
+      }
+      let data: { logs?: string };
+      try {
+        data = JSON.parse(text) as { logs?: string };
+      } catch {
+        return { logs: text || "", error: undefined };
+      }
+      return { logs: typeof data.logs === "string" ? data.logs : text || "" };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { logs: "", error: `Request failed: ${msg}` };
+    }
   },
 });

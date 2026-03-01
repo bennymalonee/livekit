@@ -30,9 +30,16 @@ export function VaultKeyManagement() {
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formValue, setFormValue] = useState("");
+  const [keyTypeHint, setKeyTypeHint] = useState<"livekit" | "coolify" | "webhook" | "other" | null>(null);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [securityAlertDismissed, setSecurityAlertDismissed] = useState(false);
+
+  const keyTypeOptions: { id: "livekit" | "coolify" | "webhook" | "other"; label: string; suggestedName: string; description: string }[] = [
+    { id: "livekit", label: "LiveKit API key/secret", suggestedName: "LIVEKIT_API_KEY or LIVEKIT_API_SECRET", description: "From your LiveKit server or Cloud project" },
+    { id: "coolify", label: "Coolify API token", suggestedName: "COOLIFY_API_TOKEN", description: "From Coolify → Keys & Tokens → API tokens" },
+    { id: "webhook", label: "Webhook / signing secret", suggestedName: "WEBHOOK_SECRET", description: "For verifying webhook signatures" },
+    { id: "other", label: "Other API key or secret", suggestedName: "MY_SERVICE_API_KEY", description: "Any secret you need to reference server-side" },
+  ];
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -57,6 +64,22 @@ export function VaultKeyManagement() {
   }, [getCoolifyEnvs]);
 
   const totalKeys = keys?.length ?? 0;
+  const hasCoolifyDashboard = coolifyEnvKeys.dashboard.length > 0;
+  const hasCoolifyLivekit = coolifyEnvKeys.livekit.length > 0;
+  const latestLastUsed = keys?.length
+    ? Math.max(...keys.map((k) => k.lastUsedAt ?? 0), 0)
+    : 0;
+  const lastUsedLabel =
+    latestLastUsed > 0
+      ? (() => {
+          const ms = Date.now() - latestLastUsed;
+          const m = Math.floor(ms / 60000);
+          const h = Math.floor(ms / 3600000);
+          if (m < 1) return "<1m ago";
+          if (h < 1) return `${m}m ago`;
+          return `${h}h ago`;
+        })()
+      : "—";
 
   return (
     <div className="bg-background-light dark:bg-[#0A0B0D] text-slate-800 dark:text-slate-200 min-h-screen font-sans flex flex-col">
@@ -175,17 +198,17 @@ export function VaultKeyManagement() {
                       <p className="text-[10px] text-primary font-bold uppercase tracking-widest leading-none">
                         Primary
                       </p>
-                      <p className="text-sm font-display font-bold">RSA-4096</p>
+                      <p className="text-sm font-display font-bold truncate max-w-[120px]" title={keys?.[0]?.name ?? ""}>
+                        {keys?.length ? keys[0].name : "—"}
+                      </p>
                     </div>
                   </div>
                 </div>
                 <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-between py-2">
                   {[
-                    { label: "Streaming Core", active: true },
-                    { label: "Data Lake", active: false },
-                    { label: "External API", active: false },
-                    { label: "Dev Console", active: true },
-                    { label: "Auth Service", active: false },
+                    { label: "Vault keys", active: totalKeys > 0 },
+                    { label: "Dashboard env", active: hasCoolifyDashboard },
+                    { label: "LiveKit env", active: hasCoolifyLivekit },
                   ].map((r) => (
                     <div key={r.label} className="flex items-center gap-3">
                       <span className="text-[10px] text-slate-500 font-bold uppercase">
@@ -209,21 +232,20 @@ export function VaultKeyManagement() {
                       Key Lifespan
                     </p>
                     <p className="text-2xl font-display font-bold">
-                      180 <span className="text-xs text-slate-400">DAYS</span>
+                      — <span className="text-xs text-slate-400">N/A</span>
                     </p>
                   </div>
                   <div className="h-10 w-[1px] bg-panel-border" />
                   <div>
                     <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
-                      Load Density
+                      Active Keys
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <div className="h-1 w-2 bg-primary" />
-                      <div className="h-1 w-2 bg-primary" />
-                      <div className="h-1 w-2 bg-primary opacity-50" />
-                      <div className="h-1 w-2 bg-slate-700" />
-                      <span className="text-[10px] font-bold text-primary ml-2 uppercase">
-                        Optimal
+                      <span className="text-lg font-display font-bold text-primary">
+                        {totalKeys}
+                      </span>
+                      <span className="text-[10px] text-slate-500 uppercase">
+                        in vault
                       </span>
                     </div>
                   </div>
@@ -235,6 +257,41 @@ export function VaultKeyManagement() {
               <h3 className="text-xs font-display font-bold uppercase text-slate-500 tracking-widest">
                 Vault keys (Convex)
               </h3>
+              <p className="text-slate-400 text-sm">
+                Store API keys, tokens, and secrets here. Each entry needs a <strong className="text-slate-300">name</strong> (e.g. LIVEKIT_API_SECRET), an optional <strong className="text-slate-300">description</strong>, and the <strong className="text-slate-300">secret value</strong>. Values are stored in Convex and never shown in the app.
+              </p>
+              <div className="space-y-2">
+                <p className="text-[10px] font-display font-bold uppercase text-slate-500 tracking-widest">
+                  What are you adding? (pick one to see hints)
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  {keyTypeOptions.map((opt) => (
+                    <label
+                      key={opt.id}
+                      className="flex items-center gap-2 cursor-pointer group"
+                    >
+                      <input
+                        type="radio"
+                        name="keyType"
+                        checked={keyTypeHint === opt.id}
+                        onChange={() => setKeyTypeHint(opt.id)}
+                        className="w-4 h-4 rounded border-panel-border bg-[#0A0B0D] text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm text-slate-400 group-hover:text-slate-300">{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+                {keyTypeHint != null && (
+                  <div className="mt-2 p-3 rounded-lg bg-[#0A0B0D]/80 border border-panel-border">
+                    <p className="text-xs text-slate-400">
+                      <span className="text-primary font-bold">Suggested name:</span> {keyTypeOptions.find((o) => o.id === keyTypeHint)?.suggestedName}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {keyTypeOptions.find((o) => o.id === keyTypeHint)?.description}
+                    </p>
+                  </div>
+                )}
+              </div>
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
@@ -250,6 +307,7 @@ export function VaultKeyManagement() {
                     setFormName("");
                     setFormDescription("");
                     setFormValue("");
+                    setKeyTypeHint(null);
                   } catch (err) {
                     setCreateError(err instanceof Error ? err.message : "Failed to create key");
                   } finally {
@@ -260,10 +318,10 @@ export function VaultKeyManagement() {
               >
                 <input
                   type="text"
-                  placeholder="Key name"
+                  placeholder="Key name (e.g. LIVEKIT_API_SECRET)"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-40"
+                  className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48 min-w-[180px]"
                 />
                 <input
                   type="text"
@@ -274,7 +332,7 @@ export function VaultKeyManagement() {
                 />
                 <input
                   type="password"
-                  placeholder="Value (stored server-side)"
+                  placeholder="Secret value (stored server-side, never shown)"
                   value={formValue}
                   onChange={(e) => setFormValue(e.target.value)}
                   className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48"
@@ -335,9 +393,14 @@ export function VaultKeyManagement() {
                   </div>
                   <div className="flex flex-col gap-1 items-end">
                     <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary w-3/4" />
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${Math.min(100, totalKeys * 25)}%` }}
+                      />
                     </div>
-                    <span className="text-[9px] text-primary font-bold">75% SECURE</span>
+                    <span className="text-[9px] text-primary font-bold">
+                      {totalKeys > 0 ? "Active" : "Empty"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -352,54 +415,25 @@ export function VaultKeyManagement() {
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                   Network Pulse
                 </p>
-                <p className="text-sm font-display font-bold text-primary">ENCRYPTED</p>
+                <p className="text-sm font-display font-bold text-primary">
+                  {hasCoolifyDashboard || hasCoolifyLivekit ? "Connected" : "—"}
+                </p>
               </div>
               <div className="bg-panel-dark border border-panel-border rounded-xl p-6">
                 <h3 className="text-xs font-display font-bold uppercase text-slate-500 mb-4 tracking-widest">
-                  Usage Drift
+                  Last Used
                 </h3>
-                <div className="h-16 flex items-end gap-1">
-                  {[20, 40, 80, 30, 50, 20, 10].map((pct, i) => (
-                    <div
-                      key={i}
-                      className={`flex-1 rounded-sm ${i === 2 ? "bg-primary shadow-[0_0_15px_rgba(249,115,22,0.4)]" : "bg-slate-800"}`}
-                      style={{ height: `${pct}%` }}
-                    />
-                  ))}
+                <div className="h-16 flex items-center">
+                  <p className="text-2xl font-display font-bold text-primary">{lastUsedLabel}</p>
                 </div>
                 <div className="flex justify-between mt-2">
-                  <span className="text-[9px] text-slate-500 font-bold uppercase">Peak Load</span>
-                  <span className="text-[9px] text-primary font-bold uppercase">14.2 ms</span>
+                  <span className="text-[9px] text-slate-500 font-bold uppercase">Most recent key use</span>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="col-span-12 lg:col-span-4 space-y-6">
-            {!securityAlertDismissed && (
-              <div className="border-2 border-primary bg-primary/5 rounded-xl p-6">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="bg-primary p-2 rounded-lg">
-                    <span className="material-icons text-white">priority_high</span>
-                  </div>
-                  <div>
-                    <h3 className="font-display font-bold text-primary uppercase tracking-wider">
-                      Security Alert
-                    </h3>
-                    <p className="text-xs text-slate-300">
-                      Potential key leak detected in development environment.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSecurityAlertDismissed(true)}
-                  className="w-full bg-primary hover:bg-orange-600 text-white font-display font-bold py-2 rounded-lg text-sm transition-all uppercase tracking-widest shadow-lg shadow-primary/20"
-                >
-                  DISMISS
-                </button>
-              </div>
-            )}
             <div className="bg-panel-dark border border-panel-border rounded-xl overflow-hidden">
               <div
                 className="h-48 bg-cover bg-center relative p-6 flex flex-col justify-between"
@@ -422,12 +456,15 @@ export function VaultKeyManagement() {
                     <div className="w-10 h-10 rounded-full border border-panel-border bg-[#0A0B0D]/80 flex items-center justify-center">
                       <span className="material-icons text-primary text-xl">power_settings_new</span>
                     </div>
-                    <span className="text-[9px] text-slate-500 font-bold uppercase mt-1">ACTIVE</span>
+                    <span className="text-[9px] text-slate-500 font-bold uppercase mt-1">{totalKeys > 0 ? "ACTIVE" : "EMPTY"}</span>
                   </div>
                 </div>
                 <div className="relative flex justify-center">
                   <div className="w-32 h-1 bg-panel-border rounded-full overflow-hidden">
-                    <div className="w-3/4 h-full bg-primary shadow-[0_0_15px_rgba(249,115,22,0.4)]" />
+                    <div
+                      className="h-full bg-primary shadow-[0_0_15px_rgba(249,115,22,0.4)] transition-all"
+                      style={{ width: `${totalKeys > 0 ? 75 : 0}%` }}
+                    />
                   </div>
                 </div>
               </div>
@@ -451,13 +488,13 @@ export function VaultKeyManagement() {
                       r="70"
                       stroke="currentColor"
                       strokeDasharray="440"
-                      strokeDashoffset="110"
+                      strokeDashoffset={440 - (440 * (totalKeys > 0 ? 75 : 0)) / 100}
                       strokeWidth={8}
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center">
                     <span className="material-icons text-primary mb-1">security</span>
-                    <span className="text-3xl font-display font-bold">74%</span>
+                    <span className="text-3xl font-display font-bold">{totalKeys > 0 ? "75" : "0"}%</span>
                     <span className="text-[9px] text-slate-500 font-bold uppercase">Confidence</span>
                   </div>
                 </div>
@@ -468,7 +505,7 @@ export function VaultKeyManagement() {
                     </p>
                     <div className="flex items-center gap-2">
                       <span className="material-icons text-xs text-primary">schedule</span>
-                      <p className="text-xs font-bold">3H 15M AGO</p>
+                      <p className="text-xs font-bold">{lastUsedLabel}</p>
                     </div>
                   </div>
                   <div className="bg-[#0A0B0D]/50 p-3 rounded-lg border border-panel-border">
@@ -477,7 +514,7 @@ export function VaultKeyManagement() {
                     </p>
                     <div className="flex items-center gap-2">
                       <span className="material-icons text-xs text-primary">place</span>
-                      <p className="text-xs font-bold">EU-WEST-1</p>
+                      <p className="text-xs font-bold">—</p>
                     </div>
                   </div>
                 </div>
@@ -554,19 +591,19 @@ export function VaultKeyManagement() {
             <div className="bg-panel-dark border border-panel-border rounded-xl p-6 flex justify-between items-center">
               <div>
                 <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">
-                  Input Stream
+                  Vault Keys
                 </p>
                 <p className="text-lg font-display font-bold">
-                  200 <span className="text-xs text-slate-500">KWH</span>
+                  {totalKeys} <span className="text-xs text-slate-500">stored</span>
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">
-                  Security Mode
+                  Status
                 </p>
                 <div className="flex items-center gap-2 justify-end mt-1">
-                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  <p className="text-sm font-display font-bold uppercase">STEALTH</p>
+                  <span className={`w-2 h-2 rounded-full ${totalKeys > 0 ? "bg-primary animate-pulse" : "bg-slate-600"}`} />
+                  <p className="text-sm font-display font-bold uppercase">{totalKeys > 0 ? "Active" : "Empty"}</p>
                 </div>
               </div>
             </div>
