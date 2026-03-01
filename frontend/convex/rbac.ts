@@ -5,12 +5,23 @@ import { mutation, query } from "./_generated/server";
 
 const SUB_DIVIDER = "|";
 
+/** Minimum length for a valid Convex doc id (Crockford Base32, typically 31–37 chars). */
+const MIN_VALID_ID_LENGTH = 20;
+
 export type AppRole = "admin" | "operator" | "viewer";
 
 /** Get Convex user id from auth identity (subject may be "userId" or "userId|accountId"). */
 export function getUserIdFromIdentity(identity: { subject: string }): Id<"users"> {
   const [userId] = identity.subject.split(SUB_DIVIDER);
   return userId as Id<"users">;
+}
+
+/** Safe parse: returns userId only if identity has a valid-looking Convex user id; otherwise null. Use in queries that must not throw. */
+export function getUserIdFromIdentityOrNull(identity: { subject: string } | null): Id<"users"> | null {
+  if (!identity?.subject || typeof identity.subject !== "string") return null;
+  const rawId = identity.subject.split(SUB_DIVIDER)[0];
+  if (!rawId || !/^[a-z0-9]+$/i.test(rawId) || rawId.length < MIN_VALID_ID_LENGTH) return null;
+  return rawId as Id<"users">;
 }
 
 /** Resolve role for a user doc; default to viewer if unset. */
@@ -24,11 +35,8 @@ export const getMyRole = query({
   handler: async (ctx): Promise<AppRole> => {
     try {
       const identity = await ctx.auth.getUserIdentity();
-      if (!identity?.subject || typeof identity.subject !== "string") return "viewer";
-      const rawId = identity.subject.split(SUB_DIVIDER)[0];
-      // Must be non-empty and look like a Convex doc id (alphanumeric, reasonable length)
-      if (!rawId || !/^[a-z0-9]+$/i.test(rawId) || rawId.length < 20) return "viewer";
-      const userId = rawId as Id<"users">;
+      const userId = getUserIdFromIdentityOrNull(identity);
+      if (!userId) return "viewer";
       const user = await ctx.db.get(userId);
       return resolveRole(user?.role as AppRole | undefined);
     } catch {

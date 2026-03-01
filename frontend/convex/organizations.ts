@@ -1,7 +1,7 @@
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getUserIdFromIdentity, requireRole } from "./rbac";
+import { getUserIdFromIdentity, getUserIdFromIdentityOrNull, requireRole } from "./rbac";
 
 /** Resolve current user's organization id from preferences or first membership. Use in queries/mutations to scope by org. */
 export async function getCurrentOrganizationIdForContext(ctx: {
@@ -9,8 +9,8 @@ export async function getCurrentOrganizationIdForContext(ctx: {
   db: any;
 }): Promise<Id<"organizations"> | null> {
   const identity = await ctx.auth.getUserIdentity();
-  if (!identity) return null;
-  const userId = getUserIdFromIdentity(identity);
+  const userId = getUserIdFromIdentityOrNull(identity);
+  if (!userId) return null;
   const prefs = await ctx.db
     .query("userPreferences")
     .withIndex("by_user", (q: any) => q.eq("userId", userId))
@@ -30,8 +30,8 @@ export const listMyOrganizations = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-    const userId = getUserIdFromIdentity(identity);
+    const userId = getUserIdFromIdentityOrNull(identity);
+    if (!userId) return [];
     const memberships = await ctx.db
       .query("organizationMembers")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -52,8 +52,8 @@ export const getCurrentOrganizationId = query({
   args: {},
   handler: async (ctx): Promise<Id<"organizations"> | null> => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-    const userId = getUserIdFromIdentity(identity);
+    const userId = getUserIdFromIdentityOrNull(identity);
+    if (!userId) return null;
     const prefs = await ctx.db
       .query("userPreferences")
       .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -136,13 +136,13 @@ export const createOrganization = mutation({
   },
 });
 
-/** Ensure a default organization exists and add the user if they have no org. Idempotent. Call after sign-in so user has an org. */
+/** Ensure a default organization exists and add the user if they have no org. Idempotent. Call after sign-in so user has an org. Returns null when not authenticated or identity invalid (no-op to avoid server error). */
 export const ensureDefaultOrganization = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<Id<"organizations"> | null> => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
-    const userId = getUserIdFromIdentity(identity);
+    const userId = getUserIdFromIdentityOrNull(identity);
+    if (!userId) return null;
     let defaultOrg = await ctx.db
       .query("organizations")
       .withIndex("by_slug", (q) => q.eq("slug", DEFAULT_ORG_SLUG))
