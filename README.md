@@ -1,18 +1,52 @@
 # LivKit
 
-Enterprise dashboard for **LiveKit** real-time infrastructure: Convex backend, Coolify deployment, and a single app to sign in, deploy LiveKit on your VPS, and manage nodes, sessions, analytics, diagnostics, modules, vault, and terminal views.
+**Enterprise dashboard for LiveKit** — real-time infrastructure, Convex backend, Coolify deployment. One app to sign in, deploy LiveKit on your VPS, and manage nodes, sessions, analytics, diagnostics, modules, vault, and terminal.
+
+---
+
+## Screenshots
+
+*Placeholders below. Replace with your own: save a screenshot of your deployed app as `docs/screenshots/landing.png` (landing) or `docs/screenshots/dashboard.png` (dashboard home). See [docs/screenshots/README.md](docs/screenshots/README.md).*
+
+| Landing | Dashboard (after sign-in) |
+|--------|---------------------------|
+| [![Landing](docs/screenshots/landing.png)](docs/screenshots/landing.png) | [![Dashboard](docs/screenshots/dashboard.png)](docs/screenshots/dashboard.png) |
+
+**To use your own screenshots:** Save a capture of your landing page as `docs/screenshots/landing.png` and of the dashboard as `docs/screenshots/dashboard.png`. They will appear above. See [docs/screenshots/README.md](docs/screenshots/README.md).
+
+---
 
 ## Features
 
-- **Auth** — Convex Auth (email/password) with JWT; sign in / sign up and protected dashboard routes
-- **Deploy** — Trigger LiveKit Stack deployment on your VPS via Coolify (webhook or API)
-- **Nodes** — Sync Coolify applications as infrastructure nodes; view name, region, status
-- **Sessions** — Live or demo session data; LiveKit webhook feeds room/participant events
-- **Analytics** — Traffic flow and region egress (real or seeded demo metrics)
-- **Diagnostics** — Convex events timeline; load Coolify logs for Dashboard and LiveKit Stack
-- **Modules** — Enable/disable stack modules (LiveKit, TURN, Recording)
-- **Vault** — Store and list keys in Convex; optional read-only Coolify env key names
-- **Terminal** — Command history in Convex; load Coolify logs for LiveKit Stack
+| Area | What you get |
+|------|----------------|
+| **Auth** | Convex Auth (email/password, JWT). Sign in / sign up and protected dashboard routes. |
+| **Deploy** | Trigger LiveKit Stack deployment on your VPS via Coolify (webhook or API). One-click from the dashboard. |
+| **Nodes** | Sync Coolify applications as infrastructure nodes; view name, region, status, last heartbeat. |
+| **Sessions** | Live or demo session data; LiveKit webhook feeds room/participant events into the Sessions view. |
+| **Analytics** | Traffic flow and region egress (real or seeded demo metrics). Stream Flow and region bars. |
+| **Diagnostics** | Convex events timeline; load Coolify logs for Dashboard and LiveKit Stack; export CSV. |
+| **Modules** | Enable/disable stack modules (LiveKit, TURN, Recording). Seed defaults and toggle in the UI. |
+| **Vault** | Store and list keys in Convex; optional read-only Coolify env key names (values never stored). |
+| **Terminal** | Command history in Convex; load Coolify logs for LiveKit Stack; status filter (all / success / failed). |
+
+## Architecture (high level)
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Next.js App    │────▶│  Convex          │────▶│  Coolify / VPS  │
+│  (Dashboard)    │     │  (Auth, DB,      │     │  (LiveKit Stack)│
+│  Port 3000      │     │   Actions, HTTP) │     │  Docker Compose │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+        │                          │                        │
+        │  NEXT_PUBLIC_CONVEX_URL  │  COOLIFY_BASE_URL      │  LIVEKIT
+        │  NEXT_PUBLIC_APP_URL     │  COOLIFY_API_TOKEN     │  WebSocket
+        └──────────────────────────┴────────────────────────┘
+```
+
+- **Frontend:** Next.js (App Router), Convex React, Tailwind-style UI.
+- **Backend:** Convex (queries, mutations, actions, HTTP routes, cron).
+- **Deploy:** Coolify for Dashboard (Next.js) and LiveKit Stack (Docker Compose).
 
 ## Prerequisites
 
@@ -121,7 +155,12 @@ npm run convex:auth:env -- --prod   # production
 | ---- | ----------- |
 | `frontend/` | Next.js app (Convex auth, dashboard, deploy UI) |
 | `deploy/` | LiveKit stack (Docker Compose, Redis, Coturn, egress) |
+| `docs/` | Setup checklists, env reference, screenshots |
 | `scripts/` | Asset and reference scripts |
+
+## Built with
+
+- [Next.js](https://nextjs.org) · [Convex](https://convex.dev) · [Convex Auth](https://github.com/get-convex/convex-auth) · [LiveKit](https://livekit.io) · [Coolify](https://coolify.io)
 
 ## License
 
