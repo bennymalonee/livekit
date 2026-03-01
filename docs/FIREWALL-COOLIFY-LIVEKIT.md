@@ -45,8 +45,38 @@ If TURN is on another host, open only 7880, 7881, and 50000–60000/UDP on the L
 - [ ] **Cloud firewall** (preferred): In your provider’s dashboard, allow **inbound**:
   - TCP: 22, 80, 443, 7880, 7881, 5349 (and 8000, 6001, 6002 if needed)
   - UDP: 3478, 50000–60000
+  - **Hostinger:** see the [Hostinger (hPanel)](#hostinger-hpanel) section below.
 - [ ] **Redis** is bound to `127.0.0.1:6379` in the stack; no need to open 6379 publicly.
 - [ ] After changing firewall, test: `curl -s -o /dev/null -w "%{http_code}" http://YOUR_SERVER_IP:7880` (expect 200, 404, or 405).
+
+---
+
+## Hostinger (hPanel)
+
+If your VPS is on **Hostinger**, use the **Managed VPS Firewall** in hPanel:
+
+1. Log in to **hPanel** → **VPS** → select your server.
+2. Go to **Security** → **Firewall** (or **Advanced** → **Firewall**).
+3. Create or edit a firewall. For each rule, set **Action: Accept**, **Source: Anywhere** (or your IP if you want to restrict). Add these **inbound** rules:
+
+| Port(s)      | Protocol | Purpose              |
+|--------------|----------|----------------------|
+| 22           | TCP      | SSH                  |
+| 80           | TCP      | HTTP                 |
+| 443          | TCP      | HTTPS                |
+| 8000         | TCP      | Coolify dashboard    |
+| 6001         | TCP      | Coolify real-time    |
+| 6002         | TCP      | Coolify terminal     |
+| 7880         | TCP      | LiveKit API/WebSocket|
+| 7881         | TCP      | LiveKit ICE TCP      |
+| 50000–60000  | **UDP**  | LiveKit WebRTC media |
+| 3478         | UDP      | TURN/STUN (if same host) |
+| 5349         | TCP      | TURN TLS (if same host) |
+
+4. For **port range** (50000–60000), enter `50000:60000` if the UI asks for a range.
+5. Save and ensure the firewall is **active**. Hostinger’s firewall works with the OS firewall—both must allow traffic.
+
+**Reference:** [Hostinger: How to use a Managed VPS Firewall](https://support.hostinger.com/en/articles/8172641-how-to-use-a-managed-vps-firewall-at-hostinger)
 
 ---
 
