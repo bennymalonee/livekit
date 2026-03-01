@@ -36,7 +36,8 @@ Use scope `*` for full access. Send `Authorization: Bearer <api_key>` with each 
 
 Sync from Coolify and Coolify logs require **admin** or **operator** role. To set roles:
 
-- **Convex Dashboard:** [Dashboard](https://dashboard.convex.dev) → your deployment → **Data** → **users** → open a user document → set `role` to `"admin"` or `"operator"` (leave blank or `"viewer"` for read-only).
+- **Convex Dashboard (by document):** [Dashboard](https://dashboard.convex.dev) → your deployment → **Data** → **users** → open a user document → set `role` to `"admin"` or `"operator"` (leave blank or `"viewer"` for read-only).
+- **Convex Dashboard (by email, first admin only):** **Functions** → **Run** → choose `rbac:bootstrapSetRoleByEmail` → args: `{"email": "your@email.com", "role": "admin"}` → Run. Only works when no admin exists yet.
 - **In-app (first user only):** If there are no admins yet, on **Nodes** or **Diagnostics** when you see the role error, click **Make me admin** to set your user to admin. After that, use the Dashboard or the app’s admin UI to change other users’ roles.
 
 ## Convex – set in Convex Dashboard → Project → Environment variables

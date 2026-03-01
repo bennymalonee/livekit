@@ -334,8 +334,14 @@ export default function LoginPage() {
             </div>
           )}
 
-          <p className="mt-6 pt-6 border-t border-zinc-800 text-center">
-            <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors inline-flex items-center gap-1">
+          <p className="mt-6 pt-6 border-t border-zinc-800 text-center space-y-1">
+            <span className="text-sm text-zinc-500">Can’t set role in Dashboard?</span>
+            <br />
+            <Link href="/bootstrap" className="text-sm text-dash-primary hover:underline font-medium">
+              Set admin by email (first user only)
+            </Link>
+            <br />
+            <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors inline-flex items-center gap-1 mt-2">
               <span className="material-icons-round text-base">arrow_back</span>
               Back to home
             </Link>

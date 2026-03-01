@@ -111,3 +111,27 @@ export const bootstrapSetRole = mutation({
     return { ok: true, userId: args.userId, role: args.role };
   },
 });
+
+/**
+ * Bootstrap by email: set a user's role by email when there are no admins yet.
+ * Run from Convex Dashboard → Functions → Run: rbac:bootstrapSetRoleByEmail
+ * Args: { "email": "user@example.com", "role": "admin" }
+ * Only succeeds when zero users have role "admin".
+ */
+export const bootstrapSetRoleByEmail = mutation({
+  args: {
+    email: v.string(),
+    role: v.union(v.literal("admin"), v.literal("operator"), v.literal("viewer")),
+  },
+  handler: async (ctx, args) => {
+    const emailNorm = args.email.trim().toLowerCase();
+    if (!emailNorm) throw new Error("Email is required");
+    const allUsers = await ctx.db.query("users").collect();
+    const hasAdmin = allUsers.some((u) => u.role === "admin");
+    if (hasAdmin) throw new Error("Bootstrap only allowed when no admin exists. Use setUserRole as an admin instead.");
+    const user = allUsers.find((u) => (u.email ?? "").toLowerCase() === emailNorm);
+    if (!user) throw new Error(`No user found with email "${args.email}". Sign in once so the user exists, then run again.`);
+    await ctx.db.patch(user._id, { role: args.role });
+    return { ok: true, userId: user._id, email: user.email, role: args.role };
+  },
+});
