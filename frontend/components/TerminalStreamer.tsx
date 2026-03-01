@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -73,9 +74,36 @@ export function TerminalStreamer() {
       ? allLogLines
       : allLogLines.filter((line) => line.status === statusFilter);
 
+  const quickLinks = [
+    { path: "/dashboard", icon: "hub", label: "Dashboard" },
+    { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
+    { path: "/nodes", icon: "dns", label: "Nodes" },
+    { path: "/sessions", icon: "sensors", label: "Sessions" },
+    { path: "/analytics", icon: "bar_chart", label: "Analytics" },
+    { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
+    { path: "/modules", icon: "view_module", label: "Modules" },
+    { path: "/vault", icon: "shield", label: "Vault" },
+    { path: "/terminal", icon: "terminal", label: "Terminal" },
+  ];
+
   return (
-    <div className="bg-background-light dark:bg-[#0a0a0a] text-slate-800 dark:text-slate-300 font-sans min-h-screen overflow-hidden pt-2 pl-16 sm:pl-20">
-      <div className="flex flex-col h-screen p-4 gap-4">
+    <div className="bg-background-light dark:bg-[#0a0a0a] text-slate-800 dark:text-slate-300 font-sans min-h-screen overflow-hidden flex flex-col">
+      <nav className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-white/10 bg-white/5 shrink-0">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-2">
+          Quick links
+        </span>
+        {quickLinks.map(({ path, icon, label }) => (
+          <Link
+            key={path}
+            href={path}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white text-xs font-medium transition-colors"
+          >
+            <span className="material-icons-round text-base">{icon}</span>
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <div className="flex-1 flex flex-col min-h-0 p-4 gap-4 pl-6 sm:pl-8">
         <header className="flex items-center justify-between px-6 py-2 glass-panel rounded-xl">
           <div className="flex items-center gap-3">
             <div className="bg-primary p-1.5 rounded-lg shadow-[0_0_12px_rgba(249,115,22,0.4)]">

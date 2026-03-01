@@ -27,9 +27,36 @@ export function NodeInitialization() {
     }
   }
 
+  const quickLinks = [
+    { path: "/dashboard", icon: "hub", label: "Dashboard" },
+    { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
+    { path: "/nodes", icon: "dns", label: "Nodes" },
+    { path: "/sessions", icon: "sensors", label: "Sessions" },
+    { path: "/analytics", icon: "bar_chart", label: "Analytics" },
+    { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
+    { path: "/modules", icon: "view_module", label: "Modules" },
+    { path: "/vault", icon: "shield", label: "Vault" },
+    { path: "/terminal", icon: "terminal", label: "Terminal" },
+  ];
+
   return (
-    <div className="font-body bg-background-light dark:bg-[#0A0B0D] text-slate-800 dark:text-slate-200 transition-colors duration-300 overflow-hidden min-h-screen pt-4 pl-16 sm:pl-20">
-      <div className="max-w-4xl mx-auto p-6">
+    <div className="font-body bg-background-light dark:bg-[#0A0B0D] text-slate-800 dark:text-slate-200 transition-colors duration-300 overflow-hidden min-h-screen flex flex-col">
+      <nav className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-white/10 bg-white/5">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-2">
+          Quick links
+        </span>
+        {quickLinks.map(({ path, icon, label }) => (
+          <Link
+            key={path}
+            href={path}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white text-xs font-medium transition-colors"
+          >
+            <span className="material-icons-round text-base">{icon}</span>
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <div className="flex-1 max-w-4xl w-full mx-auto p-6 pt-4 pl-6 sm:pl-8">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-white">

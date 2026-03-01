@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -45,9 +46,36 @@ export function VaultKeyManagement() {
 
   const totalKeys = keys?.length ?? 0;
 
+  const quickLinks = [
+    { path: "/dashboard", icon: "hub", label: "Dashboard" },
+    { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
+    { path: "/nodes", icon: "dns", label: "Nodes" },
+    { path: "/sessions", icon: "sensors", label: "Sessions" },
+    { path: "/analytics", icon: "bar_chart", label: "Analytics" },
+    { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
+    { path: "/modules", icon: "view_module", label: "Modules" },
+    { path: "/vault", icon: "shield", label: "Vault" },
+    { path: "/terminal", icon: "terminal", label: "Terminal" },
+  ];
+
   return (
-    <div className="bg-background-light dark:bg-[#0A0B0D] text-slate-800 dark:text-slate-200 min-h-screen font-sans pt-2 pl-16 sm:pl-20">
-      <div className="max-w-[1440px] mx-auto p-4 lg:p-8">
+    <div className="bg-background-light dark:bg-[#0A0B0D] text-slate-800 dark:text-slate-200 min-h-screen font-sans flex flex-col">
+      <nav className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-white/10 bg-white/5">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-2">
+          Quick links
+        </span>
+        {quickLinks.map(({ path, icon, label }) => (
+          <Link
+            key={path}
+            href={path}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white text-xs font-medium transition-colors"
+          >
+            <span className="material-icons-round text-base">{icon}</span>
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <div className="flex-1 max-w-[1440px] w-full mx-auto p-4 lg:p-8 pt-4 pl-6 sm:pl-8">
         <header className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
@@ -544,6 +572,7 @@ export function VaultKeyManagement() {
             </div>
           </div>
         </main>
+      </div>
       </div>
     </div>
   );

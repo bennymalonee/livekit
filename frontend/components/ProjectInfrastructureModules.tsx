@@ -33,8 +33,35 @@ export function ProjectInfrastructureModules() {
       ? dashboard.systemHealthPercent
       : null;
 
+  const quickLinks = [
+    { path: "/dashboard", icon: "hub", label: "Dashboard" },
+    { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
+    { path: "/nodes", icon: "dns", label: "Nodes" },
+    { path: "/sessions", icon: "sensors", label: "Sessions" },
+    { path: "/analytics", icon: "bar_chart", label: "Analytics" },
+    { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
+    { path: "/modules", icon: "view_module", label: "Modules" },
+    { path: "/vault", icon: "shield", label: "Vault" },
+    { path: "/terminal", icon: "terminal", label: "Terminal" },
+  ];
+
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 min-h-screen font-sans pt-2 pl-16 sm:pl-20">
+    <div className="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 min-h-screen font-sans flex flex-col">
+      <nav className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-2">
+          Quick links
+        </span>
+        {quickLinks.map(({ path, icon, label }) => (
+          <Link
+            key={path}
+            href={path}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white text-xs font-medium transition-colors"
+          >
+            <span className="material-icons-round text-base">{icon}</span>
+            {label}
+          </Link>
+        ))}
+      </nav>
       <nav className="sticky top-0 z-50 border-b border-slate-200 dark:border-white/5 glass-panel px-6 py-4">
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">

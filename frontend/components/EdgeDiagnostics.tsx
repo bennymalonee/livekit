@@ -63,15 +63,43 @@ export function EdgeDiagnostics() {
     })),
   ];
 
+  const quickLinks = [
+    { path: "/dashboard", icon: "hub", label: "Dashboard" },
+    { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
+    { path: "/nodes", icon: "dns", label: "Nodes" },
+    { path: "/sessions", icon: "sensors", label: "Sessions" },
+    { path: "/analytics", icon: "bar_chart", label: "Analytics" },
+    { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
+    { path: "/modules", icon: "view_module", label: "Modules" },
+    { path: "/vault", icon: "shield", label: "Vault" },
+    { path: "/terminal", icon: "terminal", label: "Terminal" },
+  ];
+
   return (
     <div
-      className="text-slate-300 font-sans min-h-screen pt-2 pl-16 sm:pl-20"
+      className="text-slate-300 font-sans min-h-screen flex flex-col"
       style={{
         backgroundColor: "#0B0C0E",
         backgroundImage: "radial-gradient(rgba(255, 107, 0, 0.05) 1px, transparent 1px)",
         backgroundSize: "30px 30px",
       }}
     >
+      <nav className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-white/10 bg-[#0B0C0E]/90">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-2">
+          Quick links
+        </span>
+        {quickLinks.map(({ path, icon, label }) => (
+          <Link
+            key={path}
+            href={path}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white text-xs font-medium transition-colors"
+          >
+            <span className="material-icons-round text-base">{icon}</span>
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <div className="flex-1 pt-2 pl-6 sm:pl-8">
       <header className="flex items-center justify-between px-8 py-6 border-b border-white/5 bg-[#0B0C0E]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-dash-primary rounded flex items-center justify-center">
@@ -674,6 +702,7 @@ export function EdgeDiagnostics() {
       </main>
       <div className="fixed top-0 right-0 w-96 h-96 bg-dash-primary/5 rounded-full blur-[120px] -z-10" />
       <div className="fixed bottom-0 left-0 w-64 h-64 bg-dash-primary/5 rounded-full blur-[100px] -z-10" />
+      </div>
     </div>
   );
 }

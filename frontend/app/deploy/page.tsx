@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
@@ -117,9 +118,36 @@ export default function DeployPage() {
     fetchCoolifyApps();
   }, [fetchCoolifyApps]);
 
+  const quickLinks = [
+    { path: "/dashboard", icon: "hub", label: "Dashboard" },
+    { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
+    { path: "/nodes", icon: "dns", label: "Nodes" },
+    { path: "/sessions", icon: "sensors", label: "Sessions" },
+    { path: "/analytics", icon: "bar_chart", label: "Analytics" },
+    { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
+    { path: "/modules", icon: "view_module", label: "Modules" },
+    { path: "/vault", icon: "shield", label: "Vault" },
+    { path: "/terminal", icon: "terminal", label: "Terminal" },
+  ];
+
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100 pt-4 pl-16 sm:pl-20">
-      <div className="max-w-2xl mx-auto p-6">
+    <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+      <nav className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-zinc-800 bg-zinc-900/50">
+        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mr-2">
+          Quick links
+        </span>
+        {quickLinks.map(({ path, icon, label }) => (
+          <Link
+            key={path}
+            href={path}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 text-xs font-medium transition-colors"
+          >
+            <span className="material-icons-round text-base">{icon}</span>
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <div className="flex-1 max-w-2xl w-full mx-auto p-6 pt-4 pl-6 sm:pl-8">
         <h1 className="text-2xl font-semibold mb-2">Deploy LiveKit to VPS</h1>
         <p className="text-zinc-400 mb-6">
           Trigger a deployment of the LiveKit stack on your VPS via Coolify.
@@ -326,6 +354,7 @@ export default function DeployPage() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </main>
   );
