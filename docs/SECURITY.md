@@ -11,7 +11,7 @@ Overview of security measures and recommendations for the LivKit dashboard.
 - **Convex actions:** The following actions require authentication (no anonymous access):
   - **LiveKit:** `generateToken`, `checkConfig` — only authenticated users can generate tokens or check LiveKit config.
   - **Coolify:** `listApplications`, `getApplicationEnvs`, `getApplicationEnvsForPrefill`, `getApplicationLogs`, `syncApplicationsToNodes` — only authenticated users can list apps, read env keys, fetch logs, or trigger sync. The **cron** that syncs nodes runs the internal action `coolify_internal.syncApplicationsToNodes` (no user context).
-- **API routes:** `/api/deploy` is rate-limited (per IP). If `DEPLOY_SECRET` is set (Next.js app env), requests must include `Authorization: Bearer <DEPLOY_SECRET>` or `X-Deploy-Secret: <DEPLOY_SECRET>`.
+- **API routes:** `/api/deploy` is rate-limited (per IP). If `DEPLOY_SECRET` is set (Next.js app env), requests must include `Authorization: Bearer <DEPLOY_SECRET>` or `X-Deploy-Secret: <DEPLOY_SECRET>`. The same secret protects `GET /api/metrics` (Prometheus-format) when set.
 
 ## Secrets and environment variables
 
@@ -55,3 +55,4 @@ Overview of security measures and recommendations for the LivKit dashboard.
 2. **Coolify webhook:** Set `COOLIFY_WEBHOOK_SECRET` in Convex and configure Coolify to send it (e.g. `X-Webhook-Secret` or `Authorization: Bearer`) when calling your webhook URL.
 3. **Deploy API:** Set `DEPLOY_SECRET` in your Next.js app env (e.g. Coolify) and send it in `Authorization: Bearer` or `X-Deploy-Secret` when triggering deploys from scripts or CI.
 4. **Rotate secrets:** Rotate LIVEKIT_API_KEY/SECRET, COOLIFY_API_TOKEN, and optional COOLIFY_WEBHOOK_SECRET / DEPLOY_SECRET periodically; update Convex and LiveKit/Coolify config together.
+5. **API keys:** Dashboard API keys (admin/operator) are hashed and stored in Convex. Use `Authorization: Bearer <key>` for programmatic access. Validate keys via `apiKeys_actions.validateApiKey`; enforce scopes (e.g. `nodes:list`, `nodes:sync`) in your HTTP or Convex entry points. Revoke keys from the API Keys page if compromised.

@@ -20,7 +20,7 @@ export function ProjectInfrastructureModules() {
 
   const activeNodes =
     nodes && nodes.length > 0
-      ? nodes.filter((n) => n.status === "online").length
+      ? nodes.filter((n: { status: string }) => n.status === "online").length
       : null;
 
   const totalThroughputTbps =
@@ -183,7 +183,7 @@ export function ProjectInfrastructureModules() {
               </button>
             </div>
           ) : (
-            modules.map((mod) => (
+            modules.map((mod: { _id: string; key: string; label: string; enabled: boolean; config?: string }) => (
               <div key={mod._id} className="glass-panel rounded-[2rem] p-8 relative overflow-hidden transition-all duration-300">
                 <div className="flex justify-between items-start mb-6">
                   <div>

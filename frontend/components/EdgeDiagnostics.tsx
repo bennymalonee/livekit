@@ -21,7 +21,7 @@ export function EdgeDiagnostics() {
 
   const filteredEvents =
     diagnosticsEvents != null && levelFilter !== "all"
-      ? diagnosticsEvents.filter((ev) => ev.level === levelFilter)
+      ? diagnosticsEvents.filter((ev: { level: string }) => ev.level === levelFilter)
       : diagnosticsEvents ?? [];
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function EdgeDiagnostics() {
 
   const activeNodes =
     nodes && nodes.length > 0
-      ? nodes.filter((n) => n.status === "online").length
+      ? nodes.filter((n: { status: string }) => n.status === "online").length
       : 0;
   const totalNodes = nodes?.length ?? 0;
 
@@ -40,9 +40,9 @@ export function EdgeDiagnostics() {
   // Only live region data from traffic metrics; no mock regions
   const regionBars =
     analytics && analytics.regions.length > 0
-      ? analytics.regions.slice(0, 6).map((r) => {
+      ? analytics.regions.slice(0, 6).map((r: { region: string; egressGbps: number }) => {
           const maxGbps = Math.max(
-            ...analytics.regions.slice(0, 6).map((x) => x.egressGbps),
+            ...analytics.regions.slice(0, 6).map((x: { egressGbps: number }) => x.egressGbps),
             0.001
           );
           const pct = maxGbps > 0 ? (r.egressGbps / maxGbps) * 100 : 0;
@@ -248,7 +248,7 @@ export function EdgeDiagnostics() {
               {regionBars.length === 0 ? (
                 <p className="text-slate-500 text-xs uppercase tracking-widest">No region data</p>
               ) : (
-                regionBars.map((r) => (
+                regionBars.map((r: { label: string; w: string; inactive: boolean }) => (
                   <div key={r.label} className="flex items-center gap-3">
                     <div
                       className={`w-8 h-3 rounded-full border relative overflow-hidden ${
@@ -393,7 +393,7 @@ export function EdgeDiagnostics() {
                   <span className="text-white font-bold">
                     {nodes && nodes.length > 0
                       ? (() => {
-                          const latest = Math.max(...nodes.map((n) => n.lastHeartbeatAt));
+                          const latest = Math.max(...nodes.map((n: { lastHeartbeatAt: number }) => n.lastHeartbeatAt));
                           const ms = Date.now() - latest;
                           const m = Math.floor(ms / 60000);
                           const h = Math.floor(ms / 3600000);
@@ -415,7 +415,7 @@ export function EdgeDiagnostics() {
                 <div className="flex items-center gap-2">
                   <span className="text-white font-bold">
                     {nodes && nodes.length > 0
-                      ? `${Math.round(nodes.reduce((a, n) => a + n.cpuLoad, 0) / nodes.length)}%`
+                      ? `${Math.round(nodes.reduce((a: number, n: { cpuLoad: number }) => a + n.cpuLoad, 0) / nodes.length)}%`
                       : "—"}
                   </span>
                   <span className="material-icons-outlined text-slate-500 text-xs">analytics</span>
@@ -458,7 +458,7 @@ export function EdgeDiagnostics() {
                   onClick={() => {
                     const header = "createdAt,level,code,message\n";
                     const rows = filteredEvents.map(
-                      (ev) =>
+                      (ev: { createdAt: number; level: string; code?: string; message: string }) =>
                         `${new Date(ev.createdAt).toISOString()},${ev.level},${ev.code ?? ""},"${(ev.message ?? "").replace(/"/g, '""')}"`
                     ).join("\n");
                     const csv = header + rows;
@@ -502,7 +502,7 @@ export function EdgeDiagnostics() {
                     : `No ${levelFilter} events.`}
                 </p>
               ) : (
-                filteredEvents.map((ev) => (
+                filteredEvents.map((ev: { _id: string; createdAt: number; level: string; code?: string; message: string }) => (
                   <div
                     key={ev._id}
                     className={`p-2 rounded border border-white/5 ${
@@ -697,7 +697,7 @@ export function EdgeDiagnostics() {
                   {nodes && nodes.length > 0 ? (
                     <>
                       <div className="grid grid-cols-4 gap-4">
-                        {nodes.slice(0, 4).map((node, i) => {
+                        {nodes.slice(0, 4).map((node: { _id: string; cpuLoad: number; name?: string; status?: string }, i: number) => {
                           const pct = Math.min(100, Math.max(0, node.cpuLoad));
                           const h = pct >= 75 ? "h-3/4" : pct >= 50 ? "h-2/3" : pct >= 25 ? "h-1/2" : pct > 0 ? "h-1/4" : "h-0";
                           return (
@@ -716,7 +716,7 @@ export function EdgeDiagnostics() {
                       </div>
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#16171B]/90 px-3 py-1 border border-dash-primary/40 rounded shadow-xl backdrop-blur-sm">
                         <span className="text-xs font-bold text-dash-primary">
-                          {Math.round(nodes.slice(0, 4).reduce((a, n) => a + n.cpuLoad, 0) / Math.min(4, nodes.length))}% AVG
+                          {Math.round(nodes.slice(0, 4).reduce((a: number, n: { cpuLoad: number }) => a + n.cpuLoad, 0) / Math.min(4, nodes.length))}% AVG
                         </span>
                       </div>
                     </>

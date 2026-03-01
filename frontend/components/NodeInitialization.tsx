@@ -114,7 +114,7 @@ export function NodeInitialization() {
                   </tr>
                 </thead>
                 <tbody>
-                  {nodes.map((node) => (
+                  {nodes.map((node: { _id: string; name: string; region: string; status: string; cpuLoad: number; memoryLoad: number; activeRooms: number; lastHeartbeatAt?: number }) => (
                     <tr key={node._id} className="border-b border-white/5 hover:bg-white/5">
                       <td className="p-3 text-white font-medium">{node.name}</td>
                       <td className="p-3 text-slate-400">{node.region}</td>

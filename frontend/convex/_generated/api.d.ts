@@ -10,6 +10,8 @@
 
 import type * as analytics from "../analytics.js";
 import type * as analytics_internal from "../analytics_internal.js";
+import type * as apiKeys from "../apiKeys.js";
+import type * as apiKeys_actions from "../apiKeys_actions.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as coolify from "../coolify.js";
@@ -45,6 +47,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   analytics_internal: typeof analytics_internal;
+  apiKeys: typeof apiKeys;
+  apiKeys_actions: typeof apiKeys_actions;
   auditLog: typeof auditLog;
   auth: typeof auth;
   coolify: typeof coolify;

@@ -28,6 +28,17 @@ See [DASHBOARD-SETUP-CHECKLIST.md](DASHBOARD-SETUP-CHECKLIST.md).
 
 ---
 
+## Coolify LiveKit stack: “Servers unavailable”
+
+- **Cause:** Coolify may show “some servers are unavailable” when the destination server is unreachable, or after a transient failure.
+- **Fix:**
+  1. In **Coolify** → **Servers**, open the server that hosts the LiveKit stack (e.g. “localhost” or your VPS). Use **Validate** / **Revalidate** so Coolify re-checks connectivity.
+  2. In **Coolify** → **livekit-stack** app → **Restart** to restart the app and its services (livekit-server, redis). Wait for the deployment to finish.
+  3. If it persists, check **Application logs** for the livekit-stack app (e.g. Redis or LiveKit server errors). Ensure env vars are set (e.g. `REDIS_PASSWORD`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_PUBLIC_IP`).
+  4. **Firewall:** Ensure the host (and cloud firewall) allow LiveKit ports: **TCP 7880, 7881** and **UDP 50000–60000**. See [FIREWALL-COOLIFY-LIVEKIT.md](FIREWALL-COOLIFY-LIVEKIT.md).
+
+---
+
 ## Deploy fails
 
 - **Cause:** Coolify token missing, wrong permissions, or wrong app UUID.

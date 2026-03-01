@@ -327,7 +327,7 @@ export default function DeployPage() {
               </p>
             ) : (
               <ul className="space-y-2">
-                {deployments.map((d) => (
+                {deployments.map((d: { _id: string; status: string; createdAt: number; updatedAt: number; livekitUrl?: string }) => (
                   <li
                     key={d._id}
                     className="flex items-center justify-between text-sm py-2 border-b border-zinc-800 last:border-0"

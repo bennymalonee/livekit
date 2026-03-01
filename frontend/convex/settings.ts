@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { action, mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
 import { getUserIdFromIdentity, requireRole } from "./rbac";
 
 const DEPLOY_KEY = "deploy";

@@ -6,11 +6,7 @@ import { getUserIdFromIdentity, requireRole } from "./rbac";
 /** Resolve current user's organization id from preferences or first membership. Use in queries/mutations to scope by org. */
 export async function getCurrentOrganizationIdForContext(ctx: {
   auth: { getUserIdentity: () => Promise<{ subject: string } | null> };
-  db: {
-    query: (table: "userPreferences" | "organizationMembers") => {
-      withIndex: (name: string, fn: (q: any) => any) => { unique: () => Promise<any>; first: () => Promise<any> };
-    };
-  };
+  db: any;
 }): Promise<Id<"organizations"> | null> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return null;
@@ -160,8 +156,9 @@ export const ensureDefaultOrganization = mutation({
         slug: DEFAULT_ORG_SLUG,
         createdAt: now,
       });
-      defaultOrg = await ctx.db.get(orgId)!;
+      defaultOrg = await ctx.db.get(orgId);
     }
+    if (!defaultOrg) throw new Error("Failed to create or load default organization");
     const member = await ctx.db
       .query("organizationMembers")
       .withIndex("by_user_organization", (q) =>

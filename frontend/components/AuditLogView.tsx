@@ -46,7 +46,7 @@ export function AuditLogView() {
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => (
+              {entries.map((entry: { _id: string; userId: string; action: string; resourceType: string; resourceId?: string; details?: string; createdAt: number }) => (
                 <tr key={entry._id} className="border-b border-white/5 hover:bg-white/5">
                   <td className="p-3 font-mono text-xs text-slate-400">
                     {new Date(entry.createdAt).toISOString()}

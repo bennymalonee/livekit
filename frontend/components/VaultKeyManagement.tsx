@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { QRCodeSVG } from "qrcode.react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 
 const DASHBOARD_APP_UUID = process.env.NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID ?? "";
 const LIVEKIT_STACK_UUID = process.env.NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID ?? "";
@@ -105,7 +106,7 @@ export function VaultKeyManagement() {
   const hasCoolifyDashboard = coolifyEnvKeys.dashboard.length > 0;
   const hasCoolifyLivekit = coolifyEnvKeys.livekit.length > 0;
   const latestLastUsed = keys?.length
-    ? Math.max(...keys.map((k) => k.lastUsedAt ?? 0), 0)
+    ? Math.max(...keys.map((k: { lastUsedAt?: number }) => k.lastUsedAt ?? 0), 0)
     : 0;
   const lastUsedLabel =
     latestLastUsed > 0
@@ -857,7 +858,7 @@ export function VaultKeyManagement() {
                 ) : keys.length === 0 ? (
                   <p className="text-slate-500 text-sm">No keys. Add one above.</p>
                 ) : (
-                  keys.map((k) => (
+                  keys.map((k: { _id: Id<"vaultKeys">; name: string; description?: string; createdAt: number; lastUsedAt?: number }) => (
                     <div
                       key={k._id}
                       className="flex items-center justify-between text-sm py-2 border-b border-panel-border last:border-0"

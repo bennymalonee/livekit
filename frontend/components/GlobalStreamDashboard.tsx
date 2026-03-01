@@ -17,12 +17,12 @@ export function GlobalStreamDashboard() {
   const errorCount24h =
     diagnosticsRecent != null
       ? diagnosticsRecent.filter(
-          (e) => e.level === "error" && e.createdAt > Date.now() - 24 * 60 * 60 * 1000
+          (e: { level: string; createdAt: number }) => e.level === "error" && e.createdAt > Date.now() - 24 * 60 * 60 * 1000
         ).length
       : 0;
 
   const streamRegions =
-    analyticsOverview?.regions?.slice(0, 4).map((r) => ({
+    analyticsOverview?.regions?.slice(0, 4).map((r: { region: string; egressGbps: number }) => ({
       label: r.region.toUpperCase().replace(/-/g, "-"),
       egressGbps: r.egressGbps,
       active: r.egressGbps > 0,
@@ -31,7 +31,7 @@ export function GlobalStreamDashboard() {
   const capacityPercent =
     nodes != null && nodes.length > 0
       ? Math.round(
-          nodes.reduce((sum, n) => sum + n.memoryLoad, 0) / nodes.length
+          nodes.reduce((sum: number, n: { memoryLoad: number }) => sum + n.memoryLoad, 0) / nodes.length
         )
       : null;
 
@@ -259,7 +259,7 @@ export function GlobalStreamDashboard() {
                 </svg>
                 <div className="absolute right-0 top-0 h-full flex flex-col justify-between py-2 text-right">
                   {streamRegions.length > 0 ? (
-                    streamRegions.map((r) => (
+                    streamRegions.map((r: { label: string; egressGbps: number; active: boolean }) => (
                       <div key={r.label} className="flex items-center gap-4 justify-end">
                         <div>
                           <p className="text-[10px] text-slate-500 font-bold">{r.label}</p>
@@ -314,7 +314,7 @@ export function GlobalStreamDashboard() {
                   <div className="flex items-end gap-1 h-10">
                     {(() => {
                       const values =
-                        analyticsOverview?.regions?.slice(0, 5).map((r) => r.egressGbps) ?? [];
+                        analyticsOverview?.regions?.slice(0, 5).map((r: { egressGbps: number }) => r.egressGbps) ?? [];
                       const max = Math.max(1, ...values);
                       const heights = Array.from({ length: 5 }, (_, i) =>
                         values[i] != null ? (values[i] / max) * 8 + 2 : 2

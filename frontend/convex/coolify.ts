@@ -35,7 +35,7 @@ async function requireCoolifyRole(
   allowedRoles: ("admin" | "operator")[]
 ) {
   const role = await ctx.runQuery(api.rbac.getMyRole);
-  if (!role || !allowedRoles.includes(role)) throw new Error("Forbidden");
+  if (!role || !allowedRoles.includes(role as "admin" | "operator")) throw new Error("Forbidden");
 }
 
 /**

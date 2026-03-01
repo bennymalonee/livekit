@@ -49,6 +49,18 @@ const schema = defineSchema({
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 
+  apiKeys: defineTable({
+    keyHash: v.string(),
+    name: v.string(),
+    userId: v.id("users"),
+    organizationId: v.optional(v.id("organizations")),
+    scopes: v.string(), // JSON array of scope strings, e.g. ["nodes:sync", "nodes:list"]
+    createdAt: v.number(),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_keyHash", ["keyHash"]),
+
   //
   // Deployments & settings (existing)
   //

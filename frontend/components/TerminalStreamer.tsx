@@ -62,7 +62,7 @@ export function TerminalStreamer() {
       ? commands
           .slice()
           .reverse()
-          .map((c) => ({
+          .map((c: { _id: string; createdAt: number; status: string; command?: string; output?: string }) => ({
             id: c._id,
             time: new Date(c.createdAt).toISOString().slice(11, 19),
             level: c.status.toUpperCase(),
@@ -80,12 +80,12 @@ export function TerminalStreamer() {
   const logLines =
     statusFilter === "all"
       ? allLogLines
-      : allLogLines.filter((line) => line.status === statusFilter);
+      : allLogLines.filter((line: { status: string }) => line.status === statusFilter);
 
   const totalCommands = commands?.length ?? 0;
-  const successCount = commands?.filter((c) => c.status === "success").length ?? 0;
-  const failedCount = commands?.filter((c) => c.status === "failed").length ?? 0;
-  const pendingCount = commands?.filter((c) => c.status === "pending" || c.status === "running").length ?? 0;
+  const successCount = commands?.filter((c: { status: string }) => c.status === "success").length ?? 0;
+  const failedCount = commands?.filter((c: { status: string }) => c.status === "failed").length ?? 0;
+  const pendingCount = commands?.filter((c: { status: string }) => c.status === "pending" || c.status === "running").length ?? 0;
 
   const quickLinks = [
     { path: "/dashboard", icon: "hub", label: "Dashboard" },
@@ -193,7 +193,7 @@ export function TerminalStreamer() {
                 {logLines.length === 0 ? (
                   <p className="text-slate-600 text-sm">No command history yet. Run a command in the panel to the right to store it in Convex.</p>
                 ) : (
-                  logLines.map((line) => (
+                  logLines.map((line: { id: string; time: string; level: string; status: string; msg: string; levelClass: string }) => (
                     <div key={line.id} className="flex gap-4 text-slate-500 flex-wrap">
                       <span className="w-24 shrink-0">[{line.time}]</span>
                       <span className={`shrink-0 ${line.levelClass}`}>{line.level}</span>

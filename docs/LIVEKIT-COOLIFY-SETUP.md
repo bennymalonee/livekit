@@ -13,6 +13,15 @@ If you see "Docker Compose file not found at: /deploy/deploy/docker-compose.yml"
 
 **If the app shows "Degraded (unhealthy)":** LiveKit does not expose an HTTP health endpoint (it uses WebSocket on port 7880). In Coolify open **livekit-stack** → **Health Check** and **disable** the health check so Coolify does not mark the app unhealthy. If the app is not running at all, check **Logs** for errors (e.g. missing env vars or invalid `livekit.yaml`); ensure all env vars (`LIVEKIT_PUBLIC_IP`, `REDIS_PASSWORD`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `TURN_HOST`, `TURN_CREDENTIAL`, `LIVEKIT_REGION`) are set on the app.
 
+## Firewall (Coolify + LiveKit on same server)
+
+Open these ports on the **host** (cloud firewall is preferred; UFW can be bypassed by Docker):
+
+- **Coolify:** 22, 80, 443; optionally 8000, 6001, 6002 if you use IP:8000.
+- **LiveKit:** TCP 7880 (API/WebSocket), 7881 (ICE TCP); **UDP 50000–60000** (WebRTC). If TURN runs on the same host: UDP 3478, TCP 5349.
+
+See **[FIREWALL-COOLIFY-LIVEKIT.md](FIREWALL-COOLIFY-LIVEKIT.md)** for the full checklist and UFW commands.
+
 ## "Deploy LiveKit to VPS" button
 
 The Dashboard uses one of two methods:

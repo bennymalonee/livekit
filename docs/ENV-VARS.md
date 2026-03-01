@@ -15,7 +15,10 @@ Where to set each variable and what it does.
 | `LIVEKIT_STACK_APP_UUID` | Coolify application UUID for the LiveKit Stack (for deploy API). | From Coolify → your LiveKit app |
 | `NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID` | (Optional) Dashboard app UUID for Coolify logs/env in Diagnostics & Vault. | From Coolify → Dashboard app |
 | `NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID` | (Optional) LiveKit Stack app UUID for Deploy prefill, Diagnostics, Vault, Terminal. | From Coolify → LiveKit Stack app |
-| `APP_VERSION` | (Optional) App version string returned by `GET /api/health`. | e.g. `0.1.0` or your CI build version |
+| `APP_VERSION` | (Optional) App version string returned by `GET /api/health` and `/api/metrics`. | e.g. `0.1.0` or your CI build version |
+| `DEPLOY_SECRET` | (Optional) When set, `POST /api/deploy` and `GET /api/metrics` require `Authorization: Bearer <secret>` or `X-Deploy-Secret`. | Strong random value |
+
+**API keys (programmatic access):** Create and revoke from the dashboard (API Keys page, admin/operator). Keys are scoped (e.g. `nodes:list`, `nodes:sync`). Use `Authorization: Bearer <api_key>` when calling Convex HTTP or your own API that validates keys via `apiKeys_actions.validateApiKey`.
 
 ## Convex – set in Convex Dashboard → Project → Environment variables
 

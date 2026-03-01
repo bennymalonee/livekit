@@ -15,13 +15,13 @@ export function SessionMonitor() {
 
   const activeNodesCount =
     nodes && nodes.length > 0
-      ? nodes.filter((n) => n.status === "online").length
+      ? nodes.filter((n: { status: string }) => n.status === "online").length
       : null;
 
   const serverLoadPercent =
     nodes && nodes.length > 0
       ? Math.round(
-          nodes.reduce((sum, n) => sum + n.memoryLoad + n.cpuLoad, 0) /
+          nodes.reduce((sum: number, n: { memoryLoad: number; cpuLoad: number }) => sum + n.memoryLoad + n.cpuLoad, 0) /
             (nodes.length * 2)
         )
       : null;
@@ -32,12 +32,12 @@ export function SessionMonitor() {
 
   const rows =
     activeSessions && activeSessions.length > 0
-      ? activeSessions.map((s) => ({
+      ? activeSessions.map((s: { _id: string; roomName: string; participantCount: number; region?: string; bitrateMbps?: number; source?: string; icon?: string; qualityScore?: number; status?: string }) => ({
           id: s.roomName,
           source: `${s.source}-${s.region}`,
           icon: s.icon,
           participants: s.participantCount.toLocaleString(),
-          bitrate: `${s.bitrateMbps.toFixed(1)} Mbps`,
+          bitrate: `${(s.bitrateMbps ?? 0).toFixed(1)} Mbps`,
           quality: s.qualityScore,
           status: s.status,
           statusClass:
@@ -133,8 +133,8 @@ export function SessionMonitor() {
                       const header = "Room ID,Source,Participants,Bitrate,Quality,Status\n";
                       const body = rows
                         .map(
-                          (r) =>
-                            `"${r.id}","${r.source}",${r.participants},"${r.bitrate}",${r.quality},"${r.status}"`
+                          (r: { id: string; source: string; participants: string; bitrate: string; quality?: number; status?: string }) =>
+                            `"${r.id}","${r.source}",${r.participants},"${r.bitrate}",${r.quality ?? ""},"${r.status ?? ""}"`
                         )
                         .join("\n");
                       const blob = new Blob([header + body], {
@@ -178,7 +178,7 @@ export function SessionMonitor() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {rows.map((row) => (
+                  {rows.map((row: { id: string; source: string; participants: string; bitrate: string; quality?: number; status?: string; icon?: string; statusClass: string }) => (
                     <tr key={row.id} className="orange-divider relative">
                       <td className="py-6">
                         <div className="flex items-center gap-3">
@@ -218,14 +218,14 @@ export function SessionMonitor() {
                                 strokeWidth={3}
                               />
                               <circle
-                                className={row.quality >= 90 ? "text-dash-primary" : "text-dash-primary/70"}
+                                className={(row.quality ?? 0) >= 90 ? "text-dash-primary" : "text-dash-primary/70"}
                                 cx="24"
                                 cy="24"
                                 fill="none"
                                 r="20"
                                 stroke="currentColor"
                                 strokeDasharray="125.6"
-                                strokeDashoffset={125.6 - (row.quality / 100) * 125.6}
+                                strokeDashoffset={125.6 - ((row.quality ?? 0) / 100) * 125.6}
                                 strokeWidth={3}
                               />
                             </svg>

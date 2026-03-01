@@ -20,6 +20,7 @@ const SHOW_HAMBURGER_PATHNAMES = [
   "/modules",
   "/vault",
   "/audit",
+  "/api-keys",
   "/terminal",
   "/diagnostics",
 ];
@@ -129,7 +130,7 @@ export function AppNav() {
               onChange={(e) => handleOrgChange(e.target.value)}
               className="w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-gray-200 focus:border-primary/50 focus:outline-none"
             >
-              {orgs.map((org) => (
+              {orgs.map((org: { _id: string; name: string; slug: string }) => (
                 <option key={org._id} value={org._id}>
                   {org.name}
                 </option>

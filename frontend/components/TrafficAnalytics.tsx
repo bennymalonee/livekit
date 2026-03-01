@@ -26,7 +26,7 @@ export function TrafficAnalytics() {
   const capacityPercent =
     nodes != null && nodes.length > 0
       ? Math.round(
-          nodes.reduce((sum, n) => sum + n.memoryLoad, 0) / nodes.length
+          nodes.reduce((sum: number, n: { memoryLoad: number }) => sum + n.memoryLoad, 0) / nodes.length
         )
       : null;
 
@@ -180,7 +180,7 @@ export function TrafficAnalytics() {
                 </svg>
               </div>
                 <div className="absolute right-0 flex flex-col justify-between h-full py-4 text-right space-y-4">
-                  {hasData ? regions.map((r) => {
+                  {hasData ? regions.map((r: { region: string; egressGbps: number }) => {
                     const active = r.egressGbps > 0;
                     return (
                       <div key={r.region} className="flex items-center gap-4">

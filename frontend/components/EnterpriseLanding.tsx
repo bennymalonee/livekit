@@ -13,7 +13,7 @@ function getAuthNavLinks(role: AppRole | null): NavLink[] {
   for (const group of APP_NAV_STRUCTURE) {
     for (const link of group.links) {
       if (!("requireAuth" in link && link.requireAuth) || ("signOut" in link && link.signOut)) continue;
-      if ("roles" in link && link.roles && role != null && !link.roles.includes(role)) continue;
+      if ("roles" in link && link.roles && role != null && !(link.roles as readonly AppRole[]).includes(role)) continue;
       links.push({ label: link.label, path: link.path, requireAuth: true });
     }
   }

@@ -34,6 +34,7 @@ export const APP_NAV_STRUCTURE = [
     links: [
       { label: "Vault", path: "/vault", icon: "shield", requireAuth: true, roles: ["admin"] as const },
       { label: "Audit Log", path: "/audit", icon: "history", requireAuth: true, roles: ["admin"] as const },
+      { label: "API Keys", path: "/api-keys", icon: "key", requireAuth: true, roles: ["admin", "operator"] as const },
       { label: "Agents", path: "/agents", icon: "smart_toy", requireAuth: true, roles: ["admin", "operator"] as const },
       { label: "Terminal", path: "/terminal", icon: "terminal", requireAuth: true, roles: ["admin", "operator"] as const },
     ],

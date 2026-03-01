@@ -1,4 +1,3 @@
-import type { GenericMutationCtx, GenericQueryCtx } from "convex/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
@@ -31,10 +30,8 @@ export const getMyRole = query({
   },
 });
 
-type AuthContext = { auth: { getUserIdentity: () => Promise<{ subject: string } | null> }; db: GenericQueryCtx["db"] };
-
 /** Require one of the given roles in a mutation or query. Throws if unauthenticated or role not allowed. */
-export async function requireRole(ctx: AuthContext, allowedRoles: AppRole[]): Promise<AppRole> {
+export async function requireRole(ctx: { auth: { getUserIdentity: () => Promise<{ subject: string } | null> }; db: any }, allowedRoles: AppRole[]): Promise<AppRole> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new Error("Unauthorized");
   const userId = getUserIdFromIdentity(identity);
