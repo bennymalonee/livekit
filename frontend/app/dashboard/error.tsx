@@ -14,7 +14,7 @@ export default function DashboardError({
           Something went wrong
         </h2>
         <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
-          An error occurred on the dashboard. You can try again or go back to the home page.
+          {error?.message ?? "An error occurred on the dashboard. You can try again or go back to the home page."}
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button
