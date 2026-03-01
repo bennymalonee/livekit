@@ -10,7 +10,7 @@ const crons = cronJobs();
 crons.interval(
   "sync nodes from Coolify",
   { minutes: 15 },
-  api.coolify.syncApplicationsToNodes,
+  internal.coolify_internal.syncApplicationsToNodes,
   {}
 );
 
@@ -42,6 +42,16 @@ crons.interval(
   "save daily snapshot",
   { hours: 24 },
   internal.dashboard_internal.saveDailySnapshot,
+  {}
+);
+
+/**
+ * Prune old token rate limit rows (older than 24h).
+ */
+crons.interval(
+  "prune token rate limit",
+  { hours: 24 },
+  internal.rateLimit_internal.pruneTokenRateLimit,
   {}
 );
 

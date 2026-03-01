@@ -13,6 +13,16 @@ const coolifyWebhook = httpAction(async (ctx, request) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
+  const secret = process.env.COOLIFY_WEBHOOK_SECRET;
+  if (secret && secret.length > 0) {
+    const authHeader = request.headers.get("Authorization");
+    const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+    const headerSecret = request.headers.get("X-Webhook-Secret")?.trim() ?? bearer;
+    if (headerSecret !== secret) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+  }
+
   let payload: unknown;
   try {
     payload = await request.json();

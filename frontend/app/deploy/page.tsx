@@ -105,7 +105,7 @@ export default function DeployPage() {
     try {
       const apps = await listCoolifyApps();
       setCoolifyApps(apps);
-      const livekitApp = apps.find((a) => a.uuid === LIVEKIT_STACK_UUID);
+      const livekitApp = apps.find((a: { uuid?: string }) => a.uuid === LIVEKIT_STACK_UUID);
       if (livekitApp && !deploySettings?.livekitUrl) {
         try {
           const envs = await getCoolifyEnvs({ applicationUuid: LIVEKIT_STACK_UUID });

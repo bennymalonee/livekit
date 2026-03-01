@@ -28,6 +28,7 @@
 | **Diagnostics** | Convex events timeline; load Coolify logs for Dashboard and LiveKit Stack; export CSV. |
 | **Modules** | Enable/disable stack modules (LiveKit, TURN, Recording). Seed defaults and toggle in the UI. |
 | **Vault** | Store and list keys in Convex; optional read-only Coolify env key names (values never stored). |
+| **Agents** | Voice AI agents (AgentsJS). Run the agent worker from `agent/`; dispatch the agent to a room from the dashboard. |
 | **Terminal** | Command history in Convex; load Coolify logs for LiveKit Stack; status filter (all / success / failed). |
 
 ## Architecture (high level)
@@ -161,11 +162,20 @@ See [docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md](docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md)
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and how to fix them |
 | [deploy/README.md](deploy/README.md) | LiveKit stack (Docker Compose, Redis, Coturn) |
 
+## Voice AI agents
+
+A voice agent (STT → LLM → TTS) lives in **`agent/`** and runs as a separate Node process. It uses [@livekit/agents](https://docs.livekit.io/agents/) (AgentsJS) with OpenAI and Silero VAD.
+
+- **Run locally:** `cd agent && npm install && npm run start` (or `npm run dev` for watch). Set `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, and `OPENAI_API_KEY` (see [agent/README.md](agent/README.md)).
+- **Dispatch:** From the dashboard **Agents** page, use “Dispatch agent to room” to send the agent into a room. The agent registers as `livkit-voice-agent`.
+- **Deploy:** Optionally run the agent as a second service (e.g. Docker or Coolify) on your VPS; the dashboard can dispatch it to rooms when it is connected to your LiveKit server.
+
 ## Project layout
 
 | Path | Description |
 | ---- | ----------- |
 | `frontend/` | Next.js app (Convex auth, dashboard, deploy UI) |
+| `agent/` | Voice AI agent worker (AgentsJS); run with `npm run start` |
 | `deploy/` | LiveKit stack (Docker Compose, Redis, Coturn, egress) |
 | `docs/` | Setup checklists, env reference, screenshots |
 | `scripts/` | Asset and reference scripts |

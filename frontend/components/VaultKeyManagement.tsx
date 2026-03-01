@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
+import { QRCodeSVG } from "qrcode.react";
 import { api } from "@/convex/_generated/api";
 
 const DASHBOARD_APP_UUID = process.env.NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID ?? "";
@@ -17,14 +18,32 @@ const VAULT_QUICK_LINKS = [
   { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
   { path: "/modules", icon: "view_module", label: "Modules" },
   { path: "/vault", icon: "shield", label: "Vault" },
+  { path: "/agents", icon: "smart_toy", label: "Agents" },
   { path: "/terminal", icon: "terminal", label: "Terminal" },
 ];
+
+const LIVEKIT_URL = process.env.NEXT_PUBLIC_LIVEKIT_URL ?? "";
+
+const TTL_OPTIONS = [
+  { label: "15 min", seconds: 15 * 60 },
+  { label: "30 min", seconds: 30 * 60 },
+  { label: "1 hour", seconds: 60 * 60 },
+] as const;
+
+const PERMISSION_PRESETS = [
+  { id: "viewer" as const, label: "Viewer only", canPublish: false, canSubscribe: true, canPublishData: false },
+  { id: "streamer" as const, label: "Streamer", canPublish: true, canSubscribe: true, canPublishData: false },
+  { id: "full" as const, label: "Full", canPublish: true, canSubscribe: true, canPublishData: true },
+] as const;
 
 export function VaultKeyManagement() {
   const keys = useQuery(api.vault.listKeys);
   const createKey = useMutation(api.vault.createKey);
   const deleteKey = useMutation(api.vault.deleteKey);
   const getCoolifyEnvs = useAction(api.coolify.getApplicationEnvs);
+  const generateToken = useAction(api.livekit.generateToken);
+  const checkConfig = useAction(api.livekit.checkConfig);
+  const recordTokenGeneration = useMutation(api.tokenGenerations.recordTokenGeneration);
   const [coolifyEnvKeys, setCoolifyEnvKeys] = useState<{ dashboard: string[]; livekit: string[] }>({ dashboard: [], livekit: [] });
   const [coolifyLoading, setCoolifyLoading] = useState(false);
   const [formName, setFormName] = useState("");
@@ -33,6 +52,25 @@ export function VaultKeyManagement() {
   const [keyTypeHint, setKeyTypeHint] = useState<"livekit" | "coolify" | "webhook" | "other" | null>(null);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [tokenRoom, setTokenRoom] = useState("default");
+  const [tokenParticipant, setTokenParticipant] = useState("");
+  const [tokenCanPublish, setTokenCanPublish] = useState(true);
+  const [tokenCanSubscribe, setTokenCanSubscribe] = useState(true);
+  const [tokenCanPublishData, setTokenCanPublishData] = useState(true);
+  const [tokenTtlSeconds, setTokenTtlSeconds] = useState(30 * 60);
+  const [generatedToken, setGeneratedToken] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
+  const [configCheck, setConfigCheck] = useState<{ ok: boolean; message?: string } | null>(null);
+  const [configChecking, setConfigChecking] = useState(false);
+  const [lastGeneratedRoom, setLastGeneratedRoom] = useState<string | null>(null);
+  const [lastGeneratedAt, setLastGeneratedAt] = useState<number | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  type MultiRoomRow = { id: string; roomName: string; participantName: string };
+  const [multiRooms, setMultiRooms] = useState<MultiRoomRow[]>([{ id: "1", roomName: "default", participantName: "" }]);
+  const [multiResults, setMultiResults] = useState<{ roomName: string; token: string }[]>([]);
+  const [multiLoading, setMultiLoading] = useState(false);
+  const [multiError, setMultiError] = useState<string | null>(null);
 
   const keyTypeOptions: { id: "livekit" | "coolify" | "webhook" | "other"; label: string; suggestedName: string; description: string }[] = [
     { id: "livekit", label: "LiveKit API key/secret", suggestedName: "LIVEKIT_API_KEY or LIVEKIT_API_SECRET", description: "From your LiveKit server or Cloud project" },
@@ -257,12 +295,9 @@ export function VaultKeyManagement() {
               <h3 className="text-xs font-display font-bold uppercase text-slate-500 tracking-widest">
                 Vault keys (Convex)
               </h3>
-              <p className="text-slate-400 text-sm">
-                Store API keys, tokens, and secrets here. Each entry needs a <strong className="text-slate-300">name</strong> (e.g. LIVEKIT_API_SECRET), an optional <strong className="text-slate-300">description</strong>, and the <strong className="text-slate-300">secret value</strong>. Values are stored in Convex and never shown in the app.
-              </p>
               <div className="space-y-2">
                 <p className="text-[10px] font-display font-bold uppercase text-slate-500 tracking-widest">
-                  What are you adding? (pick one to see hints)
+                  What are you adding? (pick one)
                 </p>
                 <div className="flex flex-wrap gap-4">
                   {keyTypeOptions.map((opt) => (
@@ -274,78 +309,533 @@ export function VaultKeyManagement() {
                         type="radio"
                         name="keyType"
                         checked={keyTypeHint === opt.id}
-                        onChange={() => setKeyTypeHint(opt.id)}
+                        onChange={() => {
+                          setKeyTypeHint(opt.id);
+                          if (opt.id !== "livekit") setTokenError(null);
+                        }}
                         className="w-4 h-4 rounded border-panel-border bg-[#0A0B0D] text-primary focus:ring-primary"
                       />
                       <span className="text-sm text-slate-400 group-hover:text-slate-300">{opt.label}</span>
                     </label>
                   ))}
                 </div>
-                {keyTypeHint != null && (
-                  <div className="mt-2 p-3 rounded-lg bg-[#0A0B0D]/80 border border-panel-border">
-                    <p className="text-xs text-slate-400">
-                      <span className="text-primary font-bold">Suggested name:</span> {keyTypeOptions.find((o) => o.id === keyTypeHint)?.suggestedName}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {keyTypeOptions.find((o) => o.id === keyTypeHint)?.description}
-                    </p>
-                  </div>
-                )}
               </div>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setCreateError(null);
-                  if (!formName.trim() || !formValue.trim()) return;
-                  setCreating(true);
-                  try {
-                    await createKey({
-                      name: formName.trim(),
-                      description: formDescription.trim() || undefined,
-                      encryptedValue: formValue,
-                    });
-                    setFormName("");
-                    setFormDescription("");
-                    setFormValue("");
-                    setKeyTypeHint(null);
-                  } catch (err) {
-                    setCreateError(err instanceof Error ? err.message : "Failed to create key");
-                  } finally {
-                    setCreating(false);
-                  }
-                }}
-                className="flex flex-wrap items-end gap-3"
-              >
-                <input
-                  type="text"
-                  placeholder="Key name (e.g. LIVEKIT_API_SECRET)"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48 min-w-[180px]"
-                />
-                <input
-                  type="text"
-                  placeholder="Description (optional)"
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48"
-                />
-                <input
-                  type="password"
-                  placeholder="Secret value (stored server-side, never shown)"
-                  value={formValue}
-                  onChange={(e) => setFormValue(e.target.value)}
-                  className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48"
-                />
-                <button
-                  type="submit"
-                  disabled={creating || !formName.trim() || !formValue.trim()}
-                  className="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase disabled:opacity-50"
-                >
-                  {creating ? "Adding…" : "Add key"}
-                </button>
-              </form>
-              {createError && <p className="text-red-400 text-sm">{createError}</p>}
+
+              {keyTypeHint === "livekit" ? (
+                <>
+                  <p className="text-slate-400 text-sm">
+                    Generate a token and LiveKit URL for your mobile app. No keys or secrets to type—just choose options and generate.
+                  </p>
+                  <div className="space-y-4 p-4 rounded-lg bg-[#0A0B0D]/80 border border-panel-border">
+                    <p className="text-[10px] font-display font-bold uppercase text-slate-500 tracking-widest">
+                      Permissions (what the app can do)
+                    </p>
+                    <div className="flex flex-wrap gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={tokenCanPublish}
+                          onChange={(e) => setTokenCanPublish(e.target.checked)}
+                          className="rounded border-panel-border bg-[#0A0B0D] text-primary"
+                        />
+                        <span className="text-sm text-slate-400">Can publish</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={tokenCanSubscribe}
+                          onChange={(e) => setTokenCanSubscribe(e.target.checked)}
+                          className="rounded border-panel-border bg-[#0A0B0D] text-primary"
+                        />
+                        <span className="text-sm text-slate-400">Can subscribe</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={tokenCanPublishData}
+                          onChange={(e) => setTokenCanPublishData(e.target.checked)}
+                          className="rounded border-panel-border bg-[#0A0B0D] text-primary"
+                        />
+                        <span className="text-sm text-slate-400">Can publish data</span>
+                      </label>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {PERMISSION_PRESETS.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            setTokenCanPublish(p.canPublish);
+                            setTokenCanSubscribe(p.canSubscribe);
+                            setTokenCanPublishData(p.canPublishData);
+                          }}
+                          className="px-3 py-1.5 rounded-lg border border-panel-border text-xs text-slate-400 hover:bg-white/5 hover:text-slate-300"
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div>
+                        <label className="block text-[10px] font-display font-bold uppercase text-slate-500 mb-1">Room name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. my-room"
+                          value={tokenRoom}
+                          onChange={(e) => setTokenRoom(e.target.value)}
+                          className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-display font-bold uppercase text-slate-500 mb-1">Participant (optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. mobile-user"
+                          value={tokenParticipant}
+                          onChange={(e) => setTokenParticipant(e.target.value)}
+                          className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-display font-bold uppercase text-slate-500 mb-1">Valid for</label>
+                        <select
+                          value={tokenTtlSeconds}
+                          onChange={(e) => setTokenTtlSeconds(Number(e.target.value))}
+                          className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white w-32"
+                        >
+                          {TTL_OPTIONS.map((o) => (
+                            <option key={o.seconds} value={o.seconds}>{o.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setConfigChecking(true);
+                          setConfigCheck(null);
+                          try {
+                            const r = await checkConfig({});
+                            setConfigCheck(r);
+                          } catch {
+                            setConfigCheck({ ok: false, message: "Check failed" });
+                          } finally {
+                            setConfigChecking(false);
+                          }
+                        }}
+                        disabled={configChecking}
+                        className="px-3 py-2 rounded-lg border border-panel-border text-xs text-slate-400 hover:bg-white/5 disabled:opacity-50"
+                      >
+                        {configChecking ? "Checking…" : "Check connection"}
+                      </button>
+                      {configCheck !== null && (
+                        <span className={`text-xs ${configCheck.ok ? "text-emerald-400" : "text-amber-400"}`}>
+                          {configCheck.ok ? "Ready" : configCheck.message}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setTokenError(null);
+                          const room = tokenRoom.trim() || "default";
+                          setTokenLoading(true);
+                          try {
+                            const { token } = await generateToken({
+                              roomName: room,
+                              participantName: tokenParticipant.trim() || undefined,
+                              ttlSeconds: tokenTtlSeconds,
+                              canPublish: tokenCanPublish,
+                              canSubscribe: tokenCanSubscribe,
+                              canPublishData: tokenCanPublishData,
+                            });
+                            setGeneratedToken(token);
+                            setLastGeneratedRoom(room);
+                            setLastGeneratedAt(Date.now());
+                            try {
+                              await recordTokenGeneration({
+                                roomName: room,
+                                canPublish: tokenCanPublish,
+                                canSubscribe: tokenCanSubscribe,
+                                canPublishData: tokenCanPublishData,
+                              });
+                            } catch {
+                              // Audit failure does not block the user
+                            }
+                          } catch (err) {
+                            setTokenError(err instanceof Error ? err.message : "Failed to generate token");
+                            setGeneratedToken(null);
+                          } finally {
+                            setTokenLoading(false);
+                          }
+                        }}
+                        disabled={tokenLoading || !tokenRoom.trim()}
+                        className="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase disabled:opacity-50"
+                      >
+                        {tokenLoading ? "Generating…" : "Generate token"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-3 p-4 rounded-lg bg-[#0A0B0D]/60 border border-panel-border">
+                    <p className="text-[10px] font-display font-bold uppercase text-slate-500 tracking-widest">
+                      Multiple rooms
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Generate tokens for several rooms at once. Add rows, then click Generate all.
+                    </p>
+                    <div className="space-y-2">
+                      {multiRooms.map((row) => (
+                        <div key={row.id} className="flex flex-wrap items-center gap-2">
+                          <input
+                            type="text"
+                            placeholder="Room name"
+                            value={row.roomName}
+                            onChange={(e) =>
+                              setMultiRooms((prev) =>
+                                prev.map((r) => (r.id === row.id ? { ...r, roomName: e.target.value } : r))
+                              )
+                            }
+                            className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-40"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Participant (optional)"
+                            value={row.participantName}
+                            onChange={(e) =>
+                              setMultiRooms((prev) =>
+                                prev.map((r) => (r.id === row.id ? { ...r, participantName: e.target.value } : r))
+                              )
+                            }
+                            className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-40"
+                          />
+                          {multiRooms.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setMultiRooms((prev) => prev.filter((r) => r.id !== row.id))}
+                              className="text-red-400 hover:text-red-300 text-xs uppercase"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMultiRooms((prev) => [
+                            ...prev,
+                            {
+                              id: String(Date.now()),
+                              roomName: "",
+                              participantName: "",
+                            },
+                          ])
+                        }
+                        className="px-3 py-2 rounded-lg border border-panel-border text-xs text-slate-400 hover:bg-white/5"
+                      >
+                        Add room
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setMultiError(null);
+                          setMultiResults([]);
+                          const rows = multiRooms.filter((r) => r.roomName.trim());
+                          if (rows.length === 0) {
+                            setMultiError("Add at least one room name.");
+                            return;
+                          }
+                          setMultiLoading(true);
+                          try {
+                            const results: { roomName: string; token: string }[] = [];
+                            for (const row of rows) {
+                              const room = row.roomName.trim() || "default";
+                              const { token } = await generateToken({
+                                roomName: room,
+                                participantName: row.participantName.trim() || undefined,
+                                ttlSeconds: tokenTtlSeconds,
+                                canPublish: tokenCanPublish,
+                                canSubscribe: tokenCanSubscribe,
+                                canPublishData: tokenCanPublishData,
+                              });
+                              results.push({ roomName: room, token });
+                              try {
+                                await recordTokenGeneration({
+                                  roomName: room,
+                                  canPublish: tokenCanPublish,
+                                  canSubscribe: tokenCanSubscribe,
+                                  canPublishData: tokenCanPublishData,
+                                });
+                              } catch {
+                                // Audit failure does not block the user
+                              }
+                            }
+                            setMultiResults(results);
+                            if (results.length > 0) {
+                              setLastGeneratedRoom(results[0].roomName);
+                              setLastGeneratedAt(Date.now());
+                            }
+                          } catch (err) {
+                            setMultiError(err instanceof Error ? err.message : "Failed to generate tokens");
+                          } finally {
+                            setMultiLoading(false);
+                          }
+                        }}
+                        disabled={multiLoading}
+                        className="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase disabled:opacity-50"
+                      >
+                        {multiLoading ? "Generating…" : "Generate all"}
+                      </button>
+                    </div>
+                    {multiError && <p className="text-red-400 text-sm">{multiError}</p>}
+                    {multiResults.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-panel-border">
+                        <p className="text-[10px] font-display font-bold uppercase text-slate-500 tracking-widest">
+                          Results
+                        </p>
+                        {multiResults.map((r) => (
+                          <div key={r.roomName} className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400 font-mono w-24 truncate" title={r.roomName}>
+                              {r.roomName}
+                            </span>
+                            <input
+                              type="text"
+                              readOnly
+                              value={r.token}
+                              className="flex-1 bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-1.5 text-xs text-slate-300 font-mono truncate"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(r.token);
+                                setCopyFeedback(`Token for ${r.roomName} copied`);
+                                setTimeout(() => setCopyFeedback(null), 2000);
+                              }}
+                              className="px-2 py-1.5 rounded-lg border border-panel-border text-xs text-slate-400 hover:bg-white/5"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const arr = multiResults.map((res) => ({
+                              url: LIVEKIT_URL,
+                              roomName: res.roomName,
+                              token: res.token,
+                            }));
+                            navigator.clipboard.writeText(JSON.stringify(arr));
+                            setCopyFeedback("All tokens copied as JSON");
+                            setTimeout(() => setCopyFeedback(null), 2000);
+                          }}
+                          className="px-3 py-2 rounded-lg border border-panel-border text-xs text-slate-400 hover:bg-white/5"
+                        >
+                          Copy all (JSON array)
+                        </button>
+                        {copyFeedback && <span className="text-xs text-emerald-400 ml-2">{copyFeedback}</span>}
+                      </div>
+                    )}
+                  </div>
+                  {tokenError && <p className="text-red-400 text-sm">{tokenError}</p>}
+                  {generatedToken && (
+                    <div className="space-y-3 p-4 rounded-lg bg-[#0A0B0D]/80 border border-panel-border">
+                      <p className="text-[10px] font-display font-bold uppercase text-slate-500 tracking-widest">
+                        Token and URL (copy into your app)
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Valid for {tokenTtlSeconds === 15 * 60 ? "15 min" : tokenTtlSeconds === 60 * 60 ? "1 hour" : "30 min"}.
+                      </p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value={LIVEKIT_URL}
+                            className="flex-1 bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-slate-300 font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(LIVEKIT_URL);
+                              setCopyFeedback("URL copied");
+                              setTimeout(() => setCopyFeedback(null), 2000);
+                            }}
+                            className="px-3 py-2 rounded-lg border border-panel-border text-xs text-slate-400 hover:bg-white/5"
+                          >
+                            Copy URL
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value={generatedToken}
+                            className="flex-1 bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-slate-300 font-mono truncate"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(generatedToken);
+                              setCopyFeedback("Token copied");
+                              setTimeout(() => setCopyFeedback(null), 2000);
+                            }}
+                            className="px-3 py-2 rounded-lg border border-panel-border text-xs text-slate-400 hover:bg-white/5"
+                          >
+                            Copy token
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const block = JSON.stringify({ url: LIVEKIT_URL, token: generatedToken });
+                            navigator.clipboard.writeText(block);
+                            setCopyFeedback("Token and URL copied");
+                            setTimeout(() => setCopyFeedback(null), 2000);
+                          }}
+                          className="px-3 py-2 rounded-lg border border-panel-border text-xs text-slate-400 hover:bg-white/5"
+                        >
+                          Copy token and URL
+                        </button>
+                        {copyFeedback && <span className="text-xs text-emerald-400 ml-2">{copyFeedback}</span>}
+                      </div>
+                      {LIVEKIT_URL && generatedToken && (
+                        <div className="pt-2 border-t border-panel-border">
+                          <p className="text-[10px] font-display font-bold uppercase text-slate-500 tracking-widest mb-2">Scan with mobile (URL + token)</p>
+                          <QRCodeSVG
+                            value={JSON.stringify({ url: LIVEKIT_URL, token: generatedToken })}
+                            size={128}
+                            level="M"
+                            className="rounded bg-white p-1"
+                          />
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-500 pt-2 border-t border-panel-border">
+                        Paste URL and token into your app; use LiveKit SDK <code className="text-slate-400">connect(url, token)</code>.{" "}
+                        <a href="https://docs.livekit.io/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">LiveKit docs</a>
+                      </p>
+                    </div>
+                  )}
+                  {lastGeneratedRoom && lastGeneratedAt && (
+                    <p className="text-xs text-slate-500">
+                      Last generated for room <span className="text-slate-400 font-mono">{lastGeneratedRoom}</span> at {new Date(lastGeneratedAt).toLocaleTimeString()}.
+                      {" "}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setTokenError(null);
+                          setTokenLoading(true);
+                          try {
+                            const { token } = await generateToken({
+                              roomName: lastGeneratedRoom,
+                              participantName: tokenParticipant.trim() || undefined,
+                              ttlSeconds: tokenTtlSeconds,
+                              canPublish: tokenCanPublish,
+                              canSubscribe: tokenCanSubscribe,
+                              canPublishData: tokenCanPublishData,
+                            });
+                            setGeneratedToken(token);
+                            setLastGeneratedAt(Date.now());
+                            try {
+                              await recordTokenGeneration({
+                                roomName: lastGeneratedRoom,
+                                canPublish: tokenCanPublish,
+                                canSubscribe: tokenCanSubscribe,
+                                canPublishData: tokenCanPublishData,
+                              });
+                            } catch {
+                              // Audit failure does not block the user
+                            }
+                          } catch (err) {
+                            setTokenError(err instanceof Error ? err.message : "Failed to generate token");
+                          } finally {
+                            setTokenLoading(false);
+                          }
+                        }}
+                        disabled={tokenLoading}
+                        className="text-primary hover:underline"
+                      >
+                        Regenerate
+                      </button>
+                    </p>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    To rotate keys: update LIVEKIT_API_KEY and LIVEKIT_API_SECRET in Convex and in your LiveKit server config, then regenerate tokens.
+                  </p>
+                </>
+              ) : (
+                <>
+                  {keyTypeHint != null && (
+                    <div className="p-3 rounded-lg bg-[#0A0B0D]/80 border border-panel-border">
+                      <p className="text-xs text-slate-400">
+                        <span className="text-primary font-bold">Suggested name:</span> {keyTypeOptions.find((o) => o.id === keyTypeHint)?.suggestedName}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {keyTypeOptions.find((o) => o.id === keyTypeHint)?.description}
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-slate-400 text-sm">
+                    Store API keys, tokens, and secrets here. Each entry needs a <strong className="text-slate-300">name</strong>, optional <strong className="text-slate-300">description</strong>, and the <strong className="text-slate-300">secret value</strong>. Values are stored in Convex and never shown in the app.
+                  </p>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      setCreateError(null);
+                      if (!formName.trim() || !formValue.trim()) return;
+                      setCreating(true);
+                      try {
+                        await createKey({
+                          name: formName.trim(),
+                          description: formDescription.trim() || undefined,
+                          encryptedValue: formValue,
+                        });
+                        setFormName("");
+                        setFormDescription("");
+                        setFormValue("");
+                        setKeyTypeHint(null);
+                      } catch (err) {
+                        setCreateError(err instanceof Error ? err.message : "Failed to create key");
+                      } finally {
+                        setCreating(false);
+                      }
+                    }}
+                    className="flex flex-wrap items-end gap-3"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Key name (e.g. LIVEKIT_API_SECRET)"
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48 min-w-[180px]"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Description (optional)"
+                      value={formDescription}
+                      onChange={(e) => setFormDescription(e.target.value)}
+                      className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48"
+                    />
+                    <input
+                      type="password"
+                      placeholder="Secret value (stored server-side, never shown)"
+                      value={formValue}
+                      onChange={(e) => setFormValue(e.target.value)}
+                      className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48"
+                    />
+                    <button
+                      type="submit"
+                      disabled={creating || !formName.trim() || !formValue.trim()}
+                      className="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase disabled:opacity-50"
+                    >
+                      {creating ? "Adding…" : "Add key"}
+                    </button>
+                  </form>
+                  {createError && <p className="text-red-400 text-sm">{createError}</p>}
+                </>
+              )}
               <div className="border-t border-panel-border pt-4 space-y-2 max-h-40 overflow-y-auto">
                 {keys === undefined ? (
                   <p className="text-slate-500 text-sm">Loading…</p>
@@ -514,7 +1004,7 @@ export function VaultKeyManagement() {
                     </p>
                     <div className="flex items-center gap-2">
                       <span className="material-icons text-xs text-primary">place</span>
-                      <p className="text-xs font-bold">—</p>
+                      <p className="text-xs font-bold">{totalKeys > 0 ? "Convex" : "—"}</p>
                     </div>
                   </div>
                 </div>

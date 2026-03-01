@@ -24,8 +24,18 @@ Where to set each variable and what it does.
 | `COOLIFY_API_TOKEN` | Coolify API token for Convex actions. | From Coolify → Keys & Tokens |
 | `LIVEKIT_API_KEY` | LiveKit API key for token generation (Convex action `livekit.generateToken`). | From LiveKit Stack env in Coolify |
 | `LIVEKIT_API_SECRET` | LiveKit API secret for signing tokens. Never expose to client. | From LiveKit Stack env in Coolify |
+| `LIVEKIT_URL` | LiveKit server URL (e.g. `wss://...` or `https://...`). Required for agent dispatch (Convex action `livekit.dispatchAgentToRoom`). | Same host as client WebSocket URL, with `wss://` or `https://` |
 
 **Note:** `CONVEX_SITE_URL` is built-in and cannot be overridden.
+
+## Agent worker (`agent/`) – set in env when running the worker
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `LIVEKIT_URL` | LiveKit server WebSocket URL for the agent to connect. | `wss://YOUR_VPS_IP:7880` |
+| `LIVEKIT_API_KEY` | LiveKit API key. | From LiveKit Stack env |
+| `LIVEKIT_API_SECRET` | LiveKit API secret. | From LiveKit Stack env |
+| `OPENAI_API_KEY` | OpenAI API key for STT, LLM, and TTS in the voice agent. | From OpenAI dashboard |
 
 ## Coolify – LiveKit Stack app env
 

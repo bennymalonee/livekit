@@ -1,6 +1,8 @@
 # Dependencies
 frontend/node_modules/
 frontend/.next/
+agent/node_modules/
+agent/dist/
 
 # Stitch assets (downloaded)
 frontend/public/stitch/images/*.png

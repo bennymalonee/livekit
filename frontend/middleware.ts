@@ -16,6 +16,7 @@ const isProtectedRoute = createRouteMatcher([
   "/vault(.*)",
   "/terminal(.*)",
   "/diagnostics(.*)",
+  "/agents(.*)",
 ]);
 
 const isHttpApp =

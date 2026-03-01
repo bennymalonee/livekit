@@ -65,6 +65,7 @@ export function EdgeDiagnostics() {
     { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
     { path: "/modules", icon: "view_module", label: "Modules" },
     { path: "/vault", icon: "shield", label: "Vault" },
+    { path: "/agents", icon: "smart_toy", label: "Agents" },
     { path: "/terminal", icon: "terminal", label: "Terminal" },
   ];
 

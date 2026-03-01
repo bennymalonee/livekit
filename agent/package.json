@@ -1,0 +1,24 @@
+{
+  "name": "livkit-voice-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node --import tsx src/entrypoint.ts",
+    "dev": "node --watch --import tsx src/entrypoint.ts"
+  },
+  "dependencies": {
+    "@livekit/agents": "^1.0.48",
+    "@livekit/agents-plugin-openai": "^1.0.48",
+    "@livekit/agents-plugin-silero": "^1.0.48"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4.19.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

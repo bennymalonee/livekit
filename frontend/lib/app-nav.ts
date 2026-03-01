@@ -30,6 +30,7 @@ export const APP_NAV_STRUCTURE = [
     section: "Security & Tools",
     links: [
       { label: "Vault", path: "/vault", icon: "shield", requireAuth: true },
+      { label: "Agents", path: "/agents", icon: "smart_toy", requireAuth: true },
       { label: "Terminal", path: "/terminal", icon: "terminal", requireAuth: true },
     ],
   },

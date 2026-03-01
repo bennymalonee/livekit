@@ -16,6 +16,8 @@ In **Coolify** → your **Dashboard** app (livekit main) → **Environment varia
 | `COOLIFY_BASE_URL` | Coolify API URL (e.g. `http://YOUR_VPS_IP:8000`) |
 | `COOLIFY_API_TOKEN` | Coolify API token with **Deploy** permission (Coolify → Keys & Tokens → API tokens → Create) |
 | `LIVEKIT_STACK_APP_UUID` | UUID of the LiveKit Stack app in Coolify (from Coolify → your LiveKit app) |
+| `NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID` | (Optional) Dashboard app UUID – for Coolify logs in Diagnostics, env in Vault. |
+| `NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID` | (Optional) LiveKit Stack app UUID – for Coolify logs in Diagnostics/Terminal, Deploy prefill. |
 
 **Redeploy** the Dashboard app after changing env vars.
 
@@ -31,6 +33,7 @@ In **Convex Dashboard** → your project → **Production** deployment → **Set
 | `COOLIFY_API_TOKEN` | Same Coolify API token (Deploy permission) |
 | `LIVEKIT_API_KEY` | Coolify → **livekit-stack** app → Environment variables → copy `LIVEKIT_API_KEY` |
 | `LIVEKIT_API_SECRET` | Coolify → **livekit-stack** app → Environment variables → copy `LIVEKIT_API_SECRET` |
+| `LIVEKIT_URL` | Same host as `NEXT_PUBLIC_LIVEKIT_URL`, use `wss://` or `https://` (e.g. `wss://YOUR_VPS_IP:7880`). Required for **Agents** page “Dispatch agent to room”. |
 
 No redeploy needed for Convex env changes.
 
@@ -76,7 +79,7 @@ Diagnostics, Vault, and Terminal work as soon as Convex and Coolify env are set;
 ## Quick checklist
 
 - [ ] Coolify **Dashboard** app: `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_LIVEKIT_URL`, `COOLIFY_BASE_URL`, `COOLIFY_API_TOKEN`, `LIVEKIT_STACK_APP_UUID` → then redeploy.
-- [ ] **Convex** env: `COOLIFY_BASE_URL`, `COOLIFY_API_TOKEN`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`.
+- [ ] **Convex** env: `COOLIFY_BASE_URL`, `COOLIFY_API_TOKEN`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL` (for Agents dispatch).
 - [ ] Run **`npx convex deploy`** from `frontend` (production).
 - [ ] **LiveKit Stack** in Coolify: `LIVEKIT_WEBHOOK_URL` set and stack redeployed.
 - [ ] In dashboard: use **“Sync from Coolify”** (Nodes), **“Seed demo data”** (Sessions / Analytics), **“Seed default modules”** (Modules) if you want data in those sections.

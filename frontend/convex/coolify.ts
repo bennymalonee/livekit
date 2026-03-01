@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 
 /**
  * Coolify API helpers. Set COOLIFY_BASE_URL and COOLIFY_API_TOKEN in Convex env.
@@ -25,13 +25,19 @@ export type CoolifyApplication = {
   fqdn?: string;
 };
 
+async function requireAuth(ctx: { auth: { getUserIdentity: () => Promise<unknown> } }) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throw new Error("Unauthorized");
+}
+
 /**
  * List all applications from Coolify.
  * GET /api/v1/applications
  */
 export const listApplications = action({
   args: {},
-  handler: async (): Promise<CoolifyApplication[]> => {
+  handler: async (ctx): Promise<CoolifyApplication[]> => {
+    await requireAuth(ctx);
     const { baseUrl, token } = getCoolifyConfig();
     const res = await fetch(`${baseUrl}/api/v1/applications`, {
       method: "GET",
@@ -65,6 +71,7 @@ export type CoolifyEnvVar = {
 export const getApplicationEnvs = action({
   args: { applicationUuid: v.string() },
   handler: async (ctx, args): Promise<CoolifyEnvVar[]> => {
+    await requireAuth(ctx);
     const { baseUrl, token } = getCoolifyConfig();
     const res = await fetch(
       `${baseUrl}/api/v1/applications/${encodeURIComponent(args.applicationUuid)}/envs`,
@@ -94,6 +101,7 @@ export const getApplicationEnvs = action({
 export const getApplicationEnvsForPrefill = action({
   args: { applicationUuid: v.string() },
   handler: async (ctx, args): Promise<Record<string, string>> => {
+    await requireAuth(ctx);
     const { baseUrl, token } = getCoolifyConfig();
     const res = await fetch(
       `${baseUrl}/api/v1/applications/${encodeURIComponent(args.applicationUuid)}/envs`,
@@ -132,43 +140,13 @@ function mapCoolifyStatusToNode(status: string | undefined): string {
 
 /**
  * Fetch Coolify applications and upsert them into Convex nodes table.
- * Used by Nodes page "Sync from Coolify" and optionally by a cron.
+ * Requires auth. Cron uses internal.coolify_internal.syncApplicationsToNodes.
  */
 export const syncApplicationsToNodes = action({
   args: {},
-  handler: async (ctx) => {
-    const { baseUrl, token } = getCoolifyConfig();
-    const res = await fetch(`${baseUrl}/api/v1/applications`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Coolify API listApplications failed: ${res.status} ${text}`);
-    }
-    const data = (await res.json()) as Array<{ uuid?: string; name?: string; status?: string }>;
-    if (!Array.isArray(data)) return { synced: 0 };
-
-    const region = "default";
-    let synced = 0;
-    for (const app of data) {
-      const name = app.name ?? app.uuid ?? "Unnamed";
-      const status = mapCoolifyStatusToNode(app.status);
-      await ctx.runMutation(api.nodes.upsertNode, {
-        name,
-        region,
-        status,
-        cpuLoad: 0,
-        memoryLoad: 0,
-        activeRooms: 0,
-      });
-      synced += 1;
-    }
-    await ctx.runMutation(internal.diagnostics_internal.recordEventInternal, {
-      level: "info",
-      message: `Synced ${synced} nodes from Coolify`,
-    });
-    return { synced };
+  handler: async (ctx): Promise<void> => {
+    await requireAuth(ctx);
+    await ctx.runAction(internal.coolify_internal.syncApplicationsToNodes, {});
   },
 });
 
@@ -183,6 +161,7 @@ export const getApplicationLogs = action({
     lines: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<{ logs: string; error?: string }> => {
+    await requireAuth(ctx);
     const uuid = (args.applicationUuid ?? "").trim();
     if (!uuid) {
       return {

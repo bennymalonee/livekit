@@ -2,25 +2,51 @@
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { AccessToken, WebhookReceiver } from "livekit-server-sdk";
+import { internal } from "./_generated/api";
+import { AccessToken, WebhookReceiver, AgentDispatchClient } from "livekit-server-sdk";
 
 /** Default TTL for self-hosted: short-lived tokens so removed participants cannot reuse (token revocation is Cloud-only). */
 const DEFAULT_TTL_SECONDS = 30 * 60; // 30 minutes
 
+const MAX_ROOM_NAME_LENGTH = 256;
+const MAX_PARTICIPANT_NAME_LENGTH = 256;
+
+/** Agent name used when dispatching from the dashboard; must match the worker's agentName. */
+export const DISPATCH_AGENT_NAME = "livkit-voice-agent";
+
 /**
  * Generate a LiveKit access token for a room.
  * Set LIVEKIT_API_KEY and LIVEKIT_API_SECRET in Convex env.
- * Uses a shorter default TTL for self-hosted; pass ttlSeconds to override (e.g. 3600 for 1h in dev).
+ * Requires authentication. Uses a shorter default TTL for self-hosted; pass ttlSeconds to override (e.g. 3600 for 1h in dev).
  */
 export const generateToken = action({
   args: {
     roomName: v.string(),
     participantName: v.optional(v.string()),
     ttlSeconds: v.optional(v.number()),
+    canPublish: v.optional(v.boolean()),
+    canSubscribe: v.optional(v.boolean()),
+    canPublishData: v.optional(v.boolean()),
     metadata: v.optional(v.string()),
     attributes: v.optional(v.record(v.string(), v.string())),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    await ctx.runMutation(internal.rateLimit_internal.checkAndIncrementTokenGen, {
+      userId: identity.subject,
+    });
+
+    const roomName = (args.roomName ?? "").trim();
+    if (!roomName || roomName.length > MAX_ROOM_NAME_LENGTH) {
+      throw new Error("Invalid room name");
+    }
+    const participantName = args.participantName?.trim();
+    if (participantName != null && participantName.length > MAX_PARTICIPANT_NAME_LENGTH) {
+      throw new Error("Participant name too long");
+    }
+
     const apiKey = process.env.LIVEKIT_API_KEY;
     const apiSecret = process.env.LIVEKIT_API_SECRET;
     if (!apiKey || !apiSecret) {
@@ -28,20 +54,78 @@ export const generateToken = action({
     }
     const ttl = args.ttlSeconds ?? DEFAULT_TTL_SECONDS;
     const at = new AccessToken(apiKey, apiSecret, {
-      identity: args.participantName ?? `user-${Date.now()}`,
+      identity: participantName ?? `user-${Date.now()}`,
       ttl: `${ttl}s`,
     });
     if (args.metadata != null) at.metadata = args.metadata;
     if (args.attributes != null && Object.keys(args.attributes).length > 0) at.attributes = args.attributes;
     at.addGrant({
       roomJoin: true,
-      room: args.roomName,
-      canPublish: true,
-      canSubscribe: true,
-      canPublishData: true,
+      room: roomName,
+      canPublish: args.canPublish ?? true,
+      canSubscribe: args.canSubscribe ?? true,
+      canPublishData: args.canPublishData ?? true,
     });
     const token = await at.toJwt();
     return { token };
+  },
+});
+
+/**
+ * Dispatch the voice agent to a room. Requires the agent worker to be running and registered as DISPATCH_AGENT_NAME.
+ * Set LIVEKIT_URL (e.g. wss://... or https://...), LIVEKIT_API_KEY, LIVEKIT_API_SECRET in Convex env.
+ */
+export const dispatchAgentToRoom = action({
+  args: {
+    roomName: v.string(),
+    metadata: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const room = (args.roomName ?? "").trim();
+    if (!room || room.length > MAX_ROOM_NAME_LENGTH) {
+      throw new Error("Invalid room name");
+    }
+
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    const url = process.env.LIVEKIT_URL;
+    if (!apiKey || !apiSecret || !url) {
+      throw new Error(
+        "Set LIVEKIT_URL, LIVEKIT_API_KEY, and LIVEKIT_API_SECRET in Convex environment variables."
+      );
+    }
+
+    const host = url.replace(/^wss:\/\//i, "https://").replace(/^ws:\/\//i, "http://");
+    const client = new AgentDispatchClient(host, apiKey, apiSecret);
+    await client.createDispatch(room, DISPATCH_AGENT_NAME, {
+      metadata: args.metadata ?? undefined,
+    });
+    return { ok: true };
+  },
+});
+
+/**
+ * Check that LiveKit env is set so the UI can show "Ready" or a message to set keys.
+ * Requires authentication.
+ */
+export const checkConfig = action({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+    if (apiKey && apiSecret && apiKey.length > 0 && apiSecret.length > 0) {
+      return { ok: true as const };
+    }
+    return {
+      ok: false as const,
+      message: "Set LIVEKIT_API_KEY and LIVEKIT_API_SECRET in Convex environment variables.",
+    };
   },
 });
 

@@ -102,6 +102,24 @@ const schema = defineSchema({
   }).index("by_key", ["key"]),
 
   //
+  // Token generation audit (no token stored; for who generated what and when)
+  //
+  tokenGenerations: defineTable({
+    roomName: v.string(),
+    canPublish: v.boolean(),
+    canSubscribe: v.boolean(),
+    canPublishData: v.boolean(),
+    createdAt: v.number(),
+    createdByUserId: v.optional(v.id("users")),
+  }).index("by_createdAt", ["createdAt"]),
+
+  tokenRateLimit: defineTable({
+    userId: v.string(),
+    windowStart: v.number(),
+    count: v.number(),
+  }).index("by_user_window", ["userId", "windowStart"]),
+
+  //
   // Vault - key and secret metadata
   //
   vaultKeys: defineTable({

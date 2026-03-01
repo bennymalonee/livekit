@@ -22,10 +22,22 @@ function isRateLimited(clientId: string): boolean {
 
 /**
  * POST /api/deploy - Triggers Coolify deploy for LiveKit Stack.
+ * The in-app Deploy button uses Convex action settings.triggerDeploy when configured; this route is for external/CI or fallback.
  * Either set COOLIFY_DEPLOY_WEBHOOK_URL (POST webhook from Coolify UI), or
  * set COOLIFY_BASE_URL + LIVEKIT_STACK_APP_UUID + COOLIFY_API_TOKEN to use the Coolify deploy API.
+ * If DEPLOY_SECRET is set, requests must include Authorization: Bearer <DEPLOY_SECRET> or X-Deploy-Secret: <DEPLOY_SECRET>.
  */
 export async function POST(request: NextRequest) {
+  const deploySecret = process.env.DEPLOY_SECRET;
+  if (deploySecret && deploySecret.length > 0) {
+    const authHeader = request.headers.get("Authorization");
+    const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+    const headerSecret = request.headers.get("X-Deploy-Secret")?.trim() ?? bearer;
+    if (headerSecret !== deploySecret) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   if (isRateLimited(getClientId(request))) {
     return NextResponse.json(
       { error: "Too many deploy requests. Try again in a minute." },
