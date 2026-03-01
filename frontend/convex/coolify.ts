@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 /**
  * Coolify API helpers. Set COOLIFY_BASE_URL and COOLIFY_API_TOKEN in Convex env.
@@ -164,6 +164,10 @@ export const syncApplicationsToNodes = action({
       });
       synced += 1;
     }
+    await ctx.runMutation(internal.diagnostics_internal.recordEventInternal, {
+      level: "info",
+      message: `Synced ${synced} nodes from Coolify`,
+    });
     return { synced };
   },
 });

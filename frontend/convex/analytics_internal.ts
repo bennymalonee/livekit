@@ -1,5 +1,27 @@
 import { internalMutation } from "./_generated/server";
 
+const RETENTION_DAYS = 7;
+const MAX_DELETE_PER_RUN = 500;
+
+/**
+ * Deletes trafficMetrics older than RETENTION_DAYS. Called by cron daily.
+ */
+export const pruneTrafficMetrics = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const cutoff = now - RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    const rows = await ctx.db
+      .query("trafficMetrics")
+      .filter((q) => q.lt(q.field("windowStart"), cutoff))
+      .take(MAX_DELETE_PER_RUN);
+    for (const row of rows) {
+      await ctx.db.delete(row._id);
+    }
+    return { deleted: rows.length };
+  },
+});
+
 /**
  * Derives traffic metrics from current sessions and writes to trafficMetrics.
  * Called by cron every 15 min so Analytics shows live data without manual seed.

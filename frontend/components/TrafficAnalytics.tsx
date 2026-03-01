@@ -316,7 +316,7 @@ export function TrafficAnalytics() {
                     <span className="material-icons-outlined text-primary text-xs mb-1">
                       flash_on
                     </span>
-                    <span className="text-3xl font-bold font-mono dark:text-white">
+                    <span className="text-3xl font-bold font-mono dark:text-white" title={capacityPercent == null ? "Add nodes in Coolify or sync from Coolify" : undefined}>
                       {capacityPercent != null ? `${capacityPercent}%` : "—"}
                     </span>
                   </div>

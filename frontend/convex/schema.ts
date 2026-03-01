@@ -59,6 +59,14 @@ const schema = defineSchema({
     unit: v.string(), // e.g. "bps", "gbps"
   }).index("by_metric_region", ["metric", "region", "windowStart"]),
 
+  dailySnapshot: defineTable({
+    date: v.string(), // YYYY-MM-DD
+    totalProjects: v.number(),
+    concurrentUsers: v.number(),
+    systemHealthPercent: v.number(),
+    activeNodes: v.number(),
+  }).index("by_date", ["date"]),
+
   //
   // Infrastructure nodes & diagnostics
   //

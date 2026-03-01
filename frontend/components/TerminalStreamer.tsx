@@ -387,7 +387,7 @@ export function TerminalStreamer() {
               >
                 {coolifyLoading ? "Loading…" : "Load Coolify logs"}
               </button>
-              <pre className="flex-1 min-h-[120px] bg-zinc-900/80 border border-white/5 rounded-lg p-3 text-[10px] text-slate-400 overflow-auto whitespace-pre-wrap font-mono">
+              <pre className="flex-1 min-h-[120px] bg-zinc-900/80 border border-white/5 rounded-lg p-3 text-[10px] text-slate-400 overflow-auto whitespace-pre-wrap font-mono" title={!coolifyLogs ? "Load Coolify logs to see output" : undefined}>
                 {coolifyLogs || "—"}
               </pre>
             </div>

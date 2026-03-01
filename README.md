@@ -138,6 +138,16 @@ npm run convex:auth:env -- --prod   # production
 
 **LiveKit webhook:** Point your LiveKit server at `https://<your-deployment>.convex.site/livekit-webhook` so room/participant events appear in Sessions. Use the Convex action `livekit.generateToken` (with `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` in Convex env) for client tokens.
 
+### Mobile / client integration
+
+Use **short-lived access tokens** for mobile or web clients; do not ship API keys in the app.
+
+1. **Convex env:** Set `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` in your Convex deployment (Settings → Environment variables).
+2. **Token generation:** Call the Convex action `livekit.generateToken` with `roomName` (and optional `participantName`, `ttlSeconds`). Your backend (e.g. a Convex HTTP action or a protected API route) should invoke this action and return the token to the client.
+3. **Client:** The mobile or web app receives the token and connects to `NEXT_PUBLIC_LIVEKIT_URL` (or your LiveKit server URL) using the LiveKit SDK; it never sees the API key or secret.
+
+See [docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md](docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md) for webhook and token details.
+
 ## Documentation
 
 | Doc | Description |
@@ -147,6 +157,7 @@ npm run convex:auth:env -- --prod   # production
 | [docs/ENV-VARS.md](docs/ENV-VARS.md) | Full environment variable reference |
 | [docs/LIVEKIT-COOLIFY-SETUP.md](docs/LIVEKIT-COOLIFY-SETUP.md) | LiveKit Stack on Coolify and token usage |
 | [docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md](docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md) | Webhook + Convex env for Sessions and tokens |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and how to fix them |
 | [deploy/README.md](deploy/README.md) | LiveKit stack (Docker Compose, Redis, Coturn) |
 
 ## Project layout

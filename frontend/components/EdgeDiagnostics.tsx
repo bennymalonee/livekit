@@ -16,6 +16,12 @@ export function EdgeDiagnostics() {
   const [coolifyLogs, setCoolifyLogs] = useState<{ dashboard?: string; livekit?: string }>({});
   const [coolifyLoading, setCoolifyLoading] = useState<"dashboard" | "livekit" | null>(null);
   const [coolifyError, setCoolifyError] = useState<string | null>(null);
+  const [levelFilter, setLevelFilter] = useState<"all" | "info" | "warning" | "error">("all");
+
+  const filteredEvents =
+    diagnosticsEvents != null && levelFilter !== "all"
+      ? diagnosticsEvents.filter((ev) => ev.level === levelFilter)
+      : diagnosticsEvents ?? [];
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -432,12 +438,12 @@ export function EdgeDiagnostics() {
               <h3 className="font-space-grotesk text-sm font-bold tracking-[0.2em] text-white/50 uppercase">
                 Diagnostics events
               </h3>
-              {diagnosticsEvents && diagnosticsEvents.length > 0 && (
+              {filteredEvents.length > 0 && (
                 <button
                   type="button"
                   onClick={() => {
                     const header = "createdAt,level,code,message\n";
-                    const rows = diagnosticsEvents.map(
+                    const rows = filteredEvents.map(
                       (ev) =>
                         `${new Date(ev.createdAt).toISOString()},${ev.level},${ev.code ?? ""},"${(ev.message ?? "").replace(/"/g, '""')}"`
                     ).join("\n");
@@ -456,13 +462,33 @@ export function EdgeDiagnostics() {
                 </button>
               )}
             </div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {(["all", "info", "warning", "error"] as const).map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => setLevelFilter(level)}
+                  className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                    levelFilter === level
+                      ? "bg-dash-primary/30 text-dash-primary border border-dash-primary/50"
+                      : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10"
+                  }`}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
             <div className="flex-1 overflow-y-auto max-h-64 space-y-2 font-mono text-xs">
               {diagnosticsEvents === undefined ? (
                 <p className="text-slate-500">Loading…</p>
-              ) : diagnosticsEvents.length === 0 ? (
-                <p className="text-slate-500">No events yet. Sync nodes or trigger deploys to see events.</p>
+              ) : filteredEvents.length === 0 ? (
+                <p className="text-slate-500">
+                  {diagnosticsEvents.length === 0
+                    ? "No events yet. Sync nodes or trigger deploys to see events."
+                    : `No ${levelFilter} events.`}
+                </p>
               ) : (
-                diagnosticsEvents.map((ev) => (
+                filteredEvents.map((ev) => (
                   <div
                     key={ev._id}
                     className={`p-2 rounded border border-white/5 ${
@@ -517,7 +543,7 @@ export function EdgeDiagnostics() {
                     {coolifyLoading === "dashboard" ? "Loading…" : "Load"}
                   </button>
                 </div>
-                <pre className="bg-black/40 border border-white/5 rounded p-3 text-[10px] text-slate-400 overflow-x-auto overflow-y-auto max-h-40 whitespace-pre-wrap">
+                <pre className="bg-black/40 border border-white/5 rounded p-3 text-[10px] text-slate-400 overflow-x-auto overflow-y-auto max-h-40 whitespace-pre-wrap" title={!coolifyLogs.dashboard ? "Load Coolify logs or check COOLIFY_BASE_URL and token in Convex" : undefined}>
                   {coolifyLogs.dashboard ?? "—"}
                 </pre>
               </div>
@@ -547,7 +573,7 @@ export function EdgeDiagnostics() {
                     {coolifyLoading === "livekit" ? "Loading…" : "Load"}
                   </button>
                 </div>
-                <pre className="bg-black/40 border border-white/5 rounded p-3 text-[10px] text-slate-400 overflow-x-auto overflow-y-auto max-h-40 whitespace-pre-wrap">
+                <pre className="bg-black/40 border border-white/5 rounded p-3 text-[10px] text-slate-400 overflow-x-auto overflow-y-auto max-h-40 whitespace-pre-wrap" title={!coolifyLogs.livekit ? "Load Coolify logs or check COOLIFY_BASE_URL and token in Convex" : undefined}>
                   {coolifyLogs.livekit ?? "—"}
                 </pre>
               </div>

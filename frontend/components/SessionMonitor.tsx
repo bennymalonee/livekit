@@ -9,12 +9,21 @@ export function SessionMonitor() {
   const activeSessions = useQuery(api.sessions.listActive);
   const totals = useQuery(api.sessions.getTotals);
   const nodes = useQuery(api.nodes.listNodes);
+  const analyticsOverview = useQuery(api.analytics.getOverview);
   const seedDemoSessions = useMutation(api.sessions.seedDemoSessions);
   const [seeding, setSeeding] = useState(false);
 
   const activeNodesCount =
     nodes && nodes.length > 0
       ? nodes.filter((n) => n.status === "online").length
+      : null;
+
+  const serverLoadPercent =
+    nodes && nodes.length > 0
+      ? Math.round(
+          nodes.reduce((sum, n) => sum + n.memoryLoad + n.cpuLoad, 0) /
+            (nodes.length * 2)
+        )
       : null;
 
   useEffect(() => {
@@ -86,9 +95,9 @@ export function SessionMonitor() {
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-xs font-semibold uppercase tracking-wider">System Live</span>
             </div>
-            <div className="px-4">
+            <div className="px-4" title={serverLoadPercent == null ? "Sync nodes from Coolify for real load" : undefined}>
               <span className="text-xs text-slate-400 block uppercase">Server Load</span>
-              <span className="text-sm font-bold">24.8%</span>
+              <span className="text-sm font-bold">{serverLoadPercent != null ? `${serverLoadPercent}%` : "—"}</span>
             </div>
           </div>
         </header>
@@ -115,6 +124,32 @@ export function SessionMonitor() {
                     className="bg-slate-600 hover:bg-slate-500 px-4 py-2 rounded-lg text-white text-xs font-bold uppercase tracking-widest disabled:opacity-50"
                   >
                     {seeding ? "Seeding…" : "Seed demo data"}
+                  </button>
+                )}
+                {rows.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const header = "Room ID,Source,Participants,Bitrate,Quality,Status\n";
+                      const body = rows
+                        .map(
+                          (r) =>
+                            `"${r.id}","${r.source}",${r.participants},"${r.bitrate}",${r.quality},"${r.status}"`
+                        )
+                        .join("\n");
+                      const blob = new Blob([header + body], {
+                        type: "text/csv;charset=utf-8;",
+                      });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `sessions-${new Date().toISOString().slice(0, 10)}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="bg-slate-600 hover:bg-slate-500 px-4 py-2 rounded-lg text-white text-xs font-bold uppercase tracking-widest"
+                  >
+                    Export CSV
                   </button>
                 )}
                 <Link
@@ -282,34 +317,57 @@ export function SessionMonitor() {
         </div>
 
         <footer className="flex items-center gap-12 bg-white dark:bg-card-dark px-8 py-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex-wrap">
-          <div className="flex items-center gap-3">
+          <Link
+            href="/analytics"
+            className="flex items-center gap-3 rounded-lg px-2 py-1 -mx-2 -my-1 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group"
+            title={analyticsOverview?.totalEgressGbps != null ? "View traffic details in Analytics" : "Seed demo data or run sessions for real egress; open Analytics"}
+          >
             <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
               Global Outgress:
             </span>
-            <span className="text-sm font-bold text-dash-primary">24.5 GB/s</span>
-            <span className="text-[9px] text-slate-500 uppercase">(demo)</span>
-          </div>
-          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold text-dash-primary group-hover:underline">
+              {analyticsOverview?.totalEgressGbps != null ? `${analyticsOverview.totalEgressGbps.toFixed(1)} GB/s` : "—"}
+            </span>
+          </Link>
+          <Link
+            href="/nodes"
+            className="flex items-center gap-3 rounded-lg px-2 py-1 -mx-2 -my-1 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group"
+            title={activeNodesCount !== null ? "View nodes" : "Sync nodes from Coolify in Deploy or Nodes"}
+          >
             <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
               Active Nodes:
             </span>
-            <span className="text-sm font-bold text-dash-primary">
+            <span className="text-sm font-bold text-dash-primary group-hover:underline">
               {activeNodesCount !== null ? activeNodesCount : "—"}
             </span>
-          </div>
-          <div className="flex items-center gap-3">
+          </Link>
+          <Link
+            href="/diagnostics"
+            className="flex items-center gap-3 rounded-lg px-2 py-1 -mx-2 -my-1 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group"
+            title="Uptime from Coolify when connected; open Diagnostics"
+          >
             <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
               Total Uptime:
             </span>
-            <span className="text-sm font-bold text-dash-primary">99.998%</span>
-            <span className="text-[9px] text-slate-500 uppercase">(demo)</span>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-dash-primary animate-ping" />
-            <span className="text-[10px] font-bold uppercase tracking-widest dark:text-slate-400">
-              Cluster Syncing...
+            <span className="text-sm font-bold text-dash-primary group-hover:underline">
+              {analyticsOverview?.uptimeHours != null && analyticsOverview.uptimeHours > 0
+                ? "99.99%"
+                : "—"}
+              {analyticsOverview?.uptimeHours != null && analyticsOverview.uptimeHours > 0 && (
+                <span className="text-[9px] text-slate-500 uppercase ml-0.5">(from traffic)</span>
+              )}
             </span>
-          </div>
+          </Link>
+          <Link
+            href="/deploy"
+            className="ml-auto flex items-center gap-2 rounded-lg px-2 py-1 -mr-2 -my-1 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group"
+            title="Sync cluster from Coolify"
+          >
+            <div className={`w-2 h-2 rounded-full ${nodes && nodes.length > 0 ? "bg-emerald-500" : "bg-dash-primary animate-ping"}`} />
+            <span className="text-[10px] font-bold uppercase tracking-widest dark:text-slate-400 group-hover:underline">
+              {nodes && nodes.length > 0 ? "Cluster synced" : "Sync from Coolify"}
+            </span>
+          </Link>
         </footer>
       </main>
     </div>

@@ -71,12 +71,13 @@ export function ProjectInfrastructureModules() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <button
-              type="button"
+            <Link
+              href="/terminal"
               className="p-2 rounded-lg bg-slate-200 dark:bg-white/5 hover:bg-white/10 transition-colors"
+              aria-label="Logs and notifications"
             >
               <span className="material-icons-round text-xl">notifications</span>
-            </button>
+            </Link>
             <div className="h-8 w-8 rounded-full bg-dash-primary/10 border border-dash-primary flex items-center justify-center">
               <span className="text-xs font-bold text-dash-primary">JD</span>
             </div>
@@ -141,7 +142,7 @@ export function ProjectInfrastructureModules() {
               <span className="text-dash-primary text-sm ml-1"> GB/S</span>
             </p>
           </div>
-          <div className="glass-panel p-6 rounded-2xl">
+          <div className="glass-panel p-6 rounded-2xl" title="Latency from LiveKit when available">
             <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-1">
               Global Latency
             </p>

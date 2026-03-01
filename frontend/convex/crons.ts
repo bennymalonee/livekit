@@ -25,4 +25,24 @@ crons.interval(
   {}
 );
 
+/**
+ * Prune trafficMetrics older than 7 days to prevent unbounded growth.
+ */
+crons.interval(
+  "prune traffic metrics",
+  { hours: 24 },
+  internal.analytics_internal.pruneTrafficMetrics,
+  {}
+);
+
+/**
+ * Save daily overview snapshot for dashboard trend %.
+ */
+crons.interval(
+  "save daily snapshot",
+  { hours: 24 },
+  internal.dashboard_internal.saveDailySnapshot,
+  {}
+);
+
 export default crons;

@@ -8,10 +8,18 @@ import { useEffect } from "react";
 
 export function GlobalStreamDashboard() {
   const { signOut } = useAuthActions();
-  const overview = useQuery(api.dashboard.getOverview);
+  const overview = useQuery(api.dashboard.getOverviewWithTrend);
   const sessionTotals = useQuery(api.sessions.getTotals);
   const analyticsOverview = useQuery(api.analytics.getOverview);
   const nodes = useQuery(api.nodes.listNodes);
+  const diagnosticsRecent = useQuery(api.diagnostics.listRecent, { limit: 50 });
+
+  const errorCount24h =
+    diagnosticsRecent != null
+      ? diagnosticsRecent.filter(
+          (e) => e.level === "error" && e.createdAt > Date.now() - 24 * 60 * 60 * 1000
+        ).length
+      : 0;
 
   const streamRegions =
     analyticsOverview?.regions?.slice(0, 4).map((r) => ({
@@ -62,11 +70,17 @@ export function GlobalStreamDashboard() {
           </button>
           <Link
             href="/terminal"
-            className="flex items-center gap-2 bg-slate-200 dark:bg-slate-800 p-1 px-2 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
-            aria-label="View logs and notifications"
+            className="flex items-center gap-2 bg-slate-200 dark:bg-slate-800 p-1 px-2 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors relative"
+            aria-label={errorCount24h > 0 ? `View logs and notifications (${errorCount24h} errors)` : "View logs and notifications"}
           >
             <span className="material-icons-round text-sm">notifications</span>
-            <div className="w-2 h-2 bg-dash-primary rounded-full" />
+            {errorCount24h > 0 ? (
+              <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                {errorCount24h > 99 ? "99+" : errorCount24h}
+              </span>
+            ) : (
+              <div className="w-2 h-2 bg-dash-primary rounded-full" />
+            )}
           </Link>
           <Link
             href="/vault"
@@ -120,6 +134,12 @@ export function GlobalStreamDashboard() {
               <span className="text-3xl font-bold">
                 {overview ? overview.totalProjects.toLocaleString() : "—"}
               </span>
+              {overview?.trendProjects != null && (
+                <span className={`text-sm font-medium mb-1 flex items-center ${overview.trendProjects >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                  <span className="material-icons-round text-sm">{overview.trendProjects >= 0 ? "trending_up" : "trending_down"}</span>
+                  {overview.trendProjects >= 0 ? "+" : ""}{overview.trendProjects}%
+                </span>
+              )}
             </div>
           </div>
           <div className="bg-card-light dark:bg-card-dark p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -130,6 +150,12 @@ export function GlobalStreamDashboard() {
               <span className="text-3xl font-bold">
                 {overview ? overview.concurrentUsers.toLocaleString() : "—"}
               </span>
+              {overview?.trendConcurrent != null && (
+                <span className={`text-sm font-medium mb-1 flex items-center ${overview.trendConcurrent >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                  <span className="material-icons-round text-sm">{overview.trendConcurrent >= 0 ? "trending_up" : "trending_down"}</span>
+                  {overview.trendConcurrent >= 0 ? "+" : ""}{overview.trendConcurrent}%
+                </span>
+              )}
             </div>
           </div>
           <div className="bg-card-light dark:bg-card-dark p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">

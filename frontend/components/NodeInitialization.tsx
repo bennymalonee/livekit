@@ -131,7 +131,7 @@ export function NodeInitialization() {
                           {node.status}
                         </span>
                       </td>
-                      <td className="p-3 text-slate-500 font-mono text-xs">
+                      <td className="p-3 text-slate-500 font-mono text-xs" title={!node.lastHeartbeatAt ? "Value when available from Coolify" : undefined}>
                         {node.lastHeartbeatAt
                           ? new Date(node.lastHeartbeatAt).toLocaleString()
                           : "—"}
