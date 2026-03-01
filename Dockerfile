@@ -1,6 +1,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY frontend/ ./
+# Ensure public exists so runner COPY does not fail (Next.js may not create it)
+RUN mkdir -p public
 RUN npm ci && npm run build
 
 FROM node:20-alpine AS runner
