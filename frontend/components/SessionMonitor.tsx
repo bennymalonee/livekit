@@ -45,33 +45,41 @@ export function SessionMonitor() {
   const minutes = Math.floor((totalDurationMs % (60 * 60 * 1000)) / (60 * 1000));
 
   return (
-    <div className="bg-background-light dark:bg-[#121418] text-slate-800 dark:text-slate-200 min-h-screen flex font-sans pt-2 pl-16 sm:pl-20">
-      <aside className="w-20 lg:w-24 border-r border-slate-200 dark:border-slate-800 flex flex-col items-center py-8 gap-10 bg-white dark:bg-card-dark">
-        <div className="text-dash-primary">
-          <span className="material-icons-outlined text-4xl">bolt</span>
-        </div>
-        <div className="flex flex-col gap-8" aria-label="Page context">
-          <span className="text-dash-primary relative cursor-default">
-            <span className="material-icons-outlined">sensors</span>
-            <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-1 h-6 bg-dash-primary rounded-full shadow-[0_0_15px_rgba(255,107,0,0.3)]" />
-          </span>
-        </div>
-        <div className="mt-auto">
-          <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center">
-            <span className="material-icons-outlined text-slate-500">person</span>
-          </div>
-        </div>
-      </aside>
+    <div className="bg-background-light dark:bg-[#121418] text-slate-800 dark:text-slate-200 min-h-screen flex flex-col font-sans">
+      <nav className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-card-dark">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-2">
+          Quick links
+        </span>
+        {[
+          { path: "/dashboard", icon: "hub", label: "Dashboard" },
+          { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
+          { path: "/nodes", icon: "dns", label: "Nodes" },
+          { path: "/analytics", icon: "bar_chart", label: "Analytics" },
+          { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
+          { path: "/modules", icon: "view_module", label: "Modules" },
+          { path: "/vault", icon: "shield", label: "Vault" },
+          { path: "/terminal", icon: "terminal", label: "Terminal" },
+        ].map(({ path, icon, label }) => (
+          <Link
+            key={path}
+            href={path}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white text-xs font-medium transition-colors"
+          >
+            <span className="material-icons-round text-base">{icon}</span>
+            {label}
+          </Link>
+        ))}
+      </nav>
 
       <main className="flex-1 flex flex-col p-6 lg:p-10 gap-8 overflow-hidden">
         <header className="flex justify-between items-end">
           <div>
-            <h2 className="text-slate-400 text-sm font-medium tracking-widest uppercase mb-1">
-              Infrastructure
-            </h2>
             <h1 className="text-4xl font-space-grotesk font-bold dark:text-white uppercase tracking-tight">
               Real-time <span className="text-dash-primary">Monitor</span>
             </h1>
+            <p className="text-slate-400 text-sm font-medium tracking-widest uppercase mt-1">
+              Active rooms and session totals
+            </p>
           </div>
           <div className="flex items-center gap-4 bg-white dark:bg-card-dark p-2 rounded-xl border border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2 px-4 border-r border-slate-200 dark:border-slate-800">
