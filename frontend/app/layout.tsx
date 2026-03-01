@@ -3,6 +3,7 @@ import "./globals.css";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { AppNav } from "@/components/AppNav";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { RoleRouteGuard } from "@/components/RoleRouteGuard";
 
 export const metadata: Metadata = {
@@ -42,6 +43,7 @@ export default async function RootLayout({
               <RoleRouteGuard>
                 <AppNav />
                 {children}
+                <KeyboardShortcutsHelp />
               </RoleRouteGuard>
             </ConvexClientProvider>
           </ConvexAuthNextjsServerProvider>

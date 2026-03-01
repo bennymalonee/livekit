@@ -6,9 +6,25 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { getLiveKitWebhookUrl } from "@/lib/livekit-webhook-url";
 
+const TIME_RANGES: { label: string; sinceMs?: number; value: string }[] = [
+  { label: "All", sinceMs: undefined, value: "all" },
+  { label: "Last 1h", sinceMs: 60 * 60 * 1000, value: "3600000" },
+  { label: "Last 24h", sinceMs: 24 * 60 * 60 * 1000, value: "86400000" },
+  { label: "Last 7d", sinceMs: 7 * 24 * 60 * 60 * 1000, value: "604800000" },
+];
+
 export function SessionMonitor() {
-  const activeSessions = useQuery(api.sessions.listActive);
-  const totals = useQuery(api.sessions.getTotals);
+  const [roomFilter, setRoomFilter] = useState("");
+  const [timeRange, setTimeRange] = useState<number | undefined>(undefined);
+
+  const activeSessions = useQuery(api.sessions.listActive, {
+    roomName: roomFilter.trim() || undefined,
+    sinceMs: timeRange,
+  });
+  const totals = useQuery(api.sessions.getTotals, {
+    roomName: roomFilter.trim() || undefined,
+    sinceMs: timeRange ?? 24 * 60 * 60 * 1000,
+  });
   const nodes = useQuery(api.nodes.listNodes);
   const analyticsOverview = useQuery(api.analytics.getOverview);
 
@@ -136,11 +152,36 @@ export function SessionMonitor() {
 
         <div className="flex-1 grid grid-cols-12 gap-6 overflow-hidden">
           <section className="col-span-12 lg:col-span-8 bg-white dark:bg-card-dark rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center flex-wrap gap-2">
-              <h3 className="font-space-grotesk font-semibold uppercase tracking-wider">
-                Active Rooms
-              </h3>
-              <div className="flex items-center gap-2">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-3">
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <h3 className="font-space-grotesk font-semibold uppercase tracking-wider">
+                  Active Rooms
+                </h3>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Filter by room..."
+                    value={roomFilter}
+                    onChange={(e) => setRoomFilter(e.target.value)}
+                    className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 min-w-[140px]"
+                  />
+                  <select
+                    value={timeRange === undefined ? "all" : String(timeRange)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setTimeRange(v === "all" ? undefined : Number(v));
+                    }}
+                    className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 min-w-[100px]"
+                  >
+                    {TIME_RANGES.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end items-center gap-2">
                 {rows.length > 0 && (
                   <button
                     type="button"
@@ -281,13 +322,13 @@ export function SessionMonitor() {
                   <span className="text-xl text-slate-400 font-space-grotesk">M</span>
                 </div>
               </div>
-              <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+              <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800" title="Derived from session/quality data when available">
                 <div className="flex justify-between items-center text-xs uppercase tracking-widest font-bold text-slate-400">
                   <span>Efficiency</span>
-                  <span className="text-dash-primary">98.2%</span>
+                  <span className="text-slate-500">—</span>
                 </div>
                 <div className="h-1 bg-slate-100 dark:bg-[#1E2025] rounded-full mt-2 overflow-hidden">
-                  <div className="h-full bg-dash-primary w-[98%] shadow-[0_0_15px_rgba(255,107,0,0.3)]" />
+                  <div className="h-full bg-slate-300 dark:bg-slate-600 w-0" />
                 </div>
               </div>
             </div>
@@ -317,15 +358,15 @@ export function SessionMonitor() {
                 ))}
               </div>
               <div className="mt-8 grid grid-cols-2 gap-4">
-                <div className="bg-slate-50 dark:bg-[#1E2025] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="bg-slate-50 dark:bg-[#1E2025] p-3 rounded-xl border border-slate-200 dark:border-slate-800" title="When available from LiveKit">
                   <span className="text-[10px] text-slate-400 uppercase block mb-1">
                     Packet Loss
                   </span>
-                  <span className="text-sm font-bold">0.02%</span>
+                  <span className="text-sm font-bold text-slate-500">—</span>
                 </div>
-                <div className="bg-slate-50 dark:bg-[#1E2025] p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="bg-slate-50 dark:bg-[#1E2025] p-3 rounded-xl border border-slate-200 dark:border-slate-800" title="When available from LiveKit">
                   <span className="text-[10px] text-slate-400 uppercase block mb-1">Latency</span>
-                  <span className="text-sm font-bold">14ms</span>
+                  <span className="text-sm font-bold text-slate-500">—</span>
                 </div>
               </div>
             </div>
@@ -360,18 +401,13 @@ export function SessionMonitor() {
           <Link
             href="/diagnostics"
             className="flex items-center gap-3 rounded-lg px-2 py-1 -mx-2 -my-1 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group"
-            title="Uptime from Coolify when connected; open Diagnostics"
+            title="Real uptime when available from nodes or Coolify; open Diagnostics"
           >
             <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
               Total Uptime:
             </span>
             <span className="text-sm font-bold text-dash-primary group-hover:underline">
-              {analyticsOverview?.uptimeHours != null && analyticsOverview.uptimeHours > 0
-                ? "99.99%"
-                : "—"}
-              {analyticsOverview?.uptimeHours != null && analyticsOverview.uptimeHours > 0 && (
-                <span className="text-[9px] text-slate-500 uppercase ml-0.5">(from traffic)</span>
-              )}
+              —
             </span>
           </Link>
           <Link

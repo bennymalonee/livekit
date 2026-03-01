@@ -14,11 +14,13 @@
     "convex:deploy": "convex deploy",
     "convex:codegen": "convex codegen",
     "convex:auth:env": "node setConvexAuthEnv.mjs",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@auth/core": "^0.37.0",
     "@convex-dev/auth": "^0.0.91",
+    "@sentry/nextjs": "^10.40.0",
     "convex": "^1.32.0",
     "jose": "^6.1.3",
     "livekit-server-sdk": "^2.15.0",
@@ -28,6 +30,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

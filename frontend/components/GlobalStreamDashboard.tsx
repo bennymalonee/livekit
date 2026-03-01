@@ -1,18 +1,45 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { CoolifyApplication } from "@/convex/coolify";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+
+const DATE_RANGES = [
+  { label: "24h", value: "24h", sinceMs: 24 * 60 * 60 * 1000 },
+  { label: "7d", value: "7d", sinceMs: 7 * 24 * 60 * 60 * 1000 },
+  { label: "30d", value: "30d", sinceMs: 30 * 24 * 60 * 60 * 1000 },
+] as const;
+
+function getSinceMsFromSearchParams(searchParams: ReturnType<typeof useSearchParams>): number | undefined {
+  const range = searchParams.get("range");
+  const found = DATE_RANGES.find((r) => r.value === range);
+  return found?.sinceMs ?? 24 * 60 * 60 * 1000; // default 24h
+}
 
 export function GlobalStreamDashboard() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { signOut } = useAuthActions();
+  const sinceMs = getSinceMsFromSearchParams(searchParams);
   const overview = useQuery(api.dashboard.getOverviewWithTrend);
-  const sessionTotals = useQuery(api.sessions.getTotals);
-  const analyticsOverview = useQuery(api.analytics.getOverview);
+  const sessionTotals = useQuery(api.sessions.getTotals, { sinceMs });
+  const analyticsOverview = useQuery(api.analytics.getOverview, { sinceMs });
   const nodes = useQuery(api.nodes.listNodes);
   const diagnosticsRecent = useQuery(api.diagnostics.listRecent, { limit: 50 });
+  const savedPreferences = useQuery(api.userPreferences.getMyPreferences);
+  const setPreferences = useMutation(api.userPreferences.setPreferences);
+  const listCoolifyApps = useAction(api.coolify.listApplications);
+  const [coolifyApps, setCoolifyApps] = useState<CoolifyApplication[] | null>(null);
+
+  useEffect(() => {
+    listCoolifyApps()
+      .then(setCoolifyApps)
+      .catch(() => setCoolifyApps([]));
+  }, [listCoolifyApps]);
 
   const errorCount24h =
     diagnosticsRecent != null
@@ -36,18 +63,30 @@ export function GlobalStreamDashboard() {
       : null;
 
   useEffect(() => {
+    const fromConvex = savedPreferences?.theme;
     const stored = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
-    const preferDark = stored === "dark" || (!stored && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
+    const preferDark =
+      fromConvex === "dark" ||
+      (fromConvex === undefined && stored === "dark") ||
+      (fromConvex === undefined && !stored && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
     document.documentElement.classList.toggle("dark", preferDark);
-  }, []);
+  }, [savedPreferences?.theme]);
 
-  function toggleDark() {
+  const toggleDark = useCallback(() => {
     const isDark = document.documentElement.classList.toggle("dark");
+    const theme = isDark ? "dark" : "light";
     try {
-      localStorage.setItem("theme", isDark ? "dark" : "light");
+      localStorage.setItem("theme", theme);
     } catch {
       // ignore
     }
+    setPreferences({ theme: isDark ? "dark" : "light" });
+  }, [setPreferences]);
+
+  function setDateRange(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("range", value);
+    router.push(`/dashboard?${params.toString()}`);
   }
 
   return (
@@ -63,7 +102,28 @@ export function GlobalStreamDashboard() {
             Live data
           </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <select
+            value={searchParams.get("range") ?? "24h"}
+            onChange={(e) => setDateRange(e.target.value)}
+            className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200"
+            aria-label="Date range"
+          >
+            {DATE_RANGES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => router.refresh()}
+            className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+            aria-label="Refresh"
+            title="Refresh"
+          >
+            <span className="material-icons-round text-lg">refresh</span>
+          </button>
           <button
             type="button"
             onClick={toggleDark}
@@ -179,9 +239,27 @@ export function GlobalStreamDashboard() {
             </p>
             <div className="flex items-end gap-3">
               <span className="text-3xl font-bold text-dash-primary">
-                {overview ? `${overview.systemHealthPercent.toFixed(2)}%` : "—"}
+                {overview?.systemHealthPercent != null
+                  ? `${overview.systemHealthPercent.toFixed(2)}%`
+                  : "—"}
               </span>
-              <span className="text-slate-500 text-sm font-medium mb-1">STABLE</span>
+              <span className={`text-sm font-medium mb-1 ${
+                overview?.systemHealthPercent == null
+                  ? "text-slate-500"
+                  : overview.systemHealthPercent >= 80
+                    ? "text-emerald-500"
+                    : overview.systemHealthPercent >= 50
+                      ? "text-amber-500"
+                      : "text-red-500"
+              }`}>
+                {overview?.systemHealthPercent == null
+                  ? "Sync nodes"
+                  : overview.systemHealthPercent >= 80
+                    ? "STABLE"
+                    : overview.systemHealthPercent >= 50
+                      ? "DEGRADED"
+                      : "OFFLINE"}
+              </span>
             </div>
           </div>
         </div>
@@ -383,8 +461,8 @@ export function GlobalStreamDashboard() {
                   </div>
                   <div>
                     <p className="text-slate-400 mb-1">Frequency</p>
-                    <p className="font-bold flex items-center gap-1" title="Config in LiveKit">
-                      60 HZ{" "}
+                    <p className="font-bold flex items-center gap-1" title="When available from LiveKit config">
+                      —{" "}
                       <span className="material-icons-round text-[10px]">sensors</span>
                     </p>
                   </div>
@@ -403,6 +481,40 @@ export function GlobalStreamDashboard() {
                   </div>
                 </div>
               </div>
+              {coolifyApps != null && coolifyApps.length > 0 && (
+                <div className="bg-card-light dark:bg-card-dark p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <h3 className="text-sm font-bold tracking-widest uppercase mb-4 text-slate-400">
+                    Coolify apps
+                  </h3>
+                  <ul className="space-y-2 text-xs">
+                    {coolifyApps.map((app) => (
+                      <li
+                        key={app.uuid}
+                        className="flex items-center justify-between text-slate-700 dark:text-slate-300"
+                      >
+                        <span className="font-medium">{app.name}</span>
+                        <span
+                          className={
+                            app.status === "running"
+                              ? "text-emerald-500"
+                              : app.status === "stopped" || app.status === "exited"
+                                ? "text-amber-500"
+                                : "text-slate-500"
+                          }
+                        >
+                          {app.status ?? "—"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href="/deploy"
+                    className="text-[10px] text-dash-primary font-bold hover:underline mt-2 inline-block"
+                  >
+                    Deploy →
+                  </Link>
+                </div>
+              )}
               <div className="bg-card-light dark:bg-card-dark p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
                 <div className="relative z-10">
                   <p className="text-[10px] font-mono font-bold text-slate-400">
@@ -423,13 +535,19 @@ export function GlobalStreamDashboard() {
                   <p className="text-[10px] font-bold text-slate-400">FIBER LINK</p>
                   <div className="flex items-center gap-2 bg-slate-200 dark:bg-slate-800 px-3 py-1 rounded-full">
                     <span className="text-[10px] font-bold">
-                      {(overview?.activeNodes ?? 0) > 0 || streamRegions.length > 0 ? "ON" : "OFF"}
+                      {nodes != null && nodes.length === 0
+                        ? "—"
+                        : (overview?.activeNodes ?? 0) > 0 || streamRegions.length > 0
+                          ? "ON"
+                          : "OFF"}
                     </span>
                     <div
                       className={`w-4 h-2 rounded-full ${
-                        (overview?.activeNodes ?? 0) > 0 || streamRegions.length > 0
-                          ? "bg-dash-primary"
-                          : "bg-slate-400 dark:bg-slate-600"
+                        nodes != null && nodes.length === 0
+                          ? "bg-slate-400 dark:bg-slate-600"
+                          : (overview?.activeNodes ?? 0) > 0 || streamRegions.length > 0
+                            ? "bg-dash-primary"
+                            : "bg-slate-400 dark:bg-slate-600"
                       }`}
                     />
                   </div>
@@ -517,8 +635,12 @@ export function GlobalStreamDashboard() {
                       </button>
                     </div>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400">
-                    ON / <span className="opacity-30">OFF</span>
+                  <span className="text-[10px] font-bold text-slate-400" title={nodes != null && nodes.length === 0 ? "Sync nodes from Coolify for status" : undefined}>
+                    {nodes != null && nodes.length === 0
+                      ? "—"
+                      : (overview?.activeNodes ?? 0) > 0 || streamRegions.length > 0
+                        ? "ON"
+                        : "OFF"}
                   </span>
                 </div>
                 <div className="text-center">
@@ -566,13 +688,13 @@ export function GlobalStreamDashboard() {
                   </div>
                 </div>
                 <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-4">
-                  <div title="Hardware metrics when available">
+                  <div title="When available (e.g. from hardware or Coolify)">
                     <p className="text-[10px] font-bold text-slate-400 uppercase">Power Draw</p>
-                    <p className="font-mono text-sm">5A / 220V</p>
+                    <p className="font-mono text-sm">—</p>
                   </div>
-                  <div className="text-right" title="Hardware metrics when available">
+                  <div className="text-right" title="When available">
                     <p className="text-[10px] font-bold text-slate-400 uppercase">Input Stream</p>
-                    <p className="font-mono text-sm">200 KWH</p>
+                    <p className="font-mono text-sm">—</p>
                   </div>
                 </div>
               </div>

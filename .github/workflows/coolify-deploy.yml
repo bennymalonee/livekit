@@ -1,5 +1,8 @@
-# Deploy to Coolify on push to main (replaces webhook auto-deploy when using Public GitHub source).
-# Required repo secrets: COOLIFY_TOKEN, COOLIFY_BASE_URL, COOLIFY_DASHBOARD_APP_UUID (your Dashboard app UUID from Coolify).
+# Automatic deployment: when code is pushed to main, trigger Coolify to redeploy the Dashboard app.
+# Set these GitHub repo secrets (Settings → Secrets and variables → Actions):
+#   COOLIFY_TOKEN    - Coolify API token (Keys & Tokens in Coolify)
+#   COOLIFY_BASE_URL - e.g. https://coolify.yourdomain.com or http://YOUR_VPS_IP:8000
+#   COOLIFY_DASHBOARD_APP_UUID - Your Dashboard application UUID from Coolify
 name: Deploy to Coolify
 on:
   push:
@@ -8,8 +11,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Coolify deploy
+      - name: Trigger Coolify deploy (Dashboard)
         run: |
+          if [ -z "${{ secrets.COOLIFY_BASE_URL }}" ] || [ -z "${{ secrets.COOLIFY_DASHBOARD_APP_UUID }}" ] || [ -z "${{ secrets.COOLIFY_TOKEN }}" ]; then
+            echo "::error::Missing secrets. Add COOLIFY_BASE_URL, COOLIFY_DASHBOARD_APP_UUID, and COOLIFY_TOKEN in repo Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "Triggering Coolify deploy for Dashboard app..."
           curl -sSf -X GET \
             "${{ secrets.COOLIFY_BASE_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_DASHBOARD_APP_UUID }}" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
+      - name: Deploy triggered
+        run: echo "Coolify deploy triggered. Check your Coolify dashboard for build status."

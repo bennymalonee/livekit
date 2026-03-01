@@ -65,3 +65,56 @@ export const validateApiKey = action({
     return { userId: keyDoc.userId, scopes };
   },
 });
+
+/** Check that key has the required scope. Use from HTTP routes before performing scoped operations. */
+export function hasScope(scopes: string[], required: string): boolean {
+  return scopes.includes(required) || scopes.includes("*");
+}
+
+/** List nodes via API key. Requires nodes:list (or *) scope. For use from Convex HTTP routes. */
+export const listNodesWithApiKey = action({
+  args: { rawKey: v.string() },
+  handler: async (ctx, args) => {
+    const result = await ctx.runAction(api.apiKeys_actions.validateApiKey, { rawKey: args.rawKey });
+    if (!result) return { allowed: false, nodes: null };
+    if (!hasScope(result.scopes, "nodes:list")) return { allowed: false, nodes: null };
+    const nodes = await ctx.runQuery(api.nodes.listNodesForApi, {});
+    return { allowed: true, nodes };
+  },
+});
+
+/** List sessions via API key. Requires sessions:list (or *) scope. */
+export const listSessionsWithApiKey = action({
+  args: {
+    rawKey: v.string(),
+    roomName: v.optional(v.string()),
+    sinceMs: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const result = await ctx.runAction(api.apiKeys_actions.validateApiKey, { rawKey: args.rawKey });
+    if (!result) return { allowed: false, sessions: null };
+    if (!hasScope(result.scopes, "sessions:list")) return { allowed: false, sessions: null };
+    const sessions = await ctx.runQuery(api.sessions.listSessionsForApi, {
+      roomName: args.roomName,
+      sinceMs: args.sinceMs,
+    });
+    return { allowed: true, sessions };
+  },
+});
+
+/** Get analytics overview via API key. Requires analytics:read (or *) scope. */
+export const getAnalyticsWithApiKey = action({
+  args: {
+    rawKey: v.string(),
+    sinceMs: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const result = await ctx.runAction(api.apiKeys_actions.validateApiKey, { rawKey: args.rawKey });
+    if (!result) return { allowed: false, analytics: null };
+    if (!hasScope(result.scopes, "analytics:read")) return { allowed: false, analytics: null };
+    const analytics = await ctx.runQuery(api.analytics.getOverviewForApi, {
+      sinceMs: args.sinceMs,
+    });
+    return { allowed: true, analytics };
+  },
+});

@@ -46,6 +46,8 @@ const schema = defineSchema({
   userPreferences: defineTable({
     userId: v.id("users"),
     currentOrganizationId: v.optional(v.id("organizations")),
+    /** JSON: { theme?: "light"|"dark", dateRange?: "24h"|"7d"|"30d" } */
+    preferences: v.optional(v.string()),
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 
@@ -155,6 +157,15 @@ const schema = defineSchema({
     enabled: v.boolean(),
     config: v.optional(v.string()), // JSON string
   }).index("by_key", ["key"]),
+
+  runbooks: defineTable({
+    title: v.string(),
+    stepsMarkdown: v.string(),
+    deployLink: v.optional(v.string()),
+    nodeId: v.optional(v.id("nodes")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_updatedAt", ["updatedAt"]),
 
   //
   // Audit log (enterprise: who did what, when; no secrets)

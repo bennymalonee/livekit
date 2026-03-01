@@ -18,6 +18,17 @@ Where to set each variable and what it does.
 | `APP_VERSION` | (Optional) App version string returned by `GET /api/health` and `/api/metrics`. | e.g. `0.1.0` or your CI build version |
 | `DEPLOY_SECRET` | (Optional) When set, `POST /api/deploy` and `GET /api/metrics` require `Authorization: Bearer <secret>` or `X-Deploy-Secret`. Also sent to Convex deploy-rate-limit when using Convex rate limit. | Strong random value |
 | `CONVEX_SITE_URL` | (Optional) Convex HTTP site URL for deploy rate limit. When set, `/api/deploy` uses Convex for rate limiting (persistent across restarts). If unset, derived from `NEXT_PUBLIC_CONVEX_URL` (`.cloud` → `.site`). | `https://your-deployment.convex.site` |
+| `NEXT_PUBLIC_SENTRY_DSN` | (Optional) Sentry DSN for error monitoring. When set, client and server errors are sent to Sentry. Set `SENTRY_DSN` to the same value for server; optional `SENTRY_ORG` and `SENTRY_PROJECT` for source maps upload. | From Sentry project → Settings → Client Keys (DSN) |
+
+**API key scopes (programmatic HTTP API):** When using API keys (e.g. `Authorization: Bearer <key>`), the key’s scopes limit what it can do. Required scopes by route:
+
+| Scope | HTTP route |
+|-------|------------|
+| `nodes:list` | `GET /api/v1/nodes` – list synced nodes |
+| `sessions:list` | `GET /api/v1/sessions` – list active sessions (optional query: `roomName`, `sinceMs`) |
+| `analytics:read` | `GET /api/v1/analytics` – traffic overview (optional query: `sinceMs`) |
+
+Use scope `*` for full access. Send `Authorization: Bearer <api_key>` with each request.
 
 **API keys (programmatic access):** Create and revoke from the dashboard (API Keys page, admin/operator). Keys are scoped (e.g. `nodes:list`, `nodes:sync`). Use `Authorization: Bearer <api_key>` when calling Convex HTTP or your own API that validates keys via `apiKeys_actions.validateApiKey`.
 

@@ -18,6 +18,7 @@ const SHOW_HAMBURGER_PATHNAMES = [
   "/sessions",
   "/nodes",
   "/modules",
+  "/runbooks",
   "/vault",
   "/audit",
   "/api-keys",

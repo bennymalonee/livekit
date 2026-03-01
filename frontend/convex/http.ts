@@ -139,4 +139,112 @@ http.route({
   handler: deployRateLimit,
 });
 
+/** API key–scoped: GET /api/v1/nodes requires Authorization: Bearer <api_key> and nodes:list (or *) scope. */
+const apiV1Nodes = httpAction(async (ctx, request) => {
+  if (request.method.toUpperCase() !== "GET") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+  const authHeader = request.headers.get("Authorization");
+  const rawKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+  if (!rawKey) {
+    return new Response(JSON.stringify({ error: "Missing Authorization: Bearer <api_key>" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const result = await ctx.runAction(api.apiKeys_actions.listNodesWithApiKey, { rawKey });
+  if (!result.allowed) {
+    return new Response(JSON.stringify({ error: "Invalid or insufficient scope (requires nodes:list)" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return new Response(JSON.stringify({ nodes: result.nodes }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+});
+
+http.route({
+  path: "/api/v1/nodes",
+  method: "GET",
+  handler: apiV1Nodes,
+});
+
+/** API key–scoped: GET /api/v1/sessions requires Authorization: Bearer <api_key> and sessions:list (or *) scope. */
+const apiV1Sessions = httpAction(async (ctx, request) => {
+  if (request.method.toUpperCase() !== "GET") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+  const authHeader = request.headers.get("Authorization");
+  const rawKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+  if (!rawKey) {
+    return new Response(JSON.stringify({ error: "Missing Authorization: Bearer <api_key>" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const url = new URL(request.url);
+  const roomName = url.searchParams.get("roomName") ?? undefined;
+  const sinceMs = url.searchParams.has("sinceMs") ? Number(url.searchParams.get("sinceMs")) : undefined;
+  const result = await ctx.runAction(api.apiKeys_actions.listSessionsWithApiKey, {
+    rawKey,
+    roomName,
+    sinceMs: Number.isFinite(sinceMs) ? sinceMs : undefined,
+  });
+  if (!result.allowed) {
+    return new Response(JSON.stringify({ error: "Invalid or insufficient scope (requires sessions:list)" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return new Response(JSON.stringify({ sessions: result.sessions }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+});
+
+http.route({
+  path: "/api/v1/sessions",
+  method: "GET",
+  handler: apiV1Sessions,
+});
+
+/** API key–scoped: GET /api/v1/analytics requires Authorization: Bearer <api_key> and analytics:read (or *) scope. */
+const apiV1Analytics = httpAction(async (ctx, request) => {
+  if (request.method.toUpperCase() !== "GET") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+  const authHeader = request.headers.get("Authorization");
+  const rawKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+  if (!rawKey) {
+    return new Response(JSON.stringify({ error: "Missing Authorization: Bearer <api_key>" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const url = new URL(request.url);
+  const sinceMs = url.searchParams.has("sinceMs") ? Number(url.searchParams.get("sinceMs")) : undefined;
+  const result = await ctx.runAction(api.apiKeys_actions.getAnalyticsWithApiKey, {
+    rawKey,
+    sinceMs: Number.isFinite(sinceMs) ? sinceMs : undefined,
+  });
+  if (!result.allowed) {
+    return new Response(JSON.stringify({ error: "Invalid or insufficient scope (requires analytics:read)" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return new Response(JSON.stringify(result.analytics), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+});
+
+http.route({
+  path: "/api/v1/analytics",
+  method: "GET",
+  handler: apiV1Analytics,
+});
+
 export default http;

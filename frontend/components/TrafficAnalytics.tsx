@@ -5,9 +5,37 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
+function downloadCsv(content: string, filename: string) {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function TrafficAnalytics() {
   const analytics = useQuery(api.analytics.getOverview);
   const nodes = useQuery(api.nodes.listNodes);
+
+  function exportCsv() {
+    if (!analytics) return;
+    const headers = ["Region", "EgressGbps", "TotalEgressGbps", "NetworkLoad", "UptimeHours"];
+    const totalEgress = analytics.totalEgressGbps;
+    const rows = analytics.regions.map((r: { region: string; egressGbps: number }) => [
+      r.region,
+      r.egressGbps.toFixed(2),
+      totalEgress.toFixed(2),
+      analytics.networkLoadLabel,
+      String(analytics.uptimeHours),
+    ]);
+    if (rows.length === 0) {
+      rows.push(["—", "0", totalEgress.toFixed(2), analytics.networkLoadLabel, String(analytics.uptimeHours)]);
+    }
+    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
+    downloadCsv(csv, `analytics-${new Date().toISOString().slice(0, 10)}.csv`);
+  }
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -69,7 +97,15 @@ export function TrafficAnalytics() {
           <span className="hidden md:inline text-slate-400 font-mono text-xs tracking-widest uppercase">
             Traffic &amp; throughput
           </span>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={!analytics}
+              className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white text-xs font-medium"
+            >
+              Export CSV
+            </button>
             <Link
               href="/modules"
               className="p-2 rounded-full glass-panel dark:text-slate-400 text-slate-600 hover:text-primary transition-colors"
@@ -314,11 +350,11 @@ export function TrafficAnalytics() {
               <div className="flex justify-between items-center text-[11px] font-mono">
                 <div className="flex flex-col" title="Hardware metrics when available">
                   <span className="text-slate-500 uppercase">Power Output</span>
-                  <span className="dark:text-white font-bold">5A / 220V</span>
+                  <span className="dark:text-slate-500 font-bold" title="When available">—</span>
                 </div>
                 <div className="flex flex-col text-right" title="Hardware metrics when available">
                   <span className="text-slate-500 uppercase">Input Throughput</span>
-                  <span className="dark:text-white font-bold">200 KWH</span>
+                  <span className="dark:text-slate-500 font-bold" title="When available">—</span>
                 </div>
               </div>
             </div>

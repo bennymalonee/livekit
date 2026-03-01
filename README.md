@@ -115,7 +115,23 @@ See [docs/ENV-VARS.md](docs/ENV-VARS.md) for Convex and Coolify env vars. Templa
 - Copy the app’s **Deploy webhook URL** and set `COOLIFY_DEPLOY_WEBHOOK_URL` on the Dashboard app, **or** use the API method with `COOLIFY_BASE_URL`, `COOLIFY_API_TOKEN`, and `LIVEKIT_STACK_APP_UUID`.
 - Full Coolify + LiveKit setup: [docs/LIVEKIT-COOLIFY-SETUP.md](docs/LIVEKIT-COOLIFY-SETUP.md).
 
-### 3. Convex production
+### 3. Automatic deployment on push to GitHub
+
+When you push to the `main` branch, a GitHub Action triggers Coolify to redeploy your Dashboard app so you don’t have to deploy manually.
+
+**One-time setup:** In your GitHub repo go to **Settings → Secrets and variables → Actions** and add:
+
+| Secret | Value |
+|--------|--------|
+| `COOLIFY_TOKEN` | Your Coolify API token (Coolify → Keys & Tokens) |
+| `COOLIFY_BASE_URL` | Your Coolify URL, e.g. `https://coolify.yourdomain.com` or `http://YOUR_VPS_IP:8000` |
+| `COOLIFY_DASHBOARD_APP_UUID` | The UUID of your Dashboard application in Coolify (from the app’s URL or Coolify API) |
+
+After these are set, every `git push origin main` runs the **Deploy to Coolify** workflow and triggers a new deploy. Check the **Actions** tab for run history.
+
+**Auto-push after commit:** A Git post-commit hook (Husky) runs `git push origin HEAD` after each commit so your branch is pushed automatically. To disable it, remove or comment out the contents of [.husky/post-commit](.husky/post-commit).
+
+### 4. Convex production
 
 - Deploy the Convex backend:
   ```bash
@@ -154,6 +170,7 @@ See [docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md](docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md)
 
 | Doc | Description |
 | --- | ----------- |
+| [docs/ONE-TIME-SETUP.md](docs/ONE-TIME-SETUP.md) | Checklist: GitHub secrets, LiveKit webhook, Convex env, Modules (auto-deploy + live data) |
 | [docs/DASHBOARD-SETUP-CHECKLIST.md](docs/DASHBOARD-SETUP-CHECKLIST.md) | One-time setup so all dashboard sections work |
 | [docs/DASHBOARD-FUNCTIONALITY-PLAN.md](docs/DASHBOARD-FUNCTIONALITY-PLAN.md) | Plan to add real functionality to each section |
 | [docs/ENV-VARS.md](docs/ENV-VARS.md) | Full environment variable reference |

@@ -22,5 +22,20 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
-      - name: Test
+      - name: Unit tests
         run: npm run test
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Build app
+        run: npm run build
+        env:
+          NEXT_PUBLIC_CONVEX_URL: https://placeholder.convex.cloud
+      - name: E2E tests
+        run: |
+          npm run start &
+          sleep 15
+          npm run test:e2e
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          PORT: 3000

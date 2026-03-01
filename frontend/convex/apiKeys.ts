@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { getCurrentOrganizationIdForContext } from "./organizations";
 import { getUserIdFromIdentity, requireRole } from "./rbac";
 
 /** Internal: store an API key hash. Called from createApiKey action. */
@@ -19,6 +21,14 @@ export const insertApiKey = internalMutation({
       organizationId: args.organizationId,
       scopes: args.scopes,
       createdAt: Date.now(),
+    });
+    await ctx.scheduler.runAfter(0, internal.auditLog.record, {
+      userId: args.userId,
+      organizationId: args.organizationId,
+      action: "apiKey.create",
+      resourceType: "apiKey",
+      resourceId: id,
+      details: JSON.stringify({ name: args.name }),
     });
     return id;
   },
@@ -58,7 +68,16 @@ export const revokeApiKey = mutation({
     const key = await ctx.db.get(args.id);
     if (!key) throw new Error("API key not found");
     if (key.userId !== userId) await requireRole(ctx, ["admin"]);
+    const orgId = await getCurrentOrganizationIdForContext(ctx);
     await ctx.db.delete(args.id);
+    await ctx.scheduler.runAfter(0, internal.auditLog.record, {
+      userId,
+      organizationId: orgId ?? undefined,
+      action: "apiKey.revoke",
+      resourceType: "apiKey",
+      resourceId: args.id,
+      details: JSON.stringify({ name: key.name }),
+    });
   },
 });
 

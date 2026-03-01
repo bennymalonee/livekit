@@ -33,13 +33,6 @@ export const saveDailySnapshot = internalMutation({
       systemHealthPercent = Math.round((1 - degraded) * 10000) / 100;
     }
 
-    const projectIds = new Set<string>();
-    for (const s of activeSessions) {
-      if (s.ownerUserId) {
-        projectIds.add(s.ownerUserId as string);
-      }
-    }
-
     const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
     const existing = await ctx.db
       .query("dailySnapshot")
@@ -47,7 +40,7 @@ export const saveDailySnapshot = internalMutation({
       .first();
     const row = {
       date,
-      totalProjects: projectIds.size,
+      totalProjects: nodes.length,
       concurrentUsers,
       systemHealthPercent,
       activeNodes,

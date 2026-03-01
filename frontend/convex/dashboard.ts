@@ -24,23 +24,19 @@ export const getOverview = query({
     const nodes = await ctx.db.query("nodes").take(200);
     const activeNodes = nodes.filter((n) => n.status === "online").length;
 
-    let systemHealthPercent = 100;
+    // System health: % of nodes online. When no nodes, null (UI shows —).
+    let systemHealthPercent: number | null = null;
     if (nodes.length > 0) {
       const degraded =
         nodes.filter((n) => n.status !== "online").length / nodes.length;
       systemHealthPercent = Math.round((1 - degraded) * 10000) / 100;
     }
 
-    // Projects: approximate as number of distinct owners with sessions.
-    const projectIds = new Set<string>();
-    for (const s of activeSessions) {
-      if (s.ownerUserId) {
-        projectIds.add(s.ownerUserId as string);
-      }
-    }
+    // Total projects: live count of synced nodes (Coolify apps). No mock.
+    const totalProjects = nodes.length;
 
     return {
-      totalProjects: projectIds.size,
+      totalProjects,
       concurrentUsers,
       systemHealthPercent,
       activeNodes,
@@ -72,21 +68,15 @@ export const getOverviewWithTrend = query({
     const nodes = await ctx.db.query("nodes").take(200);
     const activeNodes = nodes.filter((n) => n.status === "online").length;
 
-    let systemHealthPercent = 100;
+    let systemHealthPercent: number | null = null;
     if (nodes.length > 0) {
       const degraded =
         nodes.filter((n) => n.status !== "online").length / nodes.length;
       systemHealthPercent = Math.round((1 - degraded) * 10000) / 100;
     }
 
-    const projectIds = new Set<string>();
-    for (const s of activeSessions) {
-      if (s.ownerUserId) {
-        projectIds.add(s.ownerUserId as string);
-      }
-    }
-
-    const totalProjects = projectIds.size;
+    // Total projects: live count of synced nodes (Coolify apps).
+    const totalProjects = nodes.length;
 
     const today = new Date().toISOString().slice(0, 10);
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)

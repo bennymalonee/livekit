@@ -27,6 +27,7 @@ export const APP_NAV_STRUCTURE = [
       { label: "Modules", path: "/modules", icon: "view_module", requireAuth: true, roles: ["admin", "operator", "viewer"] as const },
       { label: "Diagnostics", path: "/diagnostics", icon: "bolt", requireAuth: true },
       { label: "Nodes", path: "/nodes", icon: "dns", requireAuth: true },
+      { label: "Runbooks", path: "/runbooks", icon: "menu_book", requireAuth: true, roles: ["admin", "operator"] as const },
     ],
   },
   {
@@ -57,4 +58,5 @@ export const ROLE_ROUTE_RULES: { pathPrefix: string; roles: readonly AppRole[] }
   { pathPrefix: "/api-keys", roles: ["admin", "operator"] },
   { pathPrefix: "/agents", roles: ["admin", "operator"] },
   { pathPrefix: "/terminal", roles: ["admin", "operator"] },
+  { pathPrefix: "/runbooks", roles: ["admin", "operator"] },
 ];

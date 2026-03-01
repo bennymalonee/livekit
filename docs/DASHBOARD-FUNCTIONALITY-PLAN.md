@@ -45,24 +45,24 @@ Get your app UUIDs from Coolify (Dashboard app and LiveKit Stack app; use MCP `a
 
 ## Phase 3 – Sessions (Done)
 
-**Goal:** Sessions page shows real or seeded session data.
+**Goal:** Sessions page shows live session data only (no demo seed).
 
 | Step | What to do | Status |
 |------|------------|--------|
 | 3.1 | LiveKit webhook writes to Convex `sessions` (room/participant events). Cron can sync traffic from sessions. | **Done** |
-| 3.2 | Convex mutation `sessions.seedDemoSessions`; **Sessions** page uses `api.sessions.listActive` and `api.sessions.getTotals`. | **Done** |
-| 3.3 | **SessionMonitor** uses only Convex queries (no local mock). Add filters (by room, time range) if needed. | **Done** (filters optional). |
+| 3.2 | **Sessions** page uses `api.sessions.listActive` and `api.sessions.getTotals`. Sessions are populated only by the LiveKit webhook. | **Done** |
+| 3.3 | **SessionMonitor** uses only Convex queries (no local mock). Filters by room and time range. | **Done** |
 
 ---
 
 ## Phase 4 – Analytics (Done)
 
-**Goal:** Analytics page shows real or seeded traffic metrics.
+**Goal:** Analytics page shows live traffic metrics only (no demo seed).
 
 | Step | What to do | Status |
 |------|------------|--------|
-| 4.1 | Feed `trafficMetrics` from sessions/cron or external metrics. | **Done** (cron syncs from sessions). |
-| 4.2 | Convex mutation `analytics.seedDemoMetrics`; **TrafficAnalytics** uses Convex queries. | **Done** |
+| 4.1 | Feed `trafficMetrics` from sessions/cron (existing cron derives traffic from sessions). | **Done** |
+| 4.2 | **TrafficAnalytics** uses Convex queries; analytics are filled only by the cron (no demo seed). | **Done** |
 | 4.3 | Charts (by region, by time) using `trafficMetrics` schema. | **Done** |
 
 ---
@@ -86,7 +86,7 @@ Get your app UUIDs from Coolify (Dashboard app and LiveKit Stack app; use MCP `a
 | Step | What to do | Status |
 |------|------------|--------|
 | 6.1 | Default modules in Convex `modules` table; **ProjectInfrastructureModules** uses `api.modules.listModules`, `setModuleEnabled`, `seedModules`. | **Done** |
-| 6.2 | Map “LiveKit” module to LiveKit Stack app status in Coolify (e.g. show “enabled” if app is running). | **Optional:** Coolify MCP `application_list` or API. |
+| 6.2 | Map “LiveKit” module to LiveKit Stack app status in Coolify (e.g. show “enabled” if app is running). | **Done** (Modules page shows Coolify app status for LiveKit module). |
 
 ---
 
@@ -112,9 +112,27 @@ Get your app UUIDs from Coolify (Dashboard app and LiveKit Stack app; use MCP `a
 
 ---
 
+## Phase 9 – Enhancements (Done)
+
+**Goal:** Live data only, UX quick wins, and API/ops features.
+
+| Feature | Status |
+|---------|--------|
+| Theme persistence in Convex `userPreferences`; Refresh button; keyboard shortcuts (G+D → Dashboard, G+S → Sessions, ? → help). | **Done** |
+| Global date range (24h / 7d / 30d) on Dashboard; wired to Sessions and Analytics. | **Done** |
+| Real uptime from oldest session in window (Analytics); Coolify apps card on Dashboard. | **Done** |
+| Export CSV for Audit Log and Analytics. | **Done** |
+| Runbooks (Convex table, list/create/delete, Runbooks page under Infrastructure). | **Done** |
+| API key–scoped HTTP routes: `GET /api/v1/nodes`, `GET /api/v1/sessions`, `GET /api/v1/analytics` (scopes: `nodes:list`, `sessions:list`, `analytics:read`). | **Done** |
+| Node health cron: every 15 min writes one diagnostics event (e.g. “3 of 5 nodes online”). | **Done** |
+
+See [ENV-VARS.md](ENV-VARS.md) for API key scopes and Convex env vars.
+
+---
+
 ## Implementation status
 
-All eight phases are implemented. Optional enhancements (e.g. Coolify MCP for manual inspection, stricter filters, diagnostics timeline from node sync) are marked **Optional** in the tables above.
+All nine phases are implemented. Optional enhancements (e.g. Coolify MCP for manual inspection, stricter filters, diagnostics timeline from node sync) are marked **Optional** in the tables above.
 
 ---
 

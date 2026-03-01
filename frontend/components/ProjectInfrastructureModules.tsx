@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { CoolifyApplication } from "@/convex/coolify";
 
 export function ProjectInfrastructureModules() {
   const nodes = useQuery(api.nodes.listNodes);
@@ -12,7 +13,19 @@ export function ProjectInfrastructureModules() {
   const modules = useQuery(api.modules.listModules);
   const setModuleEnabled = useMutation(api.modules.setModuleEnabled);
   const seedModules = useMutation(api.modules.seedModules);
+  const listCoolifyApps = useAction(api.coolify.listApplications);
   const [seeding, setSeeding] = useState(false);
+  const [coolifyApps, setCoolifyApps] = useState<CoolifyApplication[] | null>(null);
+
+  const fetchCoolifyApps = useCallback(() => {
+    listCoolifyApps()
+      .then(setCoolifyApps)
+      .catch(() => setCoolifyApps([]));
+  }, [listCoolifyApps]);
+
+  useEffect(() => {
+    fetchCoolifyApps();
+  }, [fetchCoolifyApps]);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -142,12 +155,12 @@ export function ProjectInfrastructureModules() {
               <span className="text-dash-primary text-sm ml-1"> GB/S</span>
             </p>
           </div>
-          <div className="glass-panel p-6 rounded-2xl" title="Latency from LiveKit when available">
+          <div className="glass-panel p-6 rounded-2xl" title="When available from LiveKit">
             <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-1">
               Global Latency
             </p>
             <p className="text-3xl font-display font-bold text-white">
-              12<span className="text-dash-primary text-sm ml-1"> MS</span>
+              —<span className="text-dash-primary text-sm ml-1"> MS</span>
             </p>
           </div>
           <div className="glass-panel p-6 rounded-2xl">
@@ -183,11 +196,15 @@ export function ProjectInfrastructureModules() {
               </button>
             </div>
           ) : (
-            modules.map((mod: { _id: string; key: string; label: string; enabled: boolean; config?: string }) => (
+            modules.map((mod: { _id: string; key: string; label: string; enabled: boolean; config?: string }) => {
+              const coolifyApp = mod.key === "livekit" && coolifyApps && coolifyApps.length > 0
+                ? coolifyApps.find((a) => a.name.toLowerCase().includes("livekit"))
+                : null;
+              return (
               <div key={mod._id} className="glass-panel rounded-[2rem] p-8 relative overflow-hidden transition-all duration-300">
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span
                         className={`w-2 h-2 rounded-full ${
                           mod.enabled
@@ -198,6 +215,18 @@ export function ProjectInfrastructureModules() {
                       <h3 className="font-display text-xl font-bold text-white tracking-wide uppercase">
                         {mod.label}
                       </h3>
+                      {coolifyApp && (
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                            coolifyApp.status === "running"
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : "bg-slate-600 text-slate-400"
+                          }`}
+                          title={`Coolify: ${coolifyApp.status ?? "—"}`}
+                        >
+                          Coolify: {coolifyApp.status ?? "—"}
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-400 uppercase tracking-widest">
                       {mod.key}
@@ -233,7 +262,8 @@ export function ProjectInfrastructureModules() {
                   </p>
                 )}
               </div>
-            ))
+            );
+            })
           )}
         </section>
       </main>

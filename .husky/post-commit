@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Push current branch to origin after every commit (optional: comment out to disable auto-push)
+git push origin HEAD

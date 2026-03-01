@@ -6,6 +6,10 @@
     "build": "cd frontend && npm run build",
     "convex:dev": "cd frontend && npx convex dev",
     "convex:deploy": "cd frontend && npx convex deploy",
-    "convex:codegen": "cd frontend && npx convex codegen"
+    "convex:codegen": "cd frontend && npx convex codegen",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }

@@ -91,6 +91,11 @@ export const triggerDeploy = action({
         resourceId: DEPLOY_KEY,
       });
     }
+    await ctx.runMutation(internal.diagnostics_internal.recordEventInternal, {
+      level: "info",
+      code: "deploy.trigger",
+      message: "Deploy triggered via Coolify webhook",
+    });
     return { ok: true };
   },
 });

@@ -36,6 +36,7 @@ See [DASHBOARD-SETUP-CHECKLIST.md](DASHBOARD-SETUP-CHECKLIST.md).
   2. In **Coolify** → **livekit-stack** app → **Restart** to restart the app and its services (livekit-server, redis). Wait for the deployment to finish.
   3. If it persists, check **Application logs** for the livekit-stack app (e.g. Redis or LiveKit server errors). Ensure env vars are set (e.g. `REDIS_PASSWORD`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_PUBLIC_IP`).
   4. **Firewall:** Ensure the host (and cloud firewall) allow LiveKit ports: **TCP 7880, 7881** and **UDP 50000–60000**. See [FIREWALL-COOLIFY-LIVEKIT.md](FIREWALL-COOLIFY-LIVEKIT.md).
+- **Fix (Coolify MCP):** If you use the **Coolify MCP** (e.g. in Cursor), you can run the same steps from the assistant: **list_servers** → **validate_server** with the server `uuid`; **list_applications** to find **livekit-stack**; **control** with `resource: "application"`, `action: "restart"`, and the app `uuid` to restart. Use **find_issues** to scan for unhealthy apps or **diagnose_server** for server details.
 
 ---
 

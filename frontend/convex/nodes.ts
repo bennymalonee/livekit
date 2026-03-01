@@ -1,7 +1,32 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalQuery, mutation, query } from "./_generated/server";
 import { getCurrentOrganizationIdForContext } from "./organizations";
 import { requireRole } from "./rbac";
+
+/** Internal: list nodes (no auth). Used by API-key–scoped HTTP route after scope check. */
+export const listNodesInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("nodes")
+      .withIndex("by_region", (q) => q)
+      .order("desc")
+      .take(100);
+  },
+});
+
+/** List nodes for API key–based access. Only call from server (HTTP action); do not expose to client. */
+export const listNodesForApi = query({
+  args: {},
+  handler: async (ctx) => {
+    const nodes = await ctx.db
+      .query("nodes")
+      .withIndex("by_region", (q) => q)
+      .order("desc")
+      .take(100);
+    return nodes;
+  },
+});
 
 export const listNodes = query({
   args: {},

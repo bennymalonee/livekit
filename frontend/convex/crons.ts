@@ -65,4 +65,14 @@ crons.interval(
   {}
 );
 
+/**
+ * Record node health (online/offline count) to Diagnostics for visibility and alerts.
+ */
+crons.interval(
+  "node health to diagnostics",
+  { minutes: 15 },
+  internal.diagnostics_internal.recordNodeHealthInternal,
+  {}
+);
+
 export default crons;

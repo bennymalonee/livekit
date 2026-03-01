@@ -1,6 +1,6 @@
 # Screenshots for README
 
-Add your own screenshots here so they appear in the main [README](../README.md).
+Add your own screenshots here so they appear in the main [README](../README.md). If the main README still shows placeholder or broken images, add `landing.png` and `dashboard.png` to this folder (see table below).
 
 | File | What to capture |
 |------|-----------------|
