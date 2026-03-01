@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { useAuthToken, useAuthActions } from "@convex-dev/auth/react";
-import { APP_NAV_STRUCTURE } from "@/lib/app-nav";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { APP_NAV_STRUCTURE, type AppRole } from "@/lib/app-nav";
 
 type NavLink = { label: string; path: string; requireAuth?: boolean; signOut?: boolean };
 
-function getAuthNavLinks(): NavLink[] {
+function getAuthNavLinks(role: AppRole | null): NavLink[] {
   const links: NavLink[] = [];
   for (const group of APP_NAV_STRUCTURE) {
     for (const link of group.links) {
-      if ("requireAuth" in link && link.requireAuth && !("signOut" in link && link.signOut)) {
-        links.push({ label: link.label, path: link.path, requireAuth: true });
-      }
+      if (!("requireAuth" in link && link.requireAuth) || ("signOut" in link && link.signOut)) continue;
+      if ("roles" in link && link.roles && role != null && !link.roles.includes(role)) continue;
+      links.push({ label: link.label, path: link.path, requireAuth: true });
     }
   }
   return links;
@@ -29,9 +31,10 @@ function getSignOutLink(): NavLink | undefined {
 export function EnterpriseLanding() {
   const token = useAuthToken();
   const { signOut } = useAuthActions();
+  const role = useQuery(api.rbac.getMyRole) ?? null;
   const isAuthenticated = token != null;
 
-  const authNavLinks = getAuthNavLinks();
+  const authNavLinks = getAuthNavLinks(role);
   const signOutLink = getSignOutLink();
 
   return (

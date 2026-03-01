@@ -441,7 +441,7 @@ export function VaultKeyManagement() {
                           const room = tokenRoom.trim() || "default";
                           setTokenLoading(true);
                           try {
-                            const { token } = await generateToken({
+                            const result = await generateToken({
                               roomName: room,
                               participantName: tokenParticipant.trim() || undefined,
                               ttlSeconds: tokenTtlSeconds,
@@ -449,18 +449,23 @@ export function VaultKeyManagement() {
                               canSubscribe: tokenCanSubscribe,
                               canPublishData: tokenCanPublishData,
                             });
-                            setGeneratedToken(token);
-                            setLastGeneratedRoom(room);
-                            setLastGeneratedAt(Date.now());
-                            try {
-                              await recordTokenGeneration({
-                                roomName: room,
-                                canPublish: tokenCanPublish,
-                                canSubscribe: tokenCanSubscribe,
-                                canPublishData: tokenCanPublishData,
-                              });
-                            } catch {
-                              // Audit failure does not block the user
+                            if (!result.ok) {
+                              setTokenError(result.error);
+                              setGeneratedToken(null);
+                            } else {
+                              setGeneratedToken(result.token);
+                              setLastGeneratedRoom(room);
+                              setLastGeneratedAt(Date.now());
+                              try {
+                                await recordTokenGeneration({
+                                  roomName: room,
+                                  canPublish: tokenCanPublish,
+                                  canSubscribe: tokenCanSubscribe,
+                                  canPublishData: tokenCanPublishData,
+                                });
+                              } catch {
+                                // Audit failure does not block the user
+                              }
                             }
                           } catch (err) {
                             setTokenError(err instanceof Error ? err.message : "Failed to generate token");
@@ -552,7 +557,7 @@ export function VaultKeyManagement() {
                             const results: { roomName: string; token: string }[] = [];
                             for (const row of rows) {
                               const room = row.roomName.trim() || "default";
-                              const { token } = await generateToken({
+                              const result = await generateToken({
                                 roomName: room,
                                 participantName: row.participantName.trim() || undefined,
                                 ttlSeconds: tokenTtlSeconds,
@@ -560,7 +565,12 @@ export function VaultKeyManagement() {
                                 canSubscribe: tokenCanSubscribe,
                                 canPublishData: tokenCanPublishData,
                               });
-                              results.push({ roomName: room, token });
+                              if (!result.ok) {
+                                setMultiError(result.error);
+                                setMultiLoading(false);
+                                return;
+                              }
+                              results.push({ roomName: room, token: result.token });
                               try {
                                 await recordTokenGeneration({
                                   roomName: room,
@@ -728,7 +738,7 @@ export function VaultKeyManagement() {
                           setTokenError(null);
                           setTokenLoading(true);
                           try {
-                            const { token } = await generateToken({
+                            const result = await generateToken({
                               roomName: lastGeneratedRoom,
                               participantName: tokenParticipant.trim() || undefined,
                               ttlSeconds: tokenTtlSeconds,
@@ -736,17 +746,22 @@ export function VaultKeyManagement() {
                               canSubscribe: tokenCanSubscribe,
                               canPublishData: tokenCanPublishData,
                             });
-                            setGeneratedToken(token);
-                            setLastGeneratedAt(Date.now());
-                            try {
-                              await recordTokenGeneration({
-                                roomName: lastGeneratedRoom,
-                                canPublish: tokenCanPublish,
-                                canSubscribe: tokenCanSubscribe,
-                                canPublishData: tokenCanPublishData,
-                              });
-                            } catch {
-                              // Audit failure does not block the user
+                            if (!result.ok) {
+                              setTokenError(result.error);
+                              setGeneratedToken(null);
+                            } else {
+                              setGeneratedToken(result.token);
+                              setLastGeneratedAt(Date.now());
+                              try {
+                                await recordTokenGeneration({
+                                  roomName: lastGeneratedRoom,
+                                  canPublish: tokenCanPublish,
+                                  canSubscribe: tokenCanSubscribe,
+                                  canPublishData: tokenCanPublishData,
+                                });
+                              } catch {
+                                // Audit failure does not block the user
+                              }
                             }
                           } catch (err) {
                             setTokenError(err instanceof Error ? err.message : "Failed to generate token");

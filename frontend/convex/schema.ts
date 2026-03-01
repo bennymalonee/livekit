@@ -2,11 +2,52 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 
+const userRole = v.optional(
+  v.union(v.literal("admin"), v.literal("operator"), v.literal("viewer"))
+);
+
 const schema = defineSchema({
   //
-  // Auth
+  // Auth (users table extended with role for RBAC)
   //
   ...authTables,
+  users: defineTable({
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+    role: userRole,
+  })
+    .index("email", ["email"])
+    .index("phone", ["phone"]),
+
+  //
+  // Multi-tenancy: organizations and membership
+  //
+  organizations: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    createdAt: v.number(),
+  }).index("by_slug", ["slug"]),
+
+  organizationMembers: defineTable({
+    userId: v.id("users"),
+    organizationId: v.id("organizations"),
+    role: v.union(v.literal("admin"), v.literal("member")),
+    joinedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_organization", ["organizationId"])
+    .index("by_user_organization", ["userId", "organizationId"]),
+
+  userPreferences: defineTable({
+    userId: v.id("users"),
+    currentOrganizationId: v.optional(v.id("organizations")),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
 
   //
   // Deployments & settings (existing)
@@ -45,6 +86,7 @@ const schema = defineSchema({
     startedAt: v.number(),
     endedAt: v.optional(v.number()),
     ownerUserId: v.optional(v.id("users")),
+    organizationId: v.optional(v.id("organizations")),
   })
     .index("by_room", ["roomName"])
     .index("by_owner", ["ownerUserId"])
@@ -79,7 +121,8 @@ const schema = defineSchema({
     activeRooms: v.number(),
     lastHeartbeatAt: v.number(),
     createdAt: v.number(),
-  }).index("by_region", ["region"]),
+    organizationId: v.optional(v.id("organizations")),
+  }).index("by_region", ["region"]).index("by_organization", ["organizationId"]),
 
   diagnosticsEvents: defineTable({
     nodeId: v.optional(v.id("nodes")),
@@ -100,6 +143,22 @@ const schema = defineSchema({
     enabled: v.boolean(),
     config: v.optional(v.string()), // JSON string
   }).index("by_key", ["key"]),
+
+  //
+  // Audit log (enterprise: who did what, when; no secrets)
+  //
+  auditLog: defineTable({
+    userId: v.id("users"),
+    organizationId: v.optional(v.id("organizations")),
+    action: v.string(),
+    resourceType: v.string(),
+    resourceId: v.optional(v.string()),
+    details: v.optional(v.string()), // JSON string; do not log secrets or tokens
+    createdAt: v.number(),
+  })
+    .index("by_createdAt", ["createdAt"])
+    .index("by_user", ["userId", "createdAt"])
+    .index("by_action", ["action", "createdAt"]),
 
   //
   // Token generation audit (no token stored; for who generated what and when)
@@ -130,7 +189,8 @@ const schema = defineSchema({
     createdByUserId: v.id("users"),
     createdAt: v.number(),
     lastUsedAt: v.optional(v.number()),
-  }).index("by_name", ["name"]),
+    organizationId: v.optional(v.id("organizations")),
+  }).index("by_name", ["name"]).index("by_organization", ["organizationId"]),
 
   //
   // Terminal command history
@@ -148,6 +208,7 @@ const schema = defineSchema({
     output: v.optional(v.string()),
     createdAt: v.number(),
     completedAt: v.optional(v.number()),
+    organizationId: v.optional(v.id("organizations")),
   }).index("by_user_createdAt", ["userId", "createdAt"]),
 });
 

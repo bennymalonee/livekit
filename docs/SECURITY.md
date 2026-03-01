@@ -4,6 +4,8 @@ Overview of security measures and recommendations for the LivKit dashboard.
 
 ## Authentication and authorization
 
+- **Providers:** Convex Auth supports **password** (email/password) and optional **Google OAuth** (SSO). To enable Google, set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Convex environment variables and configure the authorized redirect URI in Google Cloud Console (e.g. `https://&lt;your-convex-deployment&gt;.convex.site/auth/callback/google` per Convex Auth docs).
+- **Roles:** RBAC is enforced: **admin** (full access including Vault, Modules, Deploy, node sync), **operator** (sessions, analytics, terminal, agents, LiveKit tokens, Coolify list/logs), **viewer** (read-only dashboard, sessions, analytics, nodes, diagnostics). New users get role `viewer` by default; only admins can change roles via `rbac.setUserRole`.
 - **Routes:** Dashboard, Deploy, Analytics, Sessions, Nodes, Modules, Vault, Terminal, and Diagnostics are protected by Convex Auth + Next.js middleware. Unauthenticated users are redirected to `/login`.
 - **Convex queries and mutations:** All data-modifying mutations and sensitive queries require `ctx.auth.getUserIdentity()`. Unauthenticated callers get empty data or "Unauthorized".
 - **Convex actions:** The following actions require authentication (no anonymous access):

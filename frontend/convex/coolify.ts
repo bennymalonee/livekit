@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 /**
  * Coolify API helpers. Set COOLIFY_BASE_URL and COOLIFY_API_TOKEN in Convex env.
@@ -30,6 +30,14 @@ async function requireAuth(ctx: { auth: { getUserIdentity: () => Promise<unknown
   if (!identity) throw new Error("Unauthorized");
 }
 
+async function requireCoolifyRole(
+  ctx: { runQuery: (fn: any) => Promise<string> },
+  allowedRoles: ("admin" | "operator")[]
+) {
+  const role = await ctx.runQuery(api.rbac.getMyRole);
+  if (!role || !allowedRoles.includes(role)) throw new Error("Forbidden");
+}
+
 /**
  * List all applications from Coolify.
  * GET /api/v1/applications
@@ -38,6 +46,7 @@ export const listApplications = action({
   args: {},
   handler: async (ctx): Promise<CoolifyApplication[]> => {
     await requireAuth(ctx);
+    await requireCoolifyRole(ctx, ["admin", "operator"]);
     const { baseUrl, token } = getCoolifyConfig();
     const res = await fetch(`${baseUrl}/api/v1/applications`, {
       method: "GET",
@@ -72,6 +81,7 @@ export const getApplicationEnvs = action({
   args: { applicationUuid: v.string() },
   handler: async (ctx, args): Promise<CoolifyEnvVar[]> => {
     await requireAuth(ctx);
+    await requireCoolifyRole(ctx, ["admin", "operator"]);
     const { baseUrl, token } = getCoolifyConfig();
     const res = await fetch(
       `${baseUrl}/api/v1/applications/${encodeURIComponent(args.applicationUuid)}/envs`,
@@ -102,6 +112,7 @@ export const getApplicationEnvsForPrefill = action({
   args: { applicationUuid: v.string() },
   handler: async (ctx, args): Promise<Record<string, string>> => {
     await requireAuth(ctx);
+    await requireCoolifyRole(ctx, ["admin", "operator"]);
     const { baseUrl, token } = getCoolifyConfig();
     const res = await fetch(
       `${baseUrl}/api/v1/applications/${encodeURIComponent(args.applicationUuid)}/envs`,
@@ -146,7 +157,18 @@ export const syncApplicationsToNodes = action({
   args: {},
   handler: async (ctx): Promise<void> => {
     await requireAuth(ctx);
+    await requireCoolifyRole(ctx, ["admin"]);
+    const identity = await ctx.auth.getUserIdentity();
     await ctx.runAction(internal.coolify_internal.syncApplicationsToNodes, {});
+    if (identity) {
+      const { getUserIdFromIdentity } = await import("./rbac");
+      await ctx.runMutation(internal.auditLog.record, {
+        userId: getUserIdFromIdentity(identity),
+        action: "nodes.sync",
+        resourceType: "coolify",
+        details: JSON.stringify({ source: "syncApplicationsToNodes" }),
+      });
+    }
   },
 });
 
@@ -162,6 +184,7 @@ export const getApplicationLogs = action({
   },
   handler: async (ctx, args): Promise<{ logs: string; error?: string }> => {
     await requireAuth(ctx);
+    await requireCoolifyRole(ctx, ["admin", "operator"]);
     const uuid = (args.applicationUuid ?? "").trim();
     if (!uuid) {
       return {

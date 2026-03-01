@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
+import { getUserIdFromIdentity, requireRole } from "./rbac";
 
 /**
  * Record a token generation for audit. Does not store the token.
@@ -13,6 +14,7 @@ export const recordTokenGeneration = mutation({
     canPublishData: v.boolean(),
   },
   handler: async (ctx, args) => {
+    await requireRole(ctx, ["admin", "operator"]);
     const identity = await ctx.auth.getUserIdentity();
     const now = Date.now();
     await ctx.db.insert("tokenGenerations", {
@@ -21,7 +23,7 @@ export const recordTokenGeneration = mutation({
       canSubscribe: args.canSubscribe,
       canPublishData: args.canPublishData,
       createdAt: now,
-      ...(identity && { createdByUserId: identity.subject as any }),
+      ...(identity && { createdByUserId: getUserIdFromIdentity(identity) }),
     });
   },
 });

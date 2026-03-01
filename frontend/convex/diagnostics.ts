@@ -1,16 +1,13 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { requireRole } from "./rbac";
 
 export const listRecent = query({
   args: {
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return [];
-    }
-
+    await requireRole(ctx, ["admin", "operator", "viewer"]);
     const limit = args.limit ?? 50;
 
     return ctx.db
@@ -29,11 +26,7 @@ export const recordEvent = mutation({
     message: v.string(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-
+    await requireRole(ctx, ["admin", "operator"]);
     const createdAt = Date.now();
     await ctx.db.insert("diagnosticsEvents", {
       nodeId: args.nodeId,

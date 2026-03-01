@@ -1,19 +1,20 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getCurrentOrganizationIdForContext } from "./organizations";
+import { requireRole } from "./rbac";
 
 export const listNodes = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return [];
-    }
-
-    return ctx.db
+    await requireRole(ctx, ["admin", "operator", "viewer"]);
+    const orgId = await getCurrentOrganizationIdForContext(ctx);
+    const nodes = await ctx.db
       .query("nodes")
       .withIndex("by_region", (q) => q)
       .order("desc")
-      .take(100);
+      .take(500);
+    if (orgId == null) return nodes.slice(0, 100);
+    return nodes.filter((n) => n.organizationId === undefined || n.organizationId === orgId).slice(0, 100);
   },
 });
 
@@ -27,11 +28,8 @@ export const upsertNode = mutation({
     activeRooms: v.number(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-
+    await requireRole(ctx, ["admin"]);
+    const orgId = await getCurrentOrganizationIdForContext(ctx);
     const existing = await ctx.db
       .query("nodes")
       .withIndex("by_region", (q) => q.eq("region", args.region))
@@ -60,6 +58,7 @@ export const upsertNode = mutation({
       activeRooms: args.activeRooms,
       createdAt: now,
       lastHeartbeatAt: now,
+      organizationId: orgId ?? undefined,
     });
   },
 });

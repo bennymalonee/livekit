@@ -1,6 +1,23 @@
+import Google from "@auth/core/providers/google";
 import { Password } from "@convex-dev/auth/providers/Password";
 import { convexAuth } from "@convex-dev/auth/server";
 
+const googleProvider =
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? Google({
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      })
+    : null;
+
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
-  providers: [Password],
+  providers: [Password, ...(googleProvider ? [googleProvider] : [])],
+  callbacks: {
+    async afterUserCreatedOrUpdated(ctx, args) {
+      const user = await ctx.db.get(args.userId);
+      if (user && user.role === undefined) {
+        await ctx.db.patch(args.userId, { role: "viewer" });
+      }
+    },
+  },
 });

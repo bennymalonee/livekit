@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuthToken, useAuthActions } from "@convex-dev/auth/react";
-import { APP_NAV_STRUCTURE } from "@/lib/app-nav";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { APP_NAV_STRUCTURE, type AppRole } from "@/lib/app-nav";
 
 /** Routes where the hamburger (dashboard nav) is shown. Hidden on landing (/) so landing has only its own nav. */
 const SHOW_HAMBURGER_PATHNAMES = [
@@ -17,6 +19,7 @@ const SHOW_HAMBURGER_PATHNAMES = [
   "/nodes",
   "/modules",
   "/vault",
+  "/audit",
   "/terminal",
   "/diagnostics",
 ];
@@ -26,14 +29,42 @@ function pathnameShowsHamburger(pathname: string): boolean {
   return SHOW_HAMBURGER_PATHNAMES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
+function linkVisible(link: { requireAuth?: boolean; guestOnly?: boolean; signOut?: boolean; roles?: readonly AppRole[] }, isAuthenticated: boolean, role: AppRole | null): boolean {
+  const showWhenAuth = !("requireAuth" in link && link.requireAuth) || isAuthenticated;
+  const hideWhenAuth = ("guestOnly" in link && link.guestOnly) && isAuthenticated;
+  if (!showWhenAuth || hideWhenAuth) return false;
+  if ("roles" in link && link.roles && isAuthenticated && role != null) {
+    if (!link.roles.includes(role)) return false;
+  }
+  return true;
+}
+
 export function AppNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const token = useAuthToken();
   const { signOut } = useAuthActions();
+  const role = useQuery(api.rbac.getMyRole) ?? null;
+  const orgs = useQuery(api.organizations.listMyOrganizations) ?? [];
+  const currentOrgId = useQuery(api.organizations.getCurrentOrganizationId);
+  const ensureDefaultOrg = useMutation(api.organizations.ensureDefaultOrganization);
+  const setCurrentOrg = useMutation(api.organizations.setCurrentOrganization);
   const isAuthenticated = token != null;
 
+  useEffect(() => {
+    if (isAuthenticated && orgs.length === 0) {
+      ensureDefaultOrg().catch(() => {});
+    }
+  }, [isAuthenticated, orgs.length, ensureDefaultOrg]);
+
   const close = useCallback(() => setOpen(false), []);
+
+  const handleOrgChange = useCallback(
+    (orgId: string) => {
+      setCurrentOrg({ organizationId: orgId as any }).then(close).catch(() => {});
+    },
+    [setCurrentOrg, close]
+  );
 
   function handleSignOut() {
     close();
@@ -90,13 +121,25 @@ export function AppNav() {
             <span className="material-icons-round">close</span>
           </button>
         </div>
+        {orgs.length > 0 && (
+          <div className="px-4 pb-2 border-b border-white/10">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 px-2">Organization</p>
+            <select
+              value={currentOrgId ?? orgs[0]?._id ?? ""}
+              onChange={(e) => handleOrgChange(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-surface-dark px-3 py-2 text-sm text-gray-200 focus:border-primary/50 focus:outline-none"
+            >
+              {orgs.map((org) => (
+                <option key={org._id} value={org._id}>
+                  {org.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <nav className="flex-1 overflow-y-auto p-4 space-y-6">
           {APP_NAV_STRUCTURE.map((group) => {
-            const links = group.links.filter((link) => {
-              const showWhenAuth = !("requireAuth" in link && link.requireAuth) || isAuthenticated;
-              const hideWhenAuth = ("guestOnly" in link && link.guestOnly) && isAuthenticated;
-              return showWhenAuth && !hideWhenAuth;
-            });
+            const links = group.links.filter((link) => linkVisible(link, isAuthenticated, role));
             if (links.length === 0) return null;
             return (
               <div key={group.section}>

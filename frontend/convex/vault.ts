@@ -1,27 +1,23 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { getCurrentOrganizationIdForContext } from "./organizations";
+import { getUserIdFromIdentity, requireRole } from "./rbac";
 
 export const listKeys = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return [];
-    }
-
-    return ctx.db
-      .query("vaultKeys")
-      .order("desc")
-      .take(100)
-      .then((rows) =>
-        rows.map((row) => ({
-          _id: row._id,
-          name: row.name,
-          description: row.description,
-          createdAt: row.createdAt,
-          lastUsedAt: row.lastUsedAt,
-        }))
-      );
+    await requireRole(ctx, ["admin"]);
+    const orgId = await getCurrentOrganizationIdForContext(ctx);
+    const rows = await ctx.db.query("vaultKeys").order("desc").take(500);
+    const filtered = orgId == null ? rows : rows.filter((r) => r.organizationId === undefined || r.organizationId === orgId);
+    return filtered.slice(0, 100).map((row) => ({
+      _id: row._id,
+      name: row.name,
+      description: row.description,
+      createdAt: row.createdAt,
+      lastUsedAt: row.lastUsedAt,
+    }));
   },
 });
 
@@ -32,11 +28,10 @@ export const createKey = mutation({
     encryptedValue: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireRole(ctx, ["admin"]);
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-
+    if (!identity) throw new Error("Unauthorized");
+    const orgId = await getCurrentOrganizationIdForContext(ctx);
     const now = Date.now();
 
     const existing = await ctx.db
@@ -48,14 +43,23 @@ export const createKey = mutation({
       throw new Error("A key with this name already exists");
     }
 
-    return ctx.db.insert("vaultKeys", {
+    const id = await ctx.db.insert("vaultKeys", {
       name: args.name,
       description: args.description,
       encryptedValue: args.encryptedValue,
-      createdByUserId: identity.subject as any,
+      createdByUserId: getUserIdFromIdentity(identity),
       createdAt: now,
       lastUsedAt: undefined,
+      organizationId: orgId ?? undefined,
     });
+    await ctx.scheduler.runAfter(0, internal.auditLog.record, {
+      userId: getUserIdFromIdentity(identity),
+      action: "vault.create",
+      resourceType: "vaultKey",
+      resourceId: id,
+      details: JSON.stringify({ name: args.name }),
+    });
+    return id;
   },
 });
 
@@ -64,17 +68,23 @@ export const deleteKey = mutation({
     id: v.id("vaultKeys"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthorized");
-    }
-
+    await requireRole(ctx, ["admin"]);
     const key = await ctx.db.get(args.id);
     if (!key) {
       return;
     }
-
+    const identity = await ctx.auth.getUserIdentity();
+    const userId = identity ? getUserIdFromIdentity(identity) : undefined;
     await ctx.db.delete(args.id);
+    if (userId) {
+      await ctx.scheduler.runAfter(0, internal.auditLog.record, {
+        userId,
+        action: "vault.delete",
+        resourceType: "vaultKey",
+        resourceId: args.id,
+        details: JSON.stringify({ name: key.name }),
+      });
+    }
   },
 });
 

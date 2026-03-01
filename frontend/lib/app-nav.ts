@@ -2,13 +2,16 @@
  * Single source of truth for app navigation (hamburger menu).
  * - requireAuth: true → only shown when the user is logged in.
  * - guestOnly: true → only shown when the user is NOT logged in (e.g. Sign in / Sign up).
+ * - roles: only show when user has one of these roles (admin | operator | viewer). Omit = all authenticated.
  */
+export type AppRole = "admin" | "operator" | "viewer";
+
 export const APP_NAV_STRUCTURE = [
   {
     section: "Overview",
     links: [
       { label: "Dashboard", path: "/dashboard", icon: "hub", requireAuth: true },
-      { label: "Deploy LiveKit", path: "/deploy", icon: "rocket_launch", requireAuth: true },
+      { label: "Deploy LiveKit", path: "/deploy", icon: "rocket_launch", requireAuth: true, roles: ["admin"] as const },
     ],
   },
   {
@@ -21,7 +24,7 @@ export const APP_NAV_STRUCTURE = [
   {
     section: "Infrastructure",
     links: [
-      { label: "Modules", path: "/modules", icon: "view_module", requireAuth: true },
+      { label: "Modules", path: "/modules", icon: "view_module", requireAuth: true, roles: ["admin", "operator", "viewer"] as const },
       { label: "Diagnostics", path: "/diagnostics", icon: "bolt", requireAuth: true },
       { label: "Nodes", path: "/nodes", icon: "dns", requireAuth: true },
     ],
@@ -29,9 +32,10 @@ export const APP_NAV_STRUCTURE = [
   {
     section: "Security & Tools",
     links: [
-      { label: "Vault", path: "/vault", icon: "shield", requireAuth: true },
-      { label: "Agents", path: "/agents", icon: "smart_toy", requireAuth: true },
-      { label: "Terminal", path: "/terminal", icon: "terminal", requireAuth: true },
+      { label: "Vault", path: "/vault", icon: "shield", requireAuth: true, roles: ["admin"] as const },
+      { label: "Audit Log", path: "/audit", icon: "history", requireAuth: true, roles: ["admin"] as const },
+      { label: "Agents", path: "/agents", icon: "smart_toy", requireAuth: true, roles: ["admin", "operator"] as const },
+      { label: "Terminal", path: "/terminal", icon: "terminal", requireAuth: true, roles: ["admin", "operator"] as const },
     ],
   },
   {

@@ -1,0 +1,70 @@
+import type { GenericMutationCtx, GenericQueryCtx } from "convex/server";
+import type { Id } from "./_generated/dataModel";
+import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { mutation, query } from "./_generated/server";
+
+const SUB_DIVIDER = "|";
+
+export type AppRole = "admin" | "operator" | "viewer";
+
+/** Get Convex user id from auth identity (subject may be "userId" or "userId|accountId"). */
+export function getUserIdFromIdentity(identity: { subject: string }): Id<"users"> {
+  const [userId] = identity.subject.split(SUB_DIVIDER);
+  return userId as Id<"users">;
+}
+
+/** Resolve role for a user doc; default to viewer if unset. */
+export function resolveRole(role: AppRole | undefined): AppRole {
+  return role === "admin" || role === "operator" ? role : "viewer";
+}
+
+/** Current user's role (for UI and for actions). Returns "viewer" if not authenticated or role unset. */
+export const getMyRole = query({
+  args: {},
+  handler: async (ctx): Promise<AppRole> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return "viewer";
+    const userId = getUserIdFromIdentity(identity);
+    const user = await ctx.db.get(userId);
+    return resolveRole(user?.role as AppRole | undefined);
+  },
+});
+
+type AuthContext = { auth: { getUserIdentity: () => Promise<{ subject: string } | null> }; db: GenericQueryCtx["db"] };
+
+/** Require one of the given roles in a mutation or query. Throws if unauthenticated or role not allowed. */
+export async function requireRole(ctx: AuthContext, allowedRoles: AppRole[]): Promise<AppRole> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throw new Error("Unauthorized");
+  const userId = getUserIdFromIdentity(identity);
+  const user = await ctx.db.get(userId);
+  const role = resolveRole(user?.role as AppRole | undefined);
+  if (!allowedRoles.includes(role)) throw new Error("Forbidden");
+  return role;
+}
+
+/** Set another user's role. Admin only. */
+export const setUserRole = mutation({
+  args: {
+    userId: v.id("users"),
+    role: v.union(v.literal("admin"), v.literal("operator"), v.literal("viewer")),
+  },
+  handler: async (ctx, args) => {
+    await requireRole(ctx, ["admin"]);
+    const identity = await ctx.auth.getUserIdentity();
+    const adminUserId = identity ? getUserIdFromIdentity(identity) : null;
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+    await ctx.db.patch(args.userId, { role: args.role });
+    if (adminUserId) {
+      await ctx.scheduler.runAfter(0, internal.auditLog.record, {
+        userId: adminUserId,
+        action: "rbac.setUserRole",
+        resourceType: "user",
+        resourceId: args.userId,
+        details: JSON.stringify({ targetUserId: args.userId, newRole: args.role }),
+      });
+    }
+  },
+});

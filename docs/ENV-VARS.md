@@ -15,11 +15,14 @@ Where to set each variable and what it does.
 | `LIVEKIT_STACK_APP_UUID` | Coolify application UUID for the LiveKit Stack (for deploy API). | From Coolify → your LiveKit app |
 | `NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID` | (Optional) Dashboard app UUID for Coolify logs/env in Diagnostics & Vault. | From Coolify → Dashboard app |
 | `NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID` | (Optional) LiveKit Stack app UUID for Deploy prefill, Diagnostics, Vault, Terminal. | From Coolify → LiveKit Stack app |
+| `APP_VERSION` | (Optional) App version string returned by `GET /api/health`. | e.g. `0.1.0` or your CI build version |
 
 ## Convex – set in Convex Dashboard → Project → Environment variables
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
+| `GOOGLE_CLIENT_ID` | (Optional) Google OAuth client ID for SSO. When set with `GOOGLE_CLIENT_SECRET`, "Sign in with Google" is enabled. | From Google Cloud Console → APIs & Services → Credentials |
+| `GOOGLE_CLIENT_SECRET` | (Optional) Google OAuth client secret for SSO. Never expose to client. | From Google Cloud Console |
 | `COOLIFY_BASE_URL` | Used by Coolify actions (list apps, sync nodes, logs, env). | `http://YOUR_VPS_IP:8000` |
 | `COOLIFY_API_TOKEN` | Coolify API token for Convex actions. | From Coolify → Keys & Tokens |
 | `LIVEKIT_API_KEY` | LiveKit API key for token generation (Convex action `livekit.generateToken`). | From LiveKit Stack env in Coolify |

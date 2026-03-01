@@ -1,18 +1,10 @@
 import { query } from "./_generated/server";
+import { requireRole } from "./rbac";
 
 export const getOverview = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return {
-        totalProjects: 0,
-        concurrentUsers: 0,
-        systemHealthPercent: 0,
-        activeNodes: 0,
-      };
-    }
-
+    await requireRole(ctx, ["admin", "operator", "viewer"]);
     const now = Date.now();
     const activeSessions = await ctx.db
       .query("sessions")
@@ -60,18 +52,7 @@ export const getOverview = query({
 export const getOverviewWithTrend = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return {
-        totalProjects: 0,
-        concurrentUsers: 0,
-        systemHealthPercent: 0,
-        activeNodes: 0,
-        trendProjects: null as number | null,
-        trendConcurrent: null as number | null,
-      };
-    }
-
+    await requireRole(ctx, ["admin", "operator", "viewer"]);
     const now = Date.now();
     const activeSessions = await ctx.db
       .query("sessions")

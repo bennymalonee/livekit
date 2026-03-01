@@ -2,8 +2,15 @@
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { AccessToken, WebhookReceiver, AgentDispatchClient } from "livekit-server-sdk";
+
+const ALLOWED_ROLES_FOR_LIVEKIT: ("admin" | "operator")[] = ["admin", "operator"];
+
+async function requireRoleForAction(ctx: { runQuery: (fn: any) => Promise<string> }, allowedRoles: ("admin" | "operator")[]) {
+  const role = await ctx.runQuery(api.rbac.getMyRole);
+  if (!role || !allowedRoles.includes(role)) throw new Error("Forbidden");
+}
 
 /** Default TTL for self-hosted: short-lived tokens so removed participants cannot reuse (token revocation is Cloud-only). */
 const DEFAULT_TTL_SECONDS = 30 * 60; // 30 minutes
@@ -18,6 +25,7 @@ export const DISPATCH_AGENT_NAME = "livkit-voice-agent";
  * Generate a LiveKit access token for a room.
  * Set LIVEKIT_API_KEY and LIVEKIT_API_SECRET in Convex env.
  * Requires authentication. Uses a shorter default TTL for self-hosted; pass ttlSeconds to override (e.g. 3600 for 1h in dev).
+ * Returns { ok: true, token } or { ok: false, error } so the client always gets a clear message instead of a generic Server Error.
  */
 export const generateToken = action({
   args: {
@@ -30,44 +38,64 @@ export const generateToken = action({
     metadata: v.optional(v.string()),
     attributes: v.optional(v.record(v.string(), v.string())),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
+  handler: async (ctx, args): Promise<{ ok: true; token: string } | { ok: false; error: string }> => {
+    try {
+      await requireRoleForAction(ctx, ALLOWED_ROLES_FOR_LIVEKIT);
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) return { ok: false, error: "Unauthorized" };
 
-    await ctx.runMutation(internal.rateLimit_internal.checkAndIncrementTokenGen, {
-      userId: identity.subject,
-    });
+      try {
+        await ctx.runMutation(internal.rateLimit_internal.checkAndIncrementTokenGen, {
+          userId: identity.subject,
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Rate limit exceeded";
+        return { ok: false, error: msg };
+      }
 
-    const roomName = (args.roomName ?? "").trim();
-    if (!roomName || roomName.length > MAX_ROOM_NAME_LENGTH) {
-      throw new Error("Invalid room name");
-    }
-    const participantName = args.participantName?.trim();
-    if (participantName != null && participantName.length > MAX_PARTICIPANT_NAME_LENGTH) {
-      throw new Error("Participant name too long");
-    }
+      const roomName = (args.roomName ?? "").trim();
+      if (!roomName || roomName.length > MAX_ROOM_NAME_LENGTH) {
+        return { ok: false, error: "Invalid room name" };
+      }
+      const participantName = args.participantName?.trim();
+      if (participantName != null && participantName.length > MAX_PARTICIPANT_NAME_LENGTH) {
+        return { ok: false, error: "Participant name too long" };
+      }
 
-    const apiKey = process.env.LIVEKIT_API_KEY;
-    const apiSecret = process.env.LIVEKIT_API_SECRET;
-    if (!apiKey || !apiSecret) {
-      throw new Error("LIVEKIT_API_KEY and LIVEKIT_API_SECRET must be set in Convex environment variables.");
+      const apiKey = process.env.LIVEKIT_API_KEY;
+      const apiSecret = process.env.LIVEKIT_API_SECRET;
+      if (!apiKey || !apiSecret) {
+        return {
+          ok: false,
+          error: "LIVEKIT_API_KEY and LIVEKIT_API_SECRET must be set in Convex environment variables. Add them in the Convex dashboard → Settings → Environment Variables.",
+        };
+      }
+      const ttl = args.ttlSeconds ?? DEFAULT_TTL_SECONDS;
+      const at = new AccessToken(apiKey, apiSecret, {
+        identity: participantName ?? `user-${Date.now()}`,
+        ttl: `${ttl}s`,
+      });
+      if (args.metadata != null) at.metadata = args.metadata;
+      if (args.attributes != null && Object.keys(args.attributes).length > 0) at.attributes = args.attributes;
+      at.addGrant({
+        roomJoin: true,
+        room: roomName,
+        canPublish: args.canPublish ?? true,
+        canSubscribe: args.canSubscribe ?? true,
+        canPublishData: args.canPublishData ?? true,
+      });
+      const token = await at.toJwt();
+      return { ok: true, token };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Token generation failed";
+      if (msg === "Forbidden") {
+        return { ok: false, error: "Only admin or operator can generate tokens. Ask an admin to upgrade your role." };
+      }
+      if (msg === "Unauthorized") {
+        return { ok: false, error: "You must be signed in to generate a token." };
+      }
+      return { ok: false, error: msg };
     }
-    const ttl = args.ttlSeconds ?? DEFAULT_TTL_SECONDS;
-    const at = new AccessToken(apiKey, apiSecret, {
-      identity: participantName ?? `user-${Date.now()}`,
-      ttl: `${ttl}s`,
-    });
-    if (args.metadata != null) at.metadata = args.metadata;
-    if (args.attributes != null && Object.keys(args.attributes).length > 0) at.attributes = args.attributes;
-    at.addGrant({
-      roomJoin: true,
-      room: roomName,
-      canPublish: args.canPublish ?? true,
-      canSubscribe: args.canSubscribe ?? true,
-      canPublishData: args.canPublishData ?? true,
-    });
-    const token = await at.toJwt();
-    return { token };
   },
 });
 
@@ -81,6 +109,7 @@ export const dispatchAgentToRoom = action({
     metadata: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireRoleForAction(ctx, ALLOWED_ROLES_FOR_LIVEKIT);
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 
@@ -114,6 +143,7 @@ export const dispatchAgentToRoom = action({
 export const checkConfig = action({
   args: {},
   handler: async (ctx) => {
+    await requireRoleForAction(ctx, ALLOWED_ROLES_FOR_LIVEKIT);
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 

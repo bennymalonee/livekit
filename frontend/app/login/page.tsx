@@ -135,6 +135,19 @@ export default function LoginPage() {
     }
   }
 
+  async function handleGoogleSignIn() {
+    setError(null);
+    setLoading(true);
+    try {
+      await signIn("google");
+      goToDashboard();
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "Google sign-in failed";
+      setError(raw);
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100 p-4">
       <div className="w-full max-w-sm rounded-lg border border-zinc-800 bg-zinc-900/50 p-6 shadow-xl">
@@ -174,6 +187,22 @@ export default function LoginPage() {
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading || redirecting}
+            className="w-full rounded-md border border-zinc-600 bg-zinc-800 px-4 py-2 font-medium text-zinc-100 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-zinc-900 flex items-center justify-center gap-2"
+          >
+            Sign in with Google
+          </button>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-zinc-600" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-zinc-900/50 px-2 text-zinc-500">or</span>
+            </div>
+          </div>
           <input
             name="email"
             type="email"

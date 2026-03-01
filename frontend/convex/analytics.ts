@@ -1,18 +1,10 @@
 import { mutation, query } from "./_generated/server";
+import { requireRole } from "./rbac";
 
 export const getOverview = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return {
-        totalEgressGbps: 0,
-        regions: [],
-        uptimeHours: 0,
-        networkLoadLabel: "UNKNOWN",
-      };
-    }
-
+    await requireRole(ctx, ["admin", "operator", "viewer"]);
     const now = Date.now();
     const windowMs = 60 * 60 * 1000; // last hour
     const since = now - windowMs;
@@ -70,9 +62,7 @@ export const getOverview = query({
 export const seedDemoMetrics = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
-
+    await requireRole(ctx, ["admin"]);
     const now = Date.now();
     const hour = 60 * 60 * 1000;
     const windowMs = 15 * 60 * 1000; // 15-min windows

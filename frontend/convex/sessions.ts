@@ -1,14 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireRole } from "./rbac";
 
 export const listActive = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return [];
-    }
-
+    await requireRole(ctx, ["admin", "operator", "viewer"]);
     const now = Date.now();
     // Active sessions = not ended, or ended very recently (grace window).
     const graceWindowMs = 5 * 60 * 1000;
@@ -26,15 +23,7 @@ export const listActive = query({
 export const getTotals = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return {
-        totalSessions: 0,
-        totalDurationMs: 0,
-        activeSessions: 0,
-      };
-    }
-
+    await requireRole(ctx, ["admin", "operator", "viewer"]);
     const now = Date.now();
     const windowMs = 24 * 60 * 60 * 1000; // last 24h
     const since = now - windowMs;
@@ -68,9 +57,7 @@ export const getTotals = query({
 export const seedDemoSessions = mutation({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthorized");
-
+    await requireRole(ctx, ["admin"]);
     const now = Date.now();
     const hour = 60 * 60 * 1000;
     const demo = [
