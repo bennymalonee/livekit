@@ -4,21 +4,23 @@ Where to set each variable and what it does.
 
 ## Next.js (Dashboard app) – set in Coolify or `.env.local`
 
-| Variable | Purpose | Example |
-|----------|---------|---------|
-| `NEXT_PUBLIC_CONVEX_URL` | Convex deployment URL (backend). | `https://patient-crocodile-0.eu-west-1.convex.cloud` |
-| `NEXT_PUBLIC_APP_URL` | Public URL of this app (for auth cookies and redirects). | `http://z4ww800cw0sw0g8gsw0w8ckg.31.97.34.56.sslip.io` |
-| `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit server WebSocket URL for clients. | `ws://31.97.34.56:7880` |
-| `COOLIFY_DEPLOY_WEBHOOK_URL` | (Optional) Coolify deploy webhook for LiveKit Stack. | POST URL from Coolify → LiveKit app → Webhook |
-| `COOLIFY_BASE_URL` | Coolify API base URL (for `/api/deploy` when not using webhook). | `http://31.97.34.56:8000` |
+| Variable | Purpose | Example (demo only) |
+|----------|---------|---------------------|
+| `NEXT_PUBLIC_CONVEX_URL` | Convex deployment URL (backend). | `https://your-deployment.convex.cloud` |
+| `NEXT_PUBLIC_APP_URL` | Public URL of this app (for auth cookies and redirects). | `https://your-app.example.com` |
+| `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit server WebSocket URL for clients. | `ws://YOUR_VPS_IP:7880` |
+| `COOLIFY_DEPLOY_WEBHOOK_URL` | (Optional) Coolify deploy webhook for LiveKit Stack. | From Coolify → LiveKit app → Webhook |
+| `COOLIFY_BASE_URL` | Coolify API base URL (for `/api/deploy` when not using webhook). | `http://YOUR_VPS_IP:8000` |
 | `COOLIFY_API_TOKEN` | Coolify API token (Deploy permission) for `/api/deploy`. | From Coolify → Keys & Tokens |
-| `LIVEKIT_STACK_APP_UUID` | Coolify application UUID for the LiveKit Stack (for deploy API). | `mg44c8wgocck0oso440c84s4` |
+| `LIVEKIT_STACK_APP_UUID` | Coolify application UUID for the LiveKit Stack (for deploy API). | From Coolify → your LiveKit app |
+| `NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID` | (Optional) Dashboard app UUID for Coolify logs/env in Diagnostics & Vault. | From Coolify → Dashboard app |
+| `NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID` | (Optional) LiveKit Stack app UUID for Deploy prefill, Diagnostics, Vault, Terminal. | From Coolify → LiveKit Stack app |
 
 ## Convex – set in Convex Dashboard → Project → Environment variables
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `COOLIFY_BASE_URL` | Used by Coolify actions (list apps, sync nodes, logs, env). | `http://31.97.34.56:8000` |
+| `COOLIFY_BASE_URL` | Used by Coolify actions (list apps, sync nodes, logs, env). | `http://YOUR_VPS_IP:8000` |
 | `COOLIFY_API_TOKEN` | Coolify API token for Convex actions. | From Coolify → Keys & Tokens |
 | `LIVEKIT_API_KEY` | LiveKit API key for token generation (Convex action `livekit.generateToken`). | From LiveKit Stack env in Coolify |
 | `LIVEKIT_API_SECRET` | LiveKit API secret for signing tokens. Never expose to client. | From LiveKit Stack env in Coolify |

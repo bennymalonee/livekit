@@ -5,8 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { CoolifyApplication } from "@/convex/coolify";
 
-const LIVEKIT_STACK_UUID = "mg44c8wgocck0oso440c84s4";
-const DASHBOARD_APP_UUID = "z4ww800cw0sw0g8gsw0w8ckg";
+const LIVEKIT_STACK_UUID = process.env.NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID ?? "";
+const DASHBOARD_APP_UUID = process.env.NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID ?? "";
 
 export default function DeployPage() {
   const deployments = useQuery(api.deployments.listByUser);
@@ -126,6 +126,41 @@ export default function DeployPage() {
         </p>
 
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6 space-y-6">
+          <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-zinc-800">
+            {latest ? (
+              <span className="text-sm text-zinc-400">
+                Last deploy:{" "}
+                <span
+                  className={`font-medium ${
+                    latest.status === "success"
+                      ? "text-green-400"
+                      : latest.status === "failed"
+                        ? "text-red-400"
+                        : latest.status === "running"
+                          ? "text-amber-400"
+                          : "text-zinc-300"
+                  }`}
+                >
+                  {latest.status}
+                </span>
+                {" · "}
+                {new Date(latest.createdAt).toLocaleString()}
+              </span>
+            ) : (
+              <span className="text-sm text-zinc-500">No deployments yet.</span>
+            )}
+            {typeof process.env.NEXT_PUBLIC_COOLIFY_BASE_URL === "string" &&
+              process.env.NEXT_PUBLIC_COOLIFY_BASE_URL && (
+                <a
+                  href={process.env.NEXT_PUBLIC_COOLIFY_BASE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-500 hover:text-amber-400 text-sm font-medium"
+                >
+                  View in Coolify →
+                </a>
+              )}
+          </div>
           <button
             onClick={handleDeploy}
             disabled={loading}

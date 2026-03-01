@@ -81,7 +81,8 @@ export function TrafficAnalytics() {
               )}
               <button
                 type="button"
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 dark:bg-slate-700/30 border border-slate-600/30 rounded-full font-mono text-[10px] tracking-widest uppercase"
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 dark:bg-slate-700/30 border border-slate-600/30 rounded-full font-mono text-[10px] tracking-widest uppercase cursor-help opacity-75"
+                title="Port configuration is managed in Coolify / LiveKit stack."
               >
                 Add Port <span className="material-icons-outlined text-sm">add</span>
               </button>

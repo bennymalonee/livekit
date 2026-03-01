@@ -8,7 +8,8 @@ Add these **repository secrets** (Settings → Secrets and variables → Actions
 
 | Secret | Value |
 |--------|--------|
-| `COOLIFY_BASE_URL` | Your Coolify URL, e.g. `http://31.97.34.56:8000` (no trailing slash) |
+| `COOLIFY_BASE_URL` | Your Coolify URL, e.g. `http://YOUR_VPS_IP:8000` (no trailing slash) |
 | `COOLIFY_TOKEN` | Coolify API token (Keys & Tokens → API tokens, create with **Deploy** permission) |
+| `COOLIFY_DASHBOARD_APP_UUID` | Your Dashboard app UUID from Coolify (app Settings or URL) |
 
 After saving both secrets, the next push to `main` will trigger a deploy.

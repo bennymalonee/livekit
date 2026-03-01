@@ -8,8 +8,14 @@ import { api } from "@/convex/_generated/api";
 export function SessionMonitor() {
   const activeSessions = useQuery(api.sessions.listActive);
   const totals = useQuery(api.sessions.getTotals);
+  const nodes = useQuery(api.nodes.listNodes);
   const seedDemoSessions = useMutation(api.sessions.seedDemoSessions);
   const [seeding, setSeeding] = useState(false);
+
+  const activeNodesCount =
+    nodes && nodes.length > 0
+      ? nodes.filter((n) => n.status === "online").length
+      : null;
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -273,18 +279,22 @@ export function SessionMonitor() {
               Global Outgress:
             </span>
             <span className="text-sm font-bold text-dash-primary">24.5 GB/s</span>
+            <span className="text-[9px] text-slate-500 uppercase">(demo)</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
               Active Nodes:
             </span>
-            <span className="text-sm font-bold text-dash-primary">128</span>
+            <span className="text-sm font-bold text-dash-primary">
+              {activeNodesCount !== null ? activeNodesCount : "—"}
+            </span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
               Total Uptime:
             </span>
             <span className="text-sm font-bold text-dash-primary">99.998%</span>
+            <span className="text-[9px] text-slate-500 uppercase">(demo)</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-dash-primary animate-ping" />

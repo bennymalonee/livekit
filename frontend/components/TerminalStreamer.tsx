@@ -4,10 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
-const LIVEKIT_STACK_UUID = "mg44c8wgocck0oso440c84s4";
+const LIVEKIT_STACK_UUID = process.env.NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID ?? "";
+
+type StatusFilter = "all" | "success" | "failed" | "pending";
 
 export function TerminalStreamer() {
   const [command, setCommand] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const commands = useQuery(api.terminal.listCommands, { limit: 50 });
   const recordCommand = useMutation(api.terminal.recordCommand);
   const getApplicationLogs = useAction(api.coolify.getApplicationLogs);
@@ -45,7 +48,7 @@ export function TerminalStreamer() {
     }
   }
 
-  const logLines =
+  const allLogLines =
     commands && commands.length > 0
       ? commands
           .slice()
@@ -54,6 +57,7 @@ export function TerminalStreamer() {
             id: c._id,
             time: new Date(c.createdAt).toISOString().slice(11, 19),
             level: c.status.toUpperCase(),
+            status: c.status as "pending" | "running" | "success" | "failed",
             msg: c.command + (c.output ? `\n${c.output}` : ""),
             levelClass:
               c.status === "failed"
@@ -63,6 +67,11 @@ export function TerminalStreamer() {
                   : "text-primary",
           }))
       : [];
+
+  const logLines =
+    statusFilter === "all"
+      ? allLogLines
+      : allLogLines.filter((line) => line.status === statusFilter);
 
   return (
     <div className="bg-background-light dark:bg-[#0a0a0a] text-slate-800 dark:text-slate-300 font-sans min-h-screen overflow-hidden pt-2 pl-16 sm:pl-20">
@@ -112,13 +121,20 @@ export function TerminalStreamer() {
                 <div className="flex gap-4">
                   <div className="flex flex-col items-end">
                     <span className="text-[9px] uppercase tracking-widest text-slate-500 mb-1">
-                      Severity Filter
+                      Status Filter
                     </span>
                     <div className="flex gap-1.5">
-                      <button type="button" className="w-10 h-3 rounded-full indicator-on" />
-                      <button type="button" className="w-10 h-3 rounded-full bg-[#27272a]" />
-                      <button type="button" className="w-10 h-3 rounded-full bg-[#27272a]" />
-                      <button type="button" className="w-10 h-3 rounded-full bg-[#27272a]" />
+                      {(["all", "success", "failed", "pending"] as const).map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => setStatusFilter(f)}
+                          className={`w-10 h-3 rounded-full transition-colors ${
+                            statusFilter === f ? "indicator-on bg-primary" : "bg-[#27272a] hover:bg-zinc-700"
+                          }`}
+                          title={f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+                        />
+                      ))}
                     </div>
                   </div>
                   <div className="flex flex-col items-end">
@@ -284,18 +300,18 @@ export function TerminalStreamer() {
                       </span>
                       <span className="text-xs font-bold text-slate-400">{label}</span>
                     </div>
-                    <button
-                      type="button"
-                      className={`w-10 h-5 rounded-full relative flex items-center px-1 ${
+                    <div
+                      className={`w-10 h-5 rounded-full relative flex items-center px-1 cursor-default ${
                         i !== 1 ? "bg-primary" : "bg-zinc-800"
                       }`}
+                      title="Display only"
                     >
                       <div
                         className={`w-3 h-3 rounded-full ml-auto ${
                           i !== 1 ? "bg-white" : "bg-zinc-500"
                         }`}
                       />
-                    </button>
+                    </div>
                   </div>
                 ))}
               </div>

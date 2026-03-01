@@ -10,6 +10,14 @@ export function GlobalStreamDashboard() {
   const { signOut } = useAuthActions();
   const overview = useQuery(api.dashboard.getOverview);
   const sessionTotals = useQuery(api.sessions.getTotals);
+  const analyticsOverview = useQuery(api.analytics.getOverview);
+
+  const streamRegions =
+    analyticsOverview?.regions?.slice(0, 4).map((r) => ({
+      label: r.region.toUpperCase().replace(/-/g, "-"),
+      egressGbps: r.egressGbps,
+      active: r.egressGbps > 0,
+    })) ?? [];
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
@@ -60,6 +68,31 @@ export function GlobalStreamDashboard() {
           </button>
         </div>
       </header>
+
+      <nav className="max-w-[1600px] mx-auto px-8 py-3 flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-800">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-2">
+          Quick links
+        </span>
+        {[
+          { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
+          { path: "/nodes", icon: "dns", label: "Nodes" },
+          { path: "/sessions", icon: "sensors", label: "Sessions" },
+          { path: "/analytics", icon: "bar_chart", label: "Analytics" },
+          { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
+          { path: "/modules", icon: "view_module", label: "Modules" },
+          { path: "/vault", icon: "shield", label: "Vault" },
+          { path: "/terminal", icon: "terminal", label: "Terminal" },
+        ].map(({ path, icon, label }) => (
+          <Link
+            key={path}
+            href={path}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white text-xs font-medium transition-colors"
+          >
+            <span className="material-icons-round text-base">{icon}</span>
+            {label}
+          </Link>
+        ))}
+      </nav>
 
       <main className="max-w-[1600px] mx-auto px-8 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -189,34 +222,42 @@ export function GlobalStreamDashboard() {
                   />
                 </svg>
                 <div className="absolute right-0 top-0 h-full flex flex-col justify-between py-2 text-right">
-                  <div className="flex items-center gap-4 justify-end">
-                    <div>
-                      <p className="text-[10px] text-slate-500 font-bold">ASIA-PACIFIC</p>
-                      <p className="text-sm font-mono font-bold">14.2 TB/s</p>
-                    </div>
-                    <div className="w-6 h-2 bg-dash-primary rounded-full" />
-                  </div>
-                  <div className="flex items-center gap-4 justify-end">
-                    <div>
-                      <p className="text-[10px] text-slate-500 font-bold">EURO-WEST</p>
-                      <p className="text-sm font-mono font-bold">0.0 TB/s</p>
-                    </div>
-                    <div className="w-6 h-2 bg-slate-300 dark:bg-slate-700 rounded-full" />
-                  </div>
-                  <div className="flex items-center gap-4 justify-end">
-                    <div>
-                      <p className="text-[10px] text-slate-500 font-bold">US-EAST-1</p>
-                      <p className="text-sm font-mono font-bold">28.4 TB/s</p>
-                    </div>
-                    <div className="w-6 h-2 bg-dash-primary rounded-full shadow-[0_0_10px_rgba(255,107,0,0.5)]" />
-                  </div>
-                  <div className="flex items-center gap-4 justify-end">
-                    <div>
-                      <p className="text-[10px] text-slate-500 font-bold">LATAM-S</p>
-                      <p className="text-sm font-mono font-bold">1.2 TB/s</p>
-                    </div>
-                    <div className="w-6 h-2 bg-slate-300 dark:bg-slate-700 rounded-full" />
-                  </div>
+                  {streamRegions.length > 0 ? (
+                    streamRegions.map((r) => (
+                      <div key={r.label} className="flex items-center gap-4 justify-end">
+                        <div>
+                          <p className="text-[10px] text-slate-500 font-bold">{r.label}</p>
+                          <p className="text-sm font-mono font-bold">
+                            {r.egressGbps.toFixed(1)} GB/s
+                          </p>
+                        </div>
+                        <div
+                          className={`w-6 h-2 rounded-full ${
+                            r.active
+                              ? "bg-dash-primary shadow-[0_0_10px_rgba(255,107,0,0.5)]"
+                              : "bg-slate-300 dark:bg-slate-700"
+                          }`}
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-4 justify-end">
+                        <div>
+                          <p className="text-[10px] text-slate-500 font-bold">—</p>
+                          <p className="text-sm font-mono font-bold text-slate-500">
+                            No data
+                          </p>
+                        </div>
+                      </div>
+                      <Link
+                        href="/analytics"
+                        className="text-[10px] text-dash-primary font-bold hover:underline"
+                      >
+                        View traffic in Analytics
+                      </Link>
+                    </>
+                  )}
                 </div>
                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
                   <div className="w-16 h-16 rounded-full bg-dash-primary flex items-center justify-center shadow-[0_0_30px_rgba(255,107,0,0.4)] animate-pulse">
@@ -317,9 +358,9 @@ export function GlobalStreamDashboard() {
                 </div>
                 <div className="flex items-center justify-between text-[10px] font-bold mt-4">
                   <p>TX 23.8G / RX 14G</p>
-                  <button type="button" className="text-dash-primary hover:underline">
+                  <Link href="/analytics" className="text-dash-primary hover:underline">
                     DETAILS
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -371,7 +412,8 @@ export function GlobalStreamDashboard() {
                     <div className="absolute inset-0 flex items-center justify-center">
                       <button
                         type="button"
-                        className="w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+                        className="w-12 h-12 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-default"
+                        title="Power control is managed in Coolify."
                       >
                         <span className="material-icons-round text-dash-primary">
                           power_settings_new

@@ -1,110 +1,128 @@
 # LivKit
 
-LivKit dashboard: Convex auth, Coolify deploy, and LiveKit stack. One app to log in, trigger LiveKit deployment on your VPS via Coolify, and manage infrastructure views (Stitch screens).
+Enterprise dashboard for **LiveKit** real-time infrastructure: Convex backend, Coolify deployment, and a single app to sign in, deploy LiveKit on your VPS, and manage nodes, sessions, analytics, diagnostics, modules, vault, and terminal views.
 
-**Dashboard functionality plan:** [docs/DASHBOARD-FUNCTIONALITY-PLAN.md](docs/DASHBOARD-FUNCTIONALITY-PLAN.md) — step-by-step plan to add real functionality to every section (Deploy, Nodes, Sessions, Analytics, Diagnostics, Modules, Vault, Terminal), including where to use **Coolify MCP** and **Convex MCP** (list apps, env vars, logs, deploy).
+## Features
 
-### What's next
+- **Auth** — Convex Auth (email/password) with JWT; sign in / sign up and protected dashboard routes
+- **Deploy** — Trigger LiveKit Stack deployment on your VPS via Coolify (webhook or API)
+- **Nodes** — Sync Coolify applications as infrastructure nodes; view name, region, status
+- **Sessions** — Live or demo session data; LiveKit webhook feeds room/participant events
+- **Analytics** — Traffic flow and region egress (real or seeded demo metrics)
+- **Diagnostics** — Convex events timeline; load Coolify logs for Dashboard and LiveKit Stack
+- **Modules** — Enable/disable stack modules (LiveKit, TURN, Recording)
+- **Vault** — Store and list keys in Convex; optional read-only Coolify env key names
+- **Terminal** — Command history in Convex; load Coolify logs for LiveKit Stack
 
-After the dashboard is running, follow the plan in order: **Phase 1** (Deploy + Coolify list apps) then **Phase 2** (Nodes sync from Coolify). Full env reference: [docs/ENV-VARS.md](docs/ENV-VARS.md). Health check: `GET /api/health`. LiveKit webhook: point your LiveKit server at `https://<convex>.convex.site/livekit-webhook` to feed Sessions; use Convex action `livekit.generateToken` (with `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` in Convex env) for "Join test room" in the app.
+## Prerequisites
 
-## Local setup
+- **Node.js** 18+
+- **Convex** account ([convex.dev](https://convex.dev))
+- **Coolify** (optional, for VPS deploy) — [coolify.io](https://coolify.io)
+- **LiveKit** — server runs via Docker Compose from this repo’s `deploy/` directory
 
-1. **Frontend and Convex (dev):**
+## Quick start (local)
+
+1. **Clone and install**
    ```bash
-   cd frontend
+   git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+   cd YOUR_REPO/frontend
    npm install
    cp .env.example .env.local
    ```
-2. Set `NEXT_PUBLIC_CONVEX_URL` in `frontend/.env.local` (see [Environment variables](#environment-variables)).
-3. Run Convex dev (separate terminal):
+
+2. **Convex**
+   - Create a project at [dashboard.convex.dev](https://dashboard.convex.dev)
+   - In `frontend/.env.local` set:
+     - `NEXT_PUBLIC_CONVEX_URL` = your Convex deployment URL (e.g. `https://your-deployment-123.convex.cloud`)
+
+3. **Run**
    ```bash
-   cd frontend && npm run convex:dev
+   cd frontend
+   npm run convex:dev    # terminal 1
+   npm run dev           # terminal 2
    ```
-4. Run the Next.js app:
-   ```bash
-   cd frontend && npm run dev
-   ```
-5. Open [http://localhost:3000](http://localhost:3000). Sign up or log in, then use Dashboard and Deploy.
+   Open [http://localhost:3000](http://localhost:3000). Sign up, then use the Dashboard and Deploy sections.
 
 ## Environment variables
 
-| Variable | Development | Production |
-| -------- | ----------- | ---------- |
-| `NEXT_PUBLIC_CONVEX_URL` | `https://tame-aardvark-57.eu-west-1.convex.cloud` | `https://patient-crocodile-0.eu-west-1.convex.cloud` |
-| `COOLIFY_DEPLOY_WEBHOOK_URL` | (optional) | Coolify webhook URL for LiveKit Stack app |
-| `NEXT_PUBLIC_LIVEKIT_URL` | (optional) | Your LiveKit server URL (e.g. `https://live.yourdomain.com`) |
+Set these for **local development** in `frontend/.env.local`. For **production** (e.g. Coolify), set them in your hosting dashboard.
 
-See [frontend/.env.example](frontend/.env.example) for a template.
+| Variable | Description | Example (demo only) |
+| -------- | ----------- | -------------------- |
+| `NEXT_PUBLIC_CONVEX_URL` | Convex deployment URL | `https://your-deployment.convex.cloud` |
+| `NEXT_PUBLIC_APP_URL` | Public URL of this app (auth cookies) | `https://your-app.example.com` |
+| `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit server WebSocket URL | `ws://YOUR_VPS_IP:7880` |
+| `COOLIFY_DEPLOY_WEBHOOK_URL` | (Optional) Coolify deploy webhook for LiveKit Stack | From Coolify → app → Webhook |
+| `COOLIFY_BASE_URL` | Coolify API base URL | `http://YOUR_VPS_IP:8000` |
+| `COOLIFY_API_TOKEN` | Coolify API token (Deploy permission) | From Coolify → Keys & Tokens |
+| `LIVEKIT_STACK_APP_UUID` | Coolify app UUID for LiveKit Stack | From Coolify → your LiveKit app |
+| `NEXT_PUBLIC_COOLIFY_BASE_URL` | (Optional) For “View in Coolify” link on Deploy page | Same as `COOLIFY_BASE_URL` |
+| `NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID` | (Optional) Dashboard app UUID for Coolify logs/env | From Coolify → Dashboard app |
+| `NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID` | (Optional) LiveKit Stack app UUID for Deploy prefill, logs | From Coolify → LiveKit Stack app |
+
+See [docs/ENV-VARS.md](docs/ENV-VARS.md) for Convex and Coolify env vars. Template: [frontend/.env.example](frontend/.env.example).
 
 ## Deploy with Coolify
 
 ### 1. Dashboard app (Next.js)
 
-- **Source:** GitHub repo `bennymalonee/livekit`.
-- **Build:** Dockerfile at repo root (builds `frontend/`).
+- **Source:** Your GitHub repo (this repo or your fork).
+- **Build:** Use the Dockerfile at repo root (builds `frontend/`).
 - **Port:** 3000.
-- **Environment:** Set `NEXT_PUBLIC_CONVEX_URL` to the **production** Convex URL: `https://patient-crocodile-0.eu-west-1.convex.cloud`.
-- Optional: set `COOLIFY_DEPLOY_WEBHOOK_URL` and `NEXT_PUBLIC_LIVEKIT_URL` for the Deploy page.
-- **Health check (fix "Unhealthy" in Coolify):** In Coolify, open the Dashboard app → **Health Check**, enable it and set **path** to `/api/health` and **port** to `3000`. The app skips auth for this path so the check always gets HTTP 200. Optionally the Dockerfile defines a container HEALTHCHECK; Coolify’s own check is usually enough.
-- **Login / "Go to dashboard" not working (Convex logs show auth success):** The app needs the **public host** so the auth cookie is set and sent correctly. In Coolify, for the Dashboard app, set the proxy to forward **Host** or **X-Forwarded-Host** to your public domain (e.g. `your-app.sslip.io`). The app also waits ~1.2s after sign-in so the Convex Auth Next.js client can sync the token to the server cookie before redirecting.
-- **"Unexpected missing refreshToken cookie during client refresh" in logs:** This appears when the server doesn’t receive the auth cookie (e.g. proxy not forwarding the public host). Ensure the proxy forwards **X-Forwarded-Host** (and **X-Forwarded-Proto** if using HTTPS) so cookies are set for the correct domain. Verbose auth logging is disabled by default to reduce log noise.
+- **Environment:** Set `NEXT_PUBLIC_CONVEX_URL` to your **production** Convex URL. Optionally set `COOLIFY_DEPLOY_WEBHOOK_URL`, `NEXT_PUBLIC_LIVEKIT_URL`, `NEXT_PUBLIC_APP_URL`, `COOLIFY_BASE_URL`, `COOLIFY_API_TOKEN`, `LIVEKIT_STACK_APP_UUID` as needed (see [docs/DASHBOARD-SETUP-CHECKLIST.md](docs/DASHBOARD-SETUP-CHECKLIST.md)).
+- **Health check:** In Coolify, set path to `/api/health` and port to `3000` so the app is marked healthy.
+- **Auth / cookies:** Ensure your proxy forwards **Host** (or **X-Forwarded-Host**) and **X-Forwarded-Proto** so auth cookies use your public domain.
 
 ### 2. LiveKit Stack app (Docker Compose)
 
-- Add a **second** application in Coolify:
-  - **Type:** Docker Compose.
-  - **Source:** Same repo `bennymalonee/livekit`.
-  - **Docker Compose path:** `deploy/docker-compose.yml`.
-  - **Base directory:** `deploy`.
-- After the app is created, open its **Settings** and copy the **Deploy webhook URL**.
-- In the **Dashboard app** (first app), add an environment variable: `COOLIFY_DEPLOY_WEBHOOK_URL` = that webhook URL. Redeploy the dashboard so the "Deploy LiveKit to VPS" button triggers the LiveKit stack deploy.
-- **Or** the LiveKit Stack may already exist in Coolify (name: livekit-stack). Full Coolify setup, API-token option, and using LiveKit in your app: see [docs/LIVEKIT-COOLIFY-SETUP.md](docs/LIVEKIT-COOLIFY-SETUP.md).
+- Add a second application in Coolify: type **Docker Compose**, source = this repo, **Docker Compose path** = `deploy/docker-compose.yml`, **Base directory** = `deploy`.
+- Copy the app’s **Deploy webhook URL** and set `COOLIFY_DEPLOY_WEBHOOK_URL` on the Dashboard app, **or** use the API method with `COOLIFY_BASE_URL`, `COOLIFY_API_TOKEN`, and `LIVEKIT_STACK_APP_UUID`.
+- Full Coolify + LiveKit setup: [docs/LIVEKIT-COOLIFY-SETUP.md](docs/LIVEKIT-COOLIFY-SETUP.md).
 
 ### 3. Convex production
 
-- Deploy the Convex backend to production before or after deploying the dashboard:
+- Deploy the Convex backend:
   ```bash
   cd frontend
-  npm run convex:deploy
+  npx convex deploy
   ```
-- Use the production deployment (`patient-crocodile-0`) and set `NEXT_PUBLIC_CONVEX_URL` in Coolify to the production Cloud URL.
+  Choose **production**. Set `NEXT_PUBLIC_CONVEX_URL` in Coolify to your production Convex Cloud URL.
 
 ## Convex
 
-- **Development:** `tame-aardvark-57` — Cloud URL: `https://tame-aardvark-57.eu-west-1.convex.cloud`
-- **Production:** `patient-crocodile-0` — Cloud URL: `https://patient-crocodile-0.eu-west-1.convex.cloud`, HTTP Actions: `https://patient-crocodile-0.eu-west-1.convex.site`  
-  First-time setup: see [frontend/CONVEX_PRODUCTION_SETUP.md](frontend/CONVEX_PRODUCTION_SETUP.md).
+- **Development:** `npm run convex:dev` (uses Convex dev deployment).
+- **Production:** `npm run convex:deploy` (prompts for production).
+- **Codegen:** `npm run convex:codegen` (regenerate API types).
 
-From `frontend/`: `npm run convex:dev` (dev), `npm run convex:deploy` (prod), `npm run convex:codegen` (regenerate API).
-
-### Convex Auth (JWT keys)
-
-If you see `Missing environment variable JWT_PRIVATE_KEY`, set the auth keys on your Convex deployment:
-
+**Auth (JWT):** If you see `Missing environment variable JWT_PRIVATE_KEY`, run once per deployment:
 ```bash
 cd frontend
-npm run convex:auth:env
+npm run convex:auth:env          # dev
+npm run convex:auth:env -- --prod   # production
 ```
 
-This generates a key pair and sets `JWT_PRIVATE_KEY` and `JWKS` via `npx convex env set`. Run once per deployment (dev and prod).
+**LiveKit webhook:** Point your LiveKit server at `https://<your-deployment>.convex.site/livekit-webhook` so room/participant events appear in Sessions. Use the Convex action `livekit.generateToken` (with `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` in Convex env) for client tokens.
 
-**Insight: "Retried due to write conflicts" on `auth:store` / `authRefreshTokens`**  
-Convex Auth uses single-use refresh tokens. When several requests refresh at once (e.g. multiple tabs, or middleware + client), Convex may report write conflicts on `authRefreshTokens`. Convex retries these mutations; occasional retries are normal. If retries persist or users are logged out often, reduce concurrent auth (e.g. avoid many tabs or rapid reloads during login).
+## Documentation
 
-## Stitch screens
-
-Dashboard pages (Landing, Global Stream Flow, Modules, Diagnostics, etc.) are powered by Stitch. To populate images and HTML:
-
-1. Fill [scripts/stitch-urls.json](scripts/stitch-urls.json) with image and HTML URLs from the Stitch MCP or project.
-2. From the repo root: `node scripts/download-stitch-assets.mjs`
+| Doc | Description |
+| --- | ----------- |
+| [docs/DASHBOARD-SETUP-CHECKLIST.md](docs/DASHBOARD-SETUP-CHECKLIST.md) | One-time setup so all dashboard sections work |
+| [docs/DASHBOARD-FUNCTIONALITY-PLAN.md](docs/DASHBOARD-FUNCTIONALITY-PLAN.md) | Plan to add real functionality to each section |
+| [docs/ENV-VARS.md](docs/ENV-VARS.md) | Full environment variable reference |
+| [docs/LIVEKIT-COOLIFY-SETUP.md](docs/LIVEKIT-COOLIFY-SETUP.md) | LiveKit Stack on Coolify and token usage |
+| [docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md](docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md) | Webhook + Convex env for Sessions and tokens |
+| [deploy/README.md](deploy/README.md) | LiveKit stack (Docker Compose, Redis, Coturn) |
 
 ## Project layout
 
-- `frontend/` — Next.js app (Convex auth, deploy UI, Stitch screens).
-- `deploy/` — LiveKit stack (docker-compose, Redis, Coturn, egress). See [deploy/README.md](deploy/README.md).
-- `scripts/` — Stitch asset download, reference scripts.
+| Path | Description |
+| ---- | ----------- |
+| `frontend/` | Next.js app (Convex auth, dashboard, deploy UI) |
+| `deploy/` | LiveKit stack (Docker Compose, Redis, Coturn, egress) |
+| `scripts/` | Asset and reference scripts |
 
 ## License
 
-Private / as per your project.
+See repository license or your project terms.

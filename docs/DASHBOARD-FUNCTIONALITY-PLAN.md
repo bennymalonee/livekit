@@ -6,7 +6,7 @@ Plan to add real functionality to every dashboard section. Steps that use **Cool
 
 ## Coolify MCP – what to use where
 
-Configure Coolify MCP with `COOLIFY_ACCESS_TOKEN` and `COOLIFY_BASE_URL` (e.g. `http://31.97.34.56:8000`). Then you can use:
+Configure Coolify MCP with `COOLIFY_ACCESS_TOKEN` and `COOLIFY_BASE_URL` (e.g. `http://YOUR_VPS_IP:8000`). Then you can use:
 
 | MCP use | Purpose in this plan |
 |--------|----------------------|
@@ -15,10 +15,7 @@ Configure Coolify MCP with `COOLIFY_ACCESS_TOKEN` and `COOLIFY_BASE_URL` (e.g. `
 | **application_logs** | Fetch recent logs for an app; show in Diagnostics or Terminal. |
 | **Deploy/trigger** | Trigger deploy for an app (e.g. LiveKit Stack); already used by `/api/deploy` with API token; MCP can do the same. |
 
-Known app UUIDs (from your setup):
-
-- **Dashboard (main app):** `z4ww800cw0sw0g8gsw0w8ckg`
-- **LiveKit Stack:** `mg44c8wgocck0oso440c84s4`
+Get your app UUIDs from Coolify (Dashboard app and LiveKit Stack app; use MCP `application_list` or Coolify UI).
 
 ---
 
@@ -28,9 +25,9 @@ Known app UUIDs (from your setup):
 
 | Step | What to do | Coolify MCP? |
 |------|------------|--------------|
-| 1.1 | Keep current flow: “Deploy LiveKit to VPS” calls `/api/deploy` (webhook or Coolify API). | Optional: use MCP to trigger deploy for `mg44c8wgocck0oso440c84s4` instead of API token. |
+| 1.1 | Keep current flow: “Deploy LiveKit to VPS” calls `/api/deploy` (webhook or Coolify API). | Optional: use MCP to trigger deploy for your LiveKit Stack app UUID instead of API token. |
 | 1.2 | **Coolify MCP:** List applications; show “LiveKit Stack” and “Dashboard” with status (e.g. running/stopped) on Deploy or Dashboard home. | Yes – `application_list`. |
-| 1.3 | **Coolify MCP:** For LiveKit Stack app, read env vars (e.g. `LIVEKIT_API_KEY`, `NEXT_PUBLIC_LIVEKIT_URL`); optionally prefill Deploy settings or “LiveKit URL” display. | Yes – `env_vars` for `mg44c8wgocck0oso440c84s4`. |
+| 1.3 | **Coolify MCP:** For LiveKit Stack app, read env vars (e.g. `LIVEKIT_API_KEY`, `NEXT_PUBLIC_LIVEKIT_URL`); optionally prefill Deploy settings or “LiveKit URL” display. | Yes – `env_vars` for your LiveKit Stack app UUID. |
 
 ---
 
@@ -77,7 +74,7 @@ Known app UUIDs (from your setup):
 | Step | What to do | Coolify MCP? |
 |------|------------|--------------|
 | 5.1 | Wire **EdgeDiagnostics** to `api.diagnostics.listRecent`; show `diagnosticsEvents` (level, code, message, createdAt). | No. |
-| 5.2 | **Coolify MCP:** Add “Coolify logs” section: call `application_logs` for Dashboard and/or LiveKit Stack; display last N lines (read-only). Optionally store last fetch in Convex or show live in UI. | Yes – `application_logs` for `z4ww800cw0sw0g8gsw0w8ckg` and `mg44c8wgocck0oso440c84s4`. |
+| 5.2 | **Coolify MCP:** Add “Coolify logs” section: call `application_logs` for Dashboard and/or LiveKit Stack; display last N lines (read-only). Optionally store last fetch in Convex or show live in UI. | Yes – `application_logs` for your Dashboard and LiveKit Stack app UUIDs. |
 | 5.3 | When syncing Nodes (Phase 2), optionally call `diagnostics.recordEvent` for “node up/down” or “deploy triggered” so Diagnostics shows a timeline. | No. |
 
 ---
@@ -135,8 +132,8 @@ When your Cursor Coolify MCP is connected, you can run:
 | # | MCP step | Purpose |
 |---|----------|---------|
 | 1 | List applications | Get UUIDs and names; show on Deploy or sync to Nodes. |
-| 2 | Get env vars for Dashboard app (`z4ww800cw0sw0g8gsw0w8ckg`) | Show or prefill Dashboard settings / Vault keys (names only). |
-| 3 | Get env vars for LiveKit Stack (`mg44c8wgocck0oso440c84s4`) | Prefill LiveKit URL / show in Vault or Deploy. |
+| 2 | Get env vars for Dashboard app (your app UUID) | Show or prefill Dashboard settings / Vault keys (names only). |
+| 3 | Get env vars for LiveKit Stack (your app UUID) | Prefill LiveKit URL / show in Vault or Deploy. |
 | 4 | Get application_logs for Dashboard / LiveKit Stack | Show in Diagnostics or Terminal. |
 | 5 | Trigger deploy for LiveKit Stack (if MCP supports it) | Alternative to `/api/deploy` for “Deploy LiveKit to VPS”. |
 

@@ -2,11 +2,11 @@
 
 The **LiveKit Stack** app in Coolify runs the LiveKit server + Redis from this repo. The Dashboard app can trigger its deploy and show the LiveKit URL.
 
-## LiveKit Stack app (already created)
+## LiveKit Stack app
 
-- **Name:** livekit-stack  
-- **UUID:** `mg44c8wgocck0oso440c84s4`  
-- **Repo:** bennymalonee/livekit, branch main  
+- **Name:** livekit-stack (or your chosen name)  
+- **UUID:** From Coolify → your LiveKit Stack app (Settings or URL)  
+- **Repo:** Your GitHub repo, branch main  
 - **Build pack:** Docker Compose  
 
 If you see "Docker Compose file not found at: /deploy/deploy/docker-compose.yml", the compose path is wrong. In Coolify open **livekit-stack** → **Configuration** / **Build** and set **Base directory** to `deploy` and **Docker Compose path** to `docker-compose.yml` (not `deploy/docker-compose.yml` — Coolify joins base dir + path, so this resolves to `deploy/docker-compose.yml` in the repo). Then redeploy.
@@ -24,7 +24,7 @@ After that, open the Dashboard → **Deploy** and click **Deploy LiveKit to VPS*
 
 ## LiveKit URL in the app
 
-The Dashboard has **`NEXT_PUBLIC_LIVEKIT_URL`** = `ws://31.97.34.56:7880`. You can also set or override it in **Deploy** → **Deploy settings** → LiveKit server URL (stored in Convex).
+Set **`NEXT_PUBLIC_LIVEKIT_URL`** to your LiveKit server WebSocket URL (e.g. `ws://YOUR_VPS_IP:7880`). You can also set or override it in **Deploy** → **Deploy settings** → LiveKit server URL (stored in Convex).
 
 ## Using LiveKit in your app (tokens)
 
@@ -33,7 +33,7 @@ To create LiveKit access tokens (server-side), use the same **API Key** and **AP
 1. In Coolify, open the **livekit-stack** app → **Environment variables**.
 2. Copy **`LIVEKIT_API_KEY`** and **`LIVEKIT_API_SECRET`**.
 3. Set them in your backend (e.g. Convex production env: `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`) or in a server-only config. Never expose the secret to the client.
-4. In your Convex action (or API route), use the LiveKit server SDK to create an access token with that key/secret and the LiveKit URL (`NEXT_PUBLIC_LIVEKIT_URL` or from Convex/settings). The client then connects with that token to `ws://31.97.34.56:7880` (or your public URL).
+4. In your Convex action (or API route), use the LiveKit server SDK to create an access token with that key/secret and the LiveKit URL (`NEXT_PUBLIC_LIVEKIT_URL` or from Convex/settings). The client then connects with that token to your LiveKit WebSocket URL.
 
 See [deploy/README.md](../deploy/README.md) for manual deploy and [LiveKit token docs](https://docs.livekit.io/realtime/authentication/) for token creation.
 

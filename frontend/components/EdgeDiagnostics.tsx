@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
-const DASHBOARD_APP_UUID = "z4ww800cw0sw0g8gsw0w8ckg";
-const LIVEKIT_STACK_UUID = "mg44c8wgocck0oso440c84s4";
+const DASHBOARD_APP_UUID = process.env.NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID ?? "";
+const LIVEKIT_STACK_UUID = process.env.NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID ?? "";
 
 export function EdgeDiagnostics() {
   const nodes = useQuery(api.nodes.listNodes);
@@ -30,6 +30,38 @@ export function EdgeDiagnostics() {
     analytics && analytics.totalEgressGbps > 0
       ? analytics.totalEgressGbps
       : null;
+
+  const rawRegionBars =
+    analytics && analytics.regions.length > 0
+      ? analytics.regions.slice(0, 4).map((r) => {
+          const maxGbps = Math.max(
+            ...analytics!.regions.slice(0, 4).map((x) => x.egressGbps),
+            1
+          );
+          const pct = maxGbps > 0 ? (r.egressGbps / maxGbps) * 100 : 0;
+          const w =
+            pct >= 75 ? "w-3/4" : pct >= 50 ? "w-2/3" : pct >= 25 ? "w-1/2" : pct > 0 ? "w-1/4" : "w-0";
+          return {
+            label: r.region.toUpperCase().replace(/-/g, "-"),
+            w,
+            inactive: r.egressGbps <= 0,
+          };
+        })
+      : [
+          { label: "US-EAST-1", w: "w-3/4", inactive: false },
+          { label: "EU-WEST-1", w: "w-1/4", inactive: false },
+          { label: "AP-SOUTH-2", w: "w-0", inactive: true },
+          { label: "SA-EAST-1", w: "w-0", inactive: true },
+        ];
+
+  const regionBars = [
+    ...rawRegionBars,
+    ...Array.from({ length: Math.max(0, 4 - rawRegionBars.length) }, (_, i) => ({
+      label: `REGION-${rawRegionBars.length + i + 1}`,
+      w: "w-0" as const,
+      inactive: true,
+    })),
+  ];
 
   return (
     <div
@@ -188,12 +220,7 @@ export function EdgeDiagnostics() {
               </svg>
             </div>
             <div className="relative z-10 flex flex-col justify-center h-64 ml-auto w-48 space-y-12 mr-10">
-              {[
-                { label: "US-EAST-1", w: "w-3/4" },
-                { label: "EU-WEST-1", w: "w-1/4" },
-                { label: "AP-SOUTH-2", w: "w-0", inactive: true },
-                { label: "SA-EAST-1", w: "w-0", inactive: true },
-              ].map((r) => (
+              {regionBars.map((r) => (
                 <div key={r.label} className="flex items-center gap-3">
                   <div
                     className={`w-8 h-3 rounded-full border relative overflow-hidden ${
@@ -291,13 +318,15 @@ export function EdgeDiagnostics() {
                 <div className="mt-6 flex gap-4">
                   <button
                     type="button"
-                    className="bg-white/5 hover:bg-white/10 px-4 py-2 rounded text-[10px] font-bold text-white tracking-widest transition-all"
+                    className="bg-white/5 hover:bg-white/10 px-4 py-2 rounded text-[10px] font-bold text-white tracking-widest transition-all cursor-not-allowed opacity-75"
+                    title="Server control is in Coolify."
                   >
                     STANDBY
                   </button>
                   <button
                     type="button"
-                    className="bg-dash-primary hover:bg-orange-600 px-4 py-2 rounded text-[10px] font-bold text-white tracking-widest shadow-lg shadow-orange-900/20 transition-all"
+                    className="bg-dash-primary/70 px-4 py-2 rounded text-[10px] font-bold text-white tracking-widest cursor-not-allowed opacity-75"
+                    title="Server control is in Coolify."
                   >
                     REBOOT
                   </button>
@@ -354,15 +383,16 @@ export function EdgeDiagnostics() {
               </div>
             </div>
             <div className="mt-8 flex gap-3">
-              <button
-                type="button"
-                className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 py-3 rounded text-[10px] font-bold text-white tracking-widest transition-all uppercase"
+              <Link
+                href="/terminal"
+                className="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 py-3 rounded text-[10px] font-bold text-white tracking-widest transition-all uppercase flex items-center justify-center"
               >
                 Detailed Logs
-              </button>
+              </Link>
               <button
                 type="button"
                 className="bg-white/5 hover:bg-white/10 border border-white/10 p-3 rounded transition-all"
+                title="Settings"
               >
                 <span className="material-icons-outlined text-sm">settings</span>
               </button>
@@ -596,12 +626,12 @@ export function EdgeDiagnostics() {
             </div>
             <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold tracking-widest mt-4">
               <span>DC 12V / AC 220V</span>
-              <button
-                type="button"
+              <Link
+                href="/terminal"
                 className="bg-white/5 hover:bg-white/10 px-3 py-1 rounded text-white border border-white/5 transition-all flex items-center gap-1"
               >
                 DETAILS <span className="material-icons-outlined text-xs">chevron_right</span>
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -630,7 +660,7 @@ export function EdgeDiagnostics() {
               <span className="material-icons-outlined text-sm group-hover:rotate-180 transition-transform">
                 refresh
               </span>
-              RESTART REGION
+              Back to dashboard
             </Link>
             <Link
               href="/deploy"

@@ -1,9 +1,9 @@
-# Convex production deployment (patient-crocodile-0)
+# Convex production deployment
 
-Production Convex:
+Production Convex setup for the LivKit dashboard.
 
-- **Cloud URL:** `https://patient-crocodile-0.eu-west-1.convex.cloud`
-- **HTTP Actions URL:** `https://patient-crocodile-0.eu-west-1.convex.site`
+- **Cloud URL:** `https://<your-deployment>.convex.cloud` (from Convex dashboard)
+- **HTTP Actions URL:** `https://<your-deployment>.convex.site`
 
 ## 1. Link this repo to the production project
 
@@ -13,7 +13,7 @@ If you see "You don't have access to the selected project":
    ```bash
    npx convex dev
    ```
-2. When prompted, log in and **select the Convex project** that has the deployment `patient-crocodile-0` (the one you created).
+2. When prompted, log in and **select the Convex project** that has your production deployment.
 3. Stop the dev server (Ctrl+C). The project is now linked.
 
 ## 2. Deploy Convex to production
@@ -40,8 +40,8 @@ This sets `JWT_PRIVATE_KEY` and `JWKS` on the **production** deployment so login
 
 In Coolify (or your host), set for the Dashboard app:
 
-- `NEXT_PUBLIC_CONVEX_URL` = `https://patient-crocodile-0.eu-west-1.convex.cloud`
-- `NEXT_PUBLIC_APP_URL` = your app’s public URL (e.g. `http://z4ww800cw0sw0g8gsw0w8ckg.31.97.34.56.sslip.io`) — so auth cookies use the right host when behind a proxy.
+- `NEXT_PUBLIC_CONVEX_URL` = your production Convex Cloud URL (e.g. `https://your-deployment.convex.cloud`)
+- `NEXT_PUBLIC_APP_URL` = your app’s public URL (e.g. `https://your-app.example.com`) — so auth cookies use the right host when behind a proxy.
 
 Redeploy the app after changing env vars.
 
@@ -52,12 +52,11 @@ Redeploy the app after changing env vars.
 Do this instead:
 
 1. Ensure **JWT_PRIVATE_KEY** and **JWKS** are set on the production deployment (run `npm run convex:auth:env -- --prod` from `frontend/`).
-2. In Coolify, set **NEXT_PUBLIC_APP_URL** to your app’s public URL (e.g. `http://z4ww800cw0sw0g8gsw0w8ckg.31.97.34.56.sslip.io`) and redeploy. The middleware uses this to rewrite the request origin so auth cookies use the correct domain.
+2. In Coolify, set **NEXT_PUBLIC_APP_URL** to your app’s public URL (e.g. `https://your-app.example.com`) and redeploy. The middleware uses this to rewrite the request origin so auth cookies use the correct domain.
 3. **Always open the app using that same public URL.** If you use an IP address or a different host, cookies will not match and login will not persist.
 4. If your reverse proxy (e.g. Traefik/Caddy) can forward headers, set **X-Forwarded-Host** and **X-Forwarded-Proto** to the public host and scheme so the middleware sees the correct origin.
-
 5. **HTTP (no HTTPS):** On HTTP, the auth cookie must be set with `secure: false`. This repo applies a patch to `@convex-dev/auth` (see `patches/`) so that when `NEXT_PUBLIC_APP_URL` is `http://...`, the middleware’s `cookieConfig.secure: false` is respected. Run `npm install` (or redeploy) so `postinstall` applies the patch.
 
 ## 6. Create your first user (optional)
 
-If signup on the deployed app fails or you want a user beforehand, see [CREATE_PRODUCTION_USER.md](./CREATE_PRODUCTION_USER.md) (use the same production URL above).
+If signup on the deployed app fails or you want a user beforehand, see [CREATE_PRODUCTION_USER.md](./CREATE_PRODUCTION_USER.md) (use your production Convex URL and app URL).

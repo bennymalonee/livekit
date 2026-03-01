@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
@@ -84,13 +85,13 @@ export function ProjectInfrastructureModules() {
                 {seeding ? "Seeding…" : "Seed default modules"}
               </button>
             )}
-            <button
-              type="button"
+            <Link
+              href="/deploy"
               className="flex items-center gap-2 bg-dash-primary hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold tracking-wider uppercase text-sm transition-all active:scale-95"
             >
               <span className="material-icons-round">add_box</span>
               Deploy New Project
-            </button>
+            </Link>
           </div>
         </header>
 

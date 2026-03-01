@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
-const DASHBOARD_APP_UUID = "z4ww800cw0sw0g8gsw0w8ckg";
-const LIVEKIT_STACK_UUID = "mg44c8wgocck0oso440c84s4";
+const DASHBOARD_APP_UUID = process.env.NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID ?? "";
+const LIVEKIT_STACK_UUID = process.env.NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID ?? "";
 
 export function VaultKeyManagement() {
   const keys = useQuery(api.vault.listKeys);
@@ -19,6 +19,7 @@ export function VaultKeyManagement() {
   const [formValue, setFormValue] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [securityAlertDismissed, setSecurityAlertDismissed] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -85,7 +86,8 @@ export function VaultKeyManagement() {
                 </div>
                 <button
                   type="button"
-                  className="bg-panel-dark border border-panel-border px-4 py-2 rounded-lg text-xs font-display font-bold tracking-widest hover:border-primary transition-all flex items-center gap-2"
+                  className="bg-panel-dark border border-panel-border px-4 py-2 rounded-lg text-xs font-display font-bold tracking-widest hover:border-primary transition-all flex items-center gap-2 cursor-help opacity-75"
+                  title="Rotate keys in Coolify and Convex env; no bulk action in app."
                 >
                   REGENERATE ALL <span className="material-icons text-sm">refresh</span>
                 </button>
@@ -346,27 +348,30 @@ export function VaultKeyManagement() {
           </div>
 
           <div className="col-span-12 lg:col-span-4 space-y-6">
-            <div className="border-2 border-primary bg-primary/5 rounded-xl p-6">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="bg-primary p-2 rounded-lg">
-                  <span className="material-icons text-white">priority_high</span>
+            {!securityAlertDismissed && (
+              <div className="border-2 border-primary bg-primary/5 rounded-xl p-6">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="bg-primary p-2 rounded-lg">
+                    <span className="material-icons text-white">priority_high</span>
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-primary uppercase tracking-wider">
+                      Security Alert
+                    </h3>
+                    <p className="text-xs text-slate-300">
+                      Potential key leak detected in development environment.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-display font-bold text-primary uppercase tracking-wider">
-                    Security Alert
-                  </h3>
-                  <p className="text-xs text-slate-300">
-                    Potential key leak detected in development environment.
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setSecurityAlertDismissed(true)}
+                  className="w-full bg-primary hover:bg-orange-600 text-white font-display font-bold py-2 rounded-lg text-sm transition-all uppercase tracking-widest shadow-lg shadow-primary/20"
+                >
+                  DISMISS
+                </button>
               </div>
-              <button
-                type="button"
-                className="w-full bg-primary hover:bg-orange-600 text-white font-display font-bold py-2 rounded-lg text-sm transition-all uppercase tracking-widest shadow-lg shadow-primary/20"
-              >
-                RESOLVE INCIDENT
-              </button>
-            </div>
+            )}
             <div className="bg-panel-dark border border-panel-border rounded-xl overflow-hidden">
               <div
                 className="h-48 bg-cover bg-center relative p-6 flex flex-col justify-between"
@@ -451,13 +456,15 @@ export function VaultKeyManagement() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    className="bg-panel-dark border border-panel-border hover:border-primary text-slate-200 py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-display font-bold text-sm tracking-widest uppercase"
+                    className="bg-panel-dark border border-panel-border hover:border-primary text-slate-200 py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-display font-bold text-sm tracking-widest uppercase cursor-help opacity-90"
+                    title="Key values are never exposed in the app; rotate in Coolify/Convex."
                   >
                     <span className="material-icons text-sm">content_copy</span> Copy Key
                   </button>
                   <button
                     type="button"
-                    className="bg-panel-dark border border-panel-border hover:border-red-500 text-slate-200 py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-display font-bold text-sm tracking-widest uppercase"
+                    className="bg-panel-dark border border-panel-border hover:border-red-500 text-slate-200 py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-display font-bold text-sm tracking-widest uppercase cursor-help opacity-90"
+                    title="Key rotation is done in Convex/Coolify env."
                   >
                     <span className="material-icons text-sm">lock_reset</span> ROTATE
                   </button>
