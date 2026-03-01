@@ -25,13 +25,21 @@ export function TerminalStreamer() {
   const loadCoolifyLogs = useCallback(async () => {
     setCoolifyLoading(true);
     try {
-      const { logs } = await getApplicationLogs({
+      if (!LIVEKIT_STACK_UUID.trim()) {
+        setCoolifyLogs("[Not configured] Set NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID to load LiveKit Stack logs.");
+        return;
+      }
+      const result = await getApplicationLogs({
         applicationUuid: LIVEKIT_STACK_UUID,
         lines: 80,
       });
-      setCoolifyLogs(logs);
+      if (result.error) {
+        setCoolifyLogs(result.error);
+      } else {
+        setCoolifyLogs(result.logs || "(empty)");
+      }
     } catch {
-      setCoolifyLogs("(Failed to load Coolify logs. Set COOLIFY_BASE_URL and COOLIFY_API_TOKEN in Convex.)");
+      setCoolifyLogs("Failed to load. Check Convex env (COOLIFY_BASE_URL, COOLIFY_API_TOKEN).");
     } finally {
       setCoolifyLoading(false);
     }
@@ -73,6 +81,11 @@ export function TerminalStreamer() {
     statusFilter === "all"
       ? allLogLines
       : allLogLines.filter((line) => line.status === statusFilter);
+
+  const totalCommands = commands?.length ?? 0;
+  const successCount = commands?.filter((c) => c.status === "success").length ?? 0;
+  const failedCount = commands?.filter((c) => c.status === "failed").length ?? 0;
+  const pendingCount = commands?.filter((c) => c.status === "pending" || c.status === "running").length ?? 0;
 
   const quickLinks = [
     { path: "/dashboard", icon: "hub", label: "Dashboard" },
@@ -140,10 +153,10 @@ export function TerminalStreamer() {
               <div className="p-6 pb-2 flex justify-between items-end border-b border-white/5">
                 <div>
                   <h2 className="font-display text-2xl tracking-tighter text-slate-900 dark:text-white">
-                    STREAMING_LOGS
+                    COMMAND HISTORY
                   </h2>
                   <p className="text-[10px] text-primary tracking-[0.3em] font-bold uppercase mt-1">
-                    Live Feed :: Cluster_X88
+                    {commands === undefined ? "Loading…" : `${totalCommands} command${totalCommands !== 1 ? "s" : ""} in Convex`}
                   </p>
                 </div>
                 <div className="flex gap-4">
@@ -167,11 +180,11 @@ export function TerminalStreamer() {
                   </div>
                   <div className="flex flex-col items-end">
                     <span className="text-[9px] uppercase tracking-widest text-slate-500 mb-1">
-                      Network Mode
+                      Convex
                     </span>
                     <div className="flex items-center gap-2 bg-zinc-900/50 dark:bg-zinc-950/50 px-3 py-1 rounded-full border border-white/5">
-                      <span className="text-[10px] font-bold">TUNNEL</span>
-                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                      <span className="text-[10px] font-bold">{commands !== undefined ? "Connected" : "—"}</span>
+                      <div className={`w-2 h-2 rounded-full ${commands !== undefined ? "bg-green-500 animate-pulse" : "bg-slate-600"}`} />
                     </div>
                   </div>
                 </div>
@@ -189,32 +202,36 @@ export function TerminalStreamer() {
                   ))
                 )}
               </div>
-              <div className="p-4 bg-zinc-900/40 border-t border-white/5 flex items-center justify-between text-[10px] tracking-widest font-bold">
+              <div className="p-4 bg-zinc-900/40 border-t border-white/5 flex items-center justify-between text-[10px] tracking-widest font-bold flex-wrap gap-2">
                 <div className="flex gap-6">
                   <div className="flex items-center gap-2">
                     <span className="text-slate-500">STATUS:</span>
-                    <span className="text-green-400">ACTIVE</span>
+                    <span className={commands !== undefined ? "text-green-400" : "text-slate-500"}>{commands !== undefined ? "ACTIVE" : "—"}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-500">MODE:</span>
-                    <span className="text-primary">X-BOOST</span>
+                    <span className="text-slate-500">TOTAL:</span>
+                    <span className="text-white">{totalCommands}</span>
                   </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-slate-500">
-                    PACKET_LOSS: <span className="text-white">0.002%</span>
-                  </span>
-                  <span className="text-slate-500">
-                    BANDWIDTH: <span className="text-white">1.4 GBPS</span>
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500">SUCCESS:</span>
+                    <span className="text-green-400">{successCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500">FAILED:</span>
+                    <span className="text-red-400">{failedCount}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-500">PENDING:</span>
+                    <span className="text-primary">{pendingCount}</span>
+                  </div>
                 </div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               {[
-                { icon: "thermostat", label: "Temp", value: "32.4", unit: "°C" },
-                { icon: "memory", label: "CPU Freq", value: "4.8", unit: "GHz" },
-                { icon: "speed", label: "Latency", value: "12", unit: "MS" },
+                { icon: "terminal", label: "Commands", value: String(totalCommands), unit: "stored" },
+                { icon: "check_circle", label: "Success", value: String(successCount), unit: "" },
+                { icon: "cancel", label: "Failed", value: String(failedCount), unit: "" },
               ].map((card) => (
                 <div
                   key={card.label}
@@ -229,7 +246,7 @@ export function TerminalStreamer() {
                     </p>
                     <p className="text-xl font-display font-bold text-slate-900 dark:text-white">
                       {card.value}
-                      <span className="text-xs text-slate-500 ml-1">{card.unit}</span>
+                      {card.unit ? <span className="text-xs text-slate-500 ml-1">{card.unit}</span> : null}
                     </p>
                   </div>
                 </div>
@@ -242,13 +259,13 @@ export function TerminalStreamer() {
               <div className="flex justify-between items-start relative z-10">
                 <div>
                   <h3 className="font-display text-lg tracking-tight text-slate-900 dark:text-white">
-                    RESOURCE LOAD
+                    COMMAND USAGE
                   </h3>
                   <p className="text-[10px] text-primary tracking-widest font-bold uppercase">
-                    Dynamic Allocation
+                    From Convex history
                   </p>
                 </div>
-                <span className="material-icons-round text-slate-500">settings_suggest</span>
+                <span className="material-icons-round text-slate-500">terminal</span>
               </div>
               <div className="flex-1 flex flex-col items-center justify-center relative py-8">
                 <div className="relative w-48 h-48">
@@ -261,7 +278,7 @@ export function TerminalStreamer() {
                       r="45"
                       stroke="currentColor"
                       strokeDasharray="283"
-                      strokeDashoffset="70"
+                      strokeDashoffset="0"
                       strokeLinecap="round"
                       strokeWidth={8}
                     />
@@ -273,7 +290,7 @@ export function TerminalStreamer() {
                       r="45"
                       stroke="url(#term-grad)"
                       strokeDasharray="283"
-                      strokeDashoffset="100"
+                      strokeDashoffset={283 - (283 * Math.min(100, totalCommands * 2)) / 100}
                       strokeLinecap="round"
                       strokeWidth={8}
                     />
@@ -286,10 +303,10 @@ export function TerminalStreamer() {
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-4xl font-display font-bold text-white tracking-tighter">
-                      68%
+                      {Math.min(100, totalCommands * 2)}%
                     </span>
                     <span className="text-[10px] text-slate-500 tracking-widest font-bold">
-                      OPTIMAL
+                      {totalCommands > 0 ? "ACTIVE" : "EMPTY"}
                     </span>
                   </div>
                 </div>
@@ -297,52 +314,33 @@ export function TerminalStreamer() {
               <div className="grid grid-cols-2 gap-4 relative z-10 pt-4 border-t border-white/5">
                 <div className="space-y-1">
                   <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
-                    Inbound
+                    Success rate
                   </p>
-                  <p className="text-sm font-display font-bold dark:text-white">820 KWH</p>
+                  <p className="text-sm font-display font-bold dark:text-white">
+                    {totalCommands > 0 ? `${Math.round((successCount / totalCommands) * 100)}%` : "—"}
+                  </p>
                 </div>
                 <div className="space-y-1 text-right">
                   <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
-                    Outbound
+                    Pending
                   </p>
-                  <p className="text-sm font-display font-bold dark:text-white">14.2 GB/S</p>
+                  <p className="text-sm font-display font-bold dark:text-white">{pendingCount}</p>
                 </div>
               </div>
             </div>
             <div className="glass-panel rounded-2xl p-6 space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="font-display text-sm tracking-widest font-bold text-slate-900 dark:text-white uppercase">
-                  Configuration
+                  Run command
                 </h3>
-                <div className="flex gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
+                <div className="flex items-center gap-2">
+                  <span className={`w-1.5 h-1.5 rounded-full ${commands !== undefined ? "bg-green-500" : "bg-zinc-800"}`} title="Convex" />
+                  <span className="text-[9px] text-slate-500 font-bold">Convex</span>
                 </div>
               </div>
-              <div className="space-y-4">
-                {["Turbo Mode", "Firewall Shield", "Cloud Sync"].map((label, i) => (
-                  <div key={label} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="material-icons-round text-slate-500 text-sm">
-                        {i === 0 ? "bolt" : i === 1 ? "security" : "cloud_sync"}
-                      </span>
-                      <span className="text-xs font-bold text-slate-400">{label}</span>
-                    </div>
-                    <div
-                      className={`w-10 h-5 rounded-full relative flex items-center px-1 cursor-default ${
-                        i !== 1 ? "bg-primary" : "bg-zinc-800"
-                      }`}
-                      title="Display only"
-                    >
-                      <div
-                        className={`w-3 h-3 rounded-full ml-auto ${
-                          i !== 1 ? "bg-white" : "bg-zinc-500"
-                        }`}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-xs text-slate-500">
+                Commands are stored in Convex (terminalCommands). Status stays &quot;pending&quot; unless updated by your backend.
+              </p>
               <form
                 onSubmit={handleSubmit}
                 className="pt-4 border-t border-white/5 space-y-4"
@@ -388,22 +386,23 @@ export function TerminalStreamer() {
                 {coolifyLoading ? "Loading…" : "Load Coolify logs"}
               </button>
               <pre className="flex-1 min-h-[120px] bg-zinc-900/80 border border-white/5 rounded-lg p-3 text-[10px] text-slate-400 overflow-auto whitespace-pre-wrap font-mono" title={!coolifyLogs ? "Load Coolify logs to see output" : undefined}>
-                {coolifyLogs || "—"}
+                {coolifyLogs || (LIVEKIT_STACK_UUID.trim() ? "Click Load to fetch logs." : "Set NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID to enable.")}
               </pre>
             </div>
           </div>
         </main>
 
-        <footer className="flex items-center justify-between px-6 py-2 glass-panel rounded-xl text-[10px] text-slate-500 font-bold tracking-widest uppercase">
+        <footer className="flex items-center justify-between px-6 py-2 glass-panel rounded-xl text-[10px] text-slate-500 font-bold tracking-widest uppercase flex-wrap gap-2">
           <div className="flex gap-6">
             <span className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500" /> DB Connection: Stable
+              <span className={`w-2 h-2 rounded-full ${commands !== undefined ? "bg-green-500" : "bg-slate-600"}`} /> Convex: {commands !== undefined ? "Connected" : "—"}
             </span>
             <span className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500" /> API: 14ms
+              <span className="text-slate-500">Commands:</span>
+              <span className="text-white">{totalCommands}</span>
             </span>
           </div>
-          <div>© 2024 Terminal Diagnostic v4.2.0-Alpha</div>
+          <div>Terminal · Command history in Convex</div>
         </footer>
       </div>
     </div>
