@@ -24,9 +24,11 @@ export const getMyRole = query({
   handler: async (ctx): Promise<AppRole> => {
     try {
       const identity = await ctx.auth.getUserIdentity();
-      if (!identity?.subject) return "viewer";
-      const userId = getUserIdFromIdentity(identity);
-      if (!userId) return "viewer";
+      if (!identity?.subject || typeof identity.subject !== "string") return "viewer";
+      const rawId = identity.subject.split(SUB_DIVIDER)[0];
+      // Must be non-empty and look like a Convex doc id (alphanumeric, reasonable length)
+      if (!rawId || !/^[a-z0-9]+$/i.test(rawId) || rawId.length < 20) return "viewer";
+      const userId = rawId as Id<"users">;
       const user = await ctx.db.get(userId);
       return resolveRole(user?.role as AppRole | undefined);
     } catch {
