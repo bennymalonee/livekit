@@ -9,6 +9,7 @@
  */
 
 import type * as analytics from "../analytics.js";
+import type * as analytics_internal from "../analytics_internal.js";
 import type * as auth from "../auth.js";
 import type * as coolify from "../coolify.js";
 import type * as crons from "../crons.js";
@@ -34,6 +35,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
+  analytics_internal: typeof analytics_internal;
   auth: typeof auth;
   coolify: typeof coolify;
   crons: typeof crons;

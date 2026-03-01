@@ -1,5 +1,5 @@
 import { cronJobs } from "convex/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 const crons = cronJobs();
 
@@ -11,6 +11,17 @@ crons.interval(
   "sync nodes from Coolify",
   { minutes: 15 },
   api.coolify.syncApplicationsToNodes,
+  {}
+);
+
+/**
+ * Derive traffic metrics from active sessions every 15 minutes.
+ * Writes to trafficMetrics so Analytics page shows live data without manual seed.
+ */
+crons.interval(
+  "sync traffic from sessions",
+  { minutes: 15 },
+  internal.analytics_internal.syncTrafficFromSessions,
   {}
 );
 

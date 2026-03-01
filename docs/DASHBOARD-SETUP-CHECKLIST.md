@@ -66,7 +66,7 @@ Some sections start empty until there is data. Use the in-dashboard buttons when
 |--------|------------|
 | **Nodes** | Click **“Sync from Coolify”** to pull Dashboard + LiveKit Stack apps into the Nodes table. |
 | **Sessions** | If no LiveKit rooms are running, click **“Seed demo data”** to add sample sessions. |
-| **Traffic analytics** | If empty, click **“Seed demo data”** to add sample metrics. |
+| **Traffic analytics** | If empty, click **“Seed demo data”** to add sample metrics. A cron also derives traffic from active sessions every 15 min (real data when sessions exist). |
 | **Modules** | If empty, click **“Seed default modules”** to add LiveKit, TURN, Recording. |
 
 Diagnostics, Vault, and Terminal work as soon as Convex and Coolify env are set; you can optionally load “Coolify logs” or “Coolify env keys” from their buttons.
