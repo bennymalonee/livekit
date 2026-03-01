@@ -796,6 +796,9 @@ export function VaultKeyManagement() {
                   <p className="text-slate-400 text-sm">
                     Store API keys, tokens, and secrets here. Each entry needs a <strong className="text-slate-300">name</strong>, optional <strong className="text-slate-300">description</strong>, and the <strong className="text-slate-300">secret value</strong>. Values are stored in Convex and never shown in the app.
                   </p>
+                  <p className="text-amber-400/90 text-xs mt-1">
+                    Note: Values are stored as plaintext in the database (not encrypted at rest). Do not store highly sensitive secrets here unless your Convex deployment is locked down. Raw values are never returned to the client.
+                  </p>
                   <form
                     onSubmit={async (e) => {
                       e.preventDefault();

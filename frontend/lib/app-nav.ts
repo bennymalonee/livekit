@@ -48,3 +48,13 @@ export const APP_NAV_STRUCTURE = [
     ],
   },
 ] as const;
+
+/** Path prefixes that require specific roles. Used by RoleRouteGuard to redirect viewers/operators from admin-only routes. */
+export const ROLE_ROUTE_RULES: { pathPrefix: string; roles: readonly AppRole[] }[] = [
+  { pathPrefix: "/deploy", roles: ["admin"] },
+  { pathPrefix: "/vault", roles: ["admin"] },
+  { pathPrefix: "/audit", roles: ["admin"] },
+  { pathPrefix: "/api-keys", roles: ["admin", "operator"] },
+  { pathPrefix: "/agents", roles: ["admin", "operator"] },
+  { pathPrefix: "/terminal", roles: ["admin", "operator"] },
+];

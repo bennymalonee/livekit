@@ -55,4 +55,14 @@ crons.interval(
   {}
 );
 
+/**
+ * Prune deploy rate limit rows (older than 2 minutes).
+ */
+crons.interval(
+  "prune deploy rate limit",
+  { minutes: 5 },
+  internal.deployRateLimit_internal.prune,
+  {}
+);
+
 export default crons;

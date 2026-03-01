@@ -97,4 +97,46 @@ http.route({
   handler: livekitWebhook,
 });
 
+/** Deploy rate limit check: POST with JSON { clientId } and optional X-Deploy-Secret. Returns { allowed: boolean }. Used by Next.js /api/deploy when CONVEX_SITE_URL is set. */
+const deployRateLimit = httpAction(async (ctx, request) => {
+  if (request.method.toUpperCase() !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+
+  const secret = process.env.DEPLOY_RATE_LIMIT_SECRET ?? process.env.DEPLOY_SECRET;
+  if (secret && secret.length > 0) {
+    const authHeader = request.headers.get("Authorization");
+    const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+    const headerSecret = request.headers.get("X-Deploy-Secret")?.trim() ?? bearer;
+    if (headerSecret !== secret) {
+      return new Response(JSON.stringify({ allowed: false, error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  let body: { clientId?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ allowed: false, error: "Invalid JSON" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const clientId = typeof body?.clientId === "string" && body.clientId.trim() ? body.clientId.trim() : "unknown";
+  const result = await ctx.runMutation(internal.deployRateLimit_internal.checkAndIncrement, { clientId });
+  return new Response(JSON.stringify(result), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+});
+
+http.route({
+  path: "/deploy-rate-limit",
+  method: "POST",
+  handler: deployRateLimit,
+});
+
 export default http;

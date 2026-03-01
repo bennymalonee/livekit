@@ -110,7 +110,7 @@ export function ProjectInfrastructureModules() {
                 disabled={seeding}
                 className="flex items-center gap-2 bg-slate-600 hover:bg-slate-500 text-white px-6 py-3 rounded-xl font-bold tracking-wider uppercase text-sm transition-all disabled:opacity-50"
               >
-                {seeding ? "Seeding…" : "Seed default modules"}
+                {seeding ? "Initializing…" : "Initialize default modules"}
               </button>
             )}
             <Link
@@ -165,7 +165,7 @@ export function ProjectInfrastructureModules() {
             <p className="text-slate-500">Loading modules…</p>
           ) : modules.length === 0 ? (
             <div className="col-span-full glass-panel rounded-[2rem] p-8 text-center">
-              <p className="text-slate-500 mb-4">No modules defined. Seed default modules (LiveKit, TURN, Recording) to get started.</p>
+              <p className="text-slate-500 mb-4">No modules defined. Initialize default module labels (LiveKit, TURN, Recording) for your stack, or manage your stack in Coolify.</p>
               <button
                 type="button"
                 onClick={async () => {
@@ -179,7 +179,7 @@ export function ProjectInfrastructureModules() {
                 disabled={seeding}
                 className="bg-dash-primary hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold uppercase text-sm disabled:opacity-50"
               >
-                {seeding ? "Seeding…" : "Seed default modules"}
+                {seeding ? "Initializing…" : "Initialize default modules"}
               </button>
             </div>
           ) : (

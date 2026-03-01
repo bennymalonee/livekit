@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-/** Simple in-memory rate limit: max 5 deploys per IP per 60 seconds. */
+/** In-memory rate limit fallback when Convex rate limit is not used (e.g. CONVEX_SITE_URL unset). Max 5 per IP per 60s. */
 const deployAttempts = new Map<string, number[]>();
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 5;
@@ -10,7 +10,7 @@ function getClientId(request: NextRequest): string {
     ?? request.headers.get("x-real-ip") ?? "unknown";
 }
 
-function isRateLimited(clientId: string): boolean {
+function isRateLimitedInMemory(clientId: string): boolean {
   const now = Date.now();
   let times = deployAttempts.get(clientId) ?? [];
   times = times.filter((t) => now - t < WINDOW_MS);
@@ -18,6 +18,37 @@ function isRateLimited(clientId: string): boolean {
   times.push(now);
   deployAttempts.set(clientId, times);
   return false;
+}
+
+/** Convex HTTP base URL for deploy-rate-limit route. Set CONVEX_SITE_URL or derive from NEXT_PUBLIC_CONVEX_URL. */
+function getConvexSiteUrl(): string | null {
+  const explicit = process.env.CONVEX_SITE_URL?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL?.trim();
+  if (convexUrl?.includes(".cloud")) return convexUrl.replace(".cloud", ".site").replace(/\/$/, "");
+  return null;
+}
+
+/** Check deploy rate limit via Convex when CONVEX_SITE_URL (or derived) is set. Returns { allowed } or null if Convex not configured. */
+async function checkConvexDeployRateLimit(clientId: string): Promise<{ allowed: boolean } | null> {
+  const base = getConvexSiteUrl();
+  if (!base) return null;
+  const secret = process.env.DEPLOY_SECRET;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (secret) headers["X-Deploy-Secret"] = secret;
+  try {
+    const res = await fetch(`${base}/deploy-rate-limit`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ clientId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) return { allowed: false };
+    if (res.ok && typeof data?.allowed === "boolean") return { allowed: data.allowed };
+  } catch {
+    // Fall through to in-memory
+  }
+  return null;
 }
 
 /**
@@ -38,7 +69,16 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  if (isRateLimited(getClientId(request))) {
+  const clientId = getClientId(request);
+  const convexLimit = await checkConvexDeployRateLimit(clientId);
+  if (convexLimit !== null) {
+    if (!convexLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many deploy requests. Try again in a minute." },
+        { status: 429 }
+      );
+    }
+  } else if (isRateLimitedInMemory(clientId)) {
     return NextResponse.json(
       { error: "Too many deploy requests. Try again in a minute." },
       { status: 429 }

@@ -25,6 +25,7 @@ export const listKeys = query({
   },
 });
 
+// Vault values are stored as plaintext (encryptedValue is legacy naming). Raw value is never returned to clients.
 export const createKey = mutation({
   args: {
     name: v.string(),

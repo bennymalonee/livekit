@@ -190,13 +190,20 @@ const schema = defineSchema({
     count: v.number(),
   }).index("by_user_window", ["userId", "windowStart"]),
 
+  // Deploy API rate limit (per clientId/IP): 5 requests per 60s window. Pruned by cron.
+  deployRateLimit: defineTable({
+    clientId: v.string(),
+    windowStart: v.number(),
+    count: v.number(),
+  }).index("by_client_window", ["clientId", "windowStart"]),
+
   //
   // Vault - key and secret metadata
   //
   vaultKeys: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
-    // encryptedValue is stored server-side only; never returned raw to clients
+    // Secret value stored as plaintext; never returned to clients. Use Convex env for encryption key if you add encryption later.
     encryptedValue: v.string(),
     createdByUserId: v.id("users"),
     createdAt: v.number(),

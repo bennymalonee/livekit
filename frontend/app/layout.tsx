@@ -3,11 +3,14 @@ import "./globals.css";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { AppNav } from "@/components/AppNav";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { RoleRouteGuard } from "@/components/RoleRouteGuard";
 
 export const metadata: Metadata = {
   title: "LivKit Enterprise Dashboard",
   description: "LiveKit infrastructure monitoring and management",
 };
+
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL?.trim();
 
 export default async function RootLayout({
   children,
@@ -33,12 +36,20 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="bg-background-dark text-gray-200 font-body antialiased selection:bg-primary selection:text-white">
-        <ConvexAuthNextjsServerProvider verbose={false}>
+        {convexUrl ? (
+          <ConvexAuthNextjsServerProvider verbose={false}>
+            <ConvexClientProvider>
+              <RoleRouteGuard>
+                <AppNav />
+                {children}
+              </RoleRouteGuard>
+            </ConvexClientProvider>
+          </ConvexAuthNextjsServerProvider>
+        ) : (
           <ConvexClientProvider>
-            <AppNav />
             {children}
           </ConvexClientProvider>
-        </ConvexAuthNextjsServerProvider>
+        )}
       </body>
     </html>
   );

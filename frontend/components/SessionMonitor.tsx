@@ -2,16 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { getLiveKitWebhookUrl } from "@/lib/livekit-webhook-url";
 
 export function SessionMonitor() {
   const activeSessions = useQuery(api.sessions.listActive);
   const totals = useQuery(api.sessions.getTotals);
   const nodes = useQuery(api.nodes.listNodes);
   const analyticsOverview = useQuery(api.analytics.getOverview);
-  const seedDemoSessions = useMutation(api.sessions.seedDemoSessions);
-  const [seeding, setSeeding] = useState(false);
 
   const activeNodesCount =
     nodes && nodes.length > 0
@@ -53,6 +52,16 @@ export function SessionMonitor() {
   const hours = Math.floor(totalDurationMs / (60 * 60 * 1000));
   const minutes = Math.floor((totalDurationMs % (60 * 60 * 1000)) / (60 * 1000));
 
+  const webhookUrl = getLiveKitWebhookUrl();
+  const [copied, setCopied] = useState(false);
+  const copyWebhook = () => {
+    if (webhookUrl) {
+      navigator.clipboard.writeText(webhookUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <div className="bg-background-light dark:bg-[#121418] text-slate-800 dark:text-slate-200 min-h-screen flex flex-col font-sans">
       <nav className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-card-dark">
@@ -81,6 +90,29 @@ export function SessionMonitor() {
       </nav>
 
       <main className="flex-1 flex flex-col p-6 lg:p-10 gap-8 overflow-hidden">
+        {webhookUrl && (
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-4 space-y-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Live data: LiveKit webhook</p>
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Point your LiveKit server webhook to this Convex HTTP URL so room/participant events populate Sessions:
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="flex-1 min-w-0 text-xs font-mono bg-slate-200 dark:bg-slate-800 px-3 py-2 rounded-lg truncate">
+                {webhookUrl}
+              </code>
+              <button
+                type="button"
+                onClick={copyWebhook}
+                className="shrink-0 px-3 py-2 rounded-lg bg-dash-primary text-white text-xs font-semibold hover:opacity-90"
+              >
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">
+              In LiveKit server config or LiveKit Cloud, set this as the webhook URL. Events: room_started, room_finished, participant_joined, participant_left.
+            </p>
+          </div>
+        )}
         <header className="flex justify-between items-end">
           <div>
             <h1 className="text-4xl font-space-grotesk font-bold dark:text-white uppercase tracking-tight">
@@ -109,23 +141,6 @@ export function SessionMonitor() {
                 Active Rooms
               </h3>
               <div className="flex items-center gap-2">
-                {rows.length === 0 && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setSeeding(true);
-                      try {
-                        await seedDemoSessions();
-                      } finally {
-                        setSeeding(false);
-                      }
-                    }}
-                    disabled={seeding}
-                    className="bg-slate-600 hover:bg-slate-500 px-4 py-2 rounded-lg text-white text-xs font-bold uppercase tracking-widest disabled:opacity-50"
-                  >
-                    {seeding ? "Seeding…" : "Seed demo data"}
-                  </button>
-                )}
                 {rows.length > 0 && (
                   <button
                     type="button"
@@ -162,9 +177,10 @@ export function SessionMonitor() {
             </div>
               <div className="flex-1 overflow-y-auto p-6">
               {rows.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-slate-500 text-sm">
+                <div className="flex flex-col items-center justify-center py-12 text-slate-500 text-sm text-center">
                   <span className="material-icons-outlined text-4xl mb-2">videocam_off</span>
-                  <p>No active sessions. Connect LiveKit or seed demo data.</p>
+                  <p>No active sessions. Configure the LiveKit webhook to your Convex deployment to see live rooms and participants.</p>
+                  <Link href="/deploy" className="mt-3 text-dash-primary text-xs font-semibold hover:underline">Deploy LiveKit</Link>
                 </div>
               ) : (
               <table className="w-full text-left">
@@ -320,7 +336,7 @@ export function SessionMonitor() {
           <Link
             href="/analytics"
             className="flex items-center gap-3 rounded-lg px-2 py-1 -mx-2 -my-1 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors group"
-            title={analyticsOverview?.totalEgressGbps != null ? "View traffic details in Analytics" : "Seed demo data or run sessions for real egress; open Analytics"}
+            title={analyticsOverview?.totalEgressGbps != null ? "View traffic details in Analytics" : "Live egress appears when sessions are active and the analytics sync has run"}
           >
             <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
               Global Outgress:

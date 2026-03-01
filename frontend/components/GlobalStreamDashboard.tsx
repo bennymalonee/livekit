@@ -58,6 +58,10 @@ export function GlobalStreamDashboard() {
             <span className="material-icons-round text-white text-xl">hub</span>
           </div>
           <span className="text-xl font-bold tracking-tight">GLOBAL STREAM</span>
+          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden />
+            Live data
+          </span>
         </div>
         <div className="flex items-center gap-4">
           <button
@@ -99,6 +103,17 @@ export function GlobalStreamDashboard() {
         </div>
       </header>
 
+      {nodes != null && nodes.length === 0 && (
+        <div className="max-w-[1600px] mx-auto px-8 py-3">
+          <Link
+            href="/nodes"
+            className="inline-flex items-center gap-2 bg-dash-primary/20 border border-dash-primary/50 text-dash-primary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-dash-primary hover:text-white transition-colors"
+          >
+            <span className="material-icons-round text-lg">sync</span>
+            Sync from Coolify to load live nodes
+          </Link>
+        </div>
+      )}
       <nav className="max-w-[1600px] mx-auto px-8 py-3 flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-800">
         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-2">
           Quick links
@@ -282,10 +297,11 @@ export function GlobalStreamDashboard() {
                         <div>
                           <p className="text-[10px] text-slate-500 font-bold">—</p>
                           <p className="text-sm font-mono font-bold text-slate-500">
-                            No data
+                            No live traffic yet
                           </p>
                         </div>
                       </div>
+                      <p className="text-[10px] text-slate-500">Sessions and analytics sync feed this view.</p>
                       <Link
                         href="/analytics"
                         className="text-[10px] text-dash-primary font-bold hover:underline"

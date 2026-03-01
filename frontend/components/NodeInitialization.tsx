@@ -102,9 +102,19 @@ export function NodeInitialization() {
           {nodes === undefined ? (
             <p className="text-slate-500 text-sm">Loading nodes…</p>
           ) : nodes.length === 0 ? (
-            <p className="text-slate-500 text-sm">
-              No nodes yet. Click &quot;Sync from Coolify&quot; to pull applications (requires COOLIFY_BASE_URL and COOLIFY_API_TOKEN in Convex).
-            </p>
+            <div className="space-y-2">
+              <p className="text-slate-500 text-sm">
+                No nodes yet. Click &quot;Sync from Coolify&quot; to pull applications from Coolify.
+              </p>
+              <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-xs text-slate-400 space-y-1">
+                <p className="font-semibold text-slate-300">Convex env required for Sync:</p>
+                <p>Set in Convex Dashboard → Project → Environment variables:</p>
+                <ul className="list-disc list-inside ml-2 mt-1">
+                  <li><code className="text-slate-300">COOLIFY_BASE_URL</code> — e.g. <code className="text-slate-300">http://YOUR_VPS_IP:8000</code></li>
+                  <li><code className="text-slate-300">COOLIFY_API_TOKEN</code> — from Coolify → Keys &amp; Tokens</li>
+                </ul>
+              </div>
+            </div>
           ) : (
             <div className="border border-white/10 rounded-lg overflow-hidden">
               <table className="w-full text-left text-sm">

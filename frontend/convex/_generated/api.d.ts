@@ -19,6 +19,7 @@ import type * as coolify_internal from "../coolify_internal.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as dashboard_internal from "../dashboard_internal.js";
+import type * as deployRateLimit_internal from "../deployRateLimit_internal.js";
 import type * as deployments from "../deployments.js";
 import type * as deployments_internal from "../deployments_internal.js";
 import type * as diagnostics from "../diagnostics.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   dashboard: typeof dashboard;
   dashboard_internal: typeof dashboard_internal;
+  deployRateLimit_internal: typeof deployRateLimit_internal;
   deployments: typeof deployments;
   deployments_internal: typeof deployments_internal;
   diagnostics: typeof diagnostics;

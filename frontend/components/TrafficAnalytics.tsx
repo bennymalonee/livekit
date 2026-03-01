@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 export function TrafficAnalytics() {
   const analytics = useQuery(api.analytics.getOverview);
   const nodes = useQuery(api.nodes.listNodes);
-  const seedDemoMetrics = useMutation(api.analytics.seedDemoMetrics);
-  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -90,6 +88,10 @@ export function TrafficAnalytics() {
           </div>
         </header>
 
+        <p className="text-slate-500 text-sm px-2">
+          Traffic data is updated automatically from sessions every 15 minutes (Convex cron). No extra config once sessions are live.
+        </p>
+
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 lg:col-span-8 glass-panel rounded-3xl p-8 relative overflow-hidden grid-pattern-dash">
             <div className="flex justify-between items-start mb-12 flex-wrap gap-2">
@@ -99,23 +101,6 @@ export function TrafficAnalytics() {
                   <span className="font-bold">Flow</span>
                 </h2>
               </div>
-              {!hasData && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setSeeding(true);
-                    try {
-                      await seedDemoMetrics();
-                    } finally {
-                      setSeeding(false);
-                    }
-                  }}
-                  disabled={seeding}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary/20 border border-primary/50 rounded-full font-mono text-[10px] tracking-widest uppercase text-primary disabled:opacity-50"
-                >
-                  {seeding ? "Seeding…" : "Seed demo data"}
-                </button>
-              )}
               <button
                 type="button"
                 className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 dark:bg-slate-700/30 border border-slate-600/30 rounded-full font-mono text-[10px] tracking-widest uppercase cursor-help opacity-75"
@@ -203,7 +188,7 @@ export function TrafficAnalytics() {
                     );
                   }) : (
                     <div className="text-slate-500 text-sm font-mono">
-                      No traffic data. Seed demo data to preview.
+                      No traffic data yet. Live metrics appear when sessions are active and the analytics sync has run. Run sessions and check back.
                     </div>
                   )}
                 </div>

@@ -16,7 +16,8 @@ Where to set each variable and what it does.
 | `NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID` | (Optional) Dashboard app UUID for Coolify logs/env in Diagnostics & Vault. | From Coolify → Dashboard app |
 | `NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID` | (Optional) LiveKit Stack app UUID for Deploy prefill, Diagnostics, Vault, Terminal. | From Coolify → LiveKit Stack app |
 | `APP_VERSION` | (Optional) App version string returned by `GET /api/health` and `/api/metrics`. | e.g. `0.1.0` or your CI build version |
-| `DEPLOY_SECRET` | (Optional) When set, `POST /api/deploy` and `GET /api/metrics` require `Authorization: Bearer <secret>` or `X-Deploy-Secret`. | Strong random value |
+| `DEPLOY_SECRET` | (Optional) When set, `POST /api/deploy` and `GET /api/metrics` require `Authorization: Bearer <secret>` or `X-Deploy-Secret`. Also sent to Convex deploy-rate-limit when using Convex rate limit. | Strong random value |
+| `CONVEX_SITE_URL` | (Optional) Convex HTTP site URL for deploy rate limit. When set, `/api/deploy` uses Convex for rate limiting (persistent across restarts). If unset, derived from `NEXT_PUBLIC_CONVEX_URL` (`.cloud` → `.site`). | `https://your-deployment.convex.site` |
 
 **API keys (programmatic access):** Create and revoke from the dashboard (API Keys page, admin/operator). Keys are scoped (e.g. `nodes:list`, `nodes:sync`). Use `Authorization: Bearer <api_key>` when calling Convex HTTP or your own API that validates keys via `apiKeys_actions.validateApiKey`.
 
@@ -31,8 +32,7 @@ Where to set each variable and what it does.
 | `LIVEKIT_API_KEY` | LiveKit API key for token generation (Convex action `livekit.generateToken`). | From LiveKit Stack env in Coolify |
 | `LIVEKIT_API_SECRET` | LiveKit API secret for signing tokens. Never expose to client. | From LiveKit Stack env in Coolify |
 | `LIVEKIT_URL` | LiveKit server URL (e.g. `wss://...` or `https://...`). Required for agent dispatch (Convex action `livekit.dispatchAgentToRoom`). | Same host as client WebSocket URL, with `wss://` or `https://` |
-
-**Note:** `CONVEX_SITE_URL` is built-in and cannot be overridden.
+| `DEPLOY_RATE_LIMIT_SECRET` | (Optional) Secret for Convex HTTP route `/deploy-rate-limit`. When set, Next.js sends it when checking rate limit. If unset, Convex uses `DEPLOY_SECRET` (set in Convex env to match Next.js `DEPLOY_SECRET`). | Same value as Next.js `DEPLOY_SECRET` |
 
 ## Agent worker (`agent/`) – set in env when running the worker
 
@@ -54,6 +54,8 @@ Configure LiveKit server to send webhooks to your Convex HTTP URL, e.g.:
 `https://<your-convex-deployment>.convex.site/livekit-webhook`
 
 Events ingested: `room_started`, `room_finished`, `participant_joined`, `participant_left`.
+
+**Full setup:** See [LIVE-DATA-SETUP.md](LIVE-DATA-SETUP.md) for a step-by-step checklist (Sessions, Analytics, Nodes, Modules).
 
 ## Staging / preview
 
