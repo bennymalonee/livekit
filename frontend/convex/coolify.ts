@@ -41,29 +41,34 @@ async function requireCoolifyRole(
 /**
  * List all applications from Coolify.
  * GET /api/v1/applications
+ * Returns [] when Coolify is not configured or user lacks permission (avoids server error in UI).
  */
 export const listApplications = action({
   args: {},
   handler: async (ctx): Promise<CoolifyApplication[]> => {
-    await requireAuth(ctx);
-    await requireCoolifyRole(ctx, ["admin", "operator"]);
-    const { baseUrl, token } = getCoolifyConfig();
-    const res = await fetch(`${baseUrl}/api/v1/applications`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Coolify API listApplications failed: ${res.status} ${text}`);
+    try {
+      await requireAuth(ctx);
+      await requireCoolifyRole(ctx, ["admin", "operator"]);
+      const { baseUrl, token } = getCoolifyConfig();
+      const res = await fetch(`${baseUrl}/api/v1/applications`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Coolify API listApplications failed: ${res.status} ${text}`);
+      }
+      const data = (await res.json()) as Array<{ uuid?: string; name?: string; status?: string; fqdn?: string }>;
+      if (!Array.isArray(data)) return [];
+      return data.map((app) => ({
+        uuid: app.uuid ?? "",
+        name: app.name ?? "Unnamed",
+        status: app.status,
+        fqdn: app.fqdn,
+      }));
+    } catch {
+      return [];
     }
-    const data = (await res.json()) as Array<{ uuid?: string; name?: string; status?: string; fqdn?: string }>;
-    if (!Array.isArray(data)) return [];
-    return data.map((app) => ({
-      uuid: app.uuid ?? "",
-      name: app.name ?? "Unnamed",
-      status: app.status,
-      fqdn: app.fqdn,
-    }));
   },
 });
 

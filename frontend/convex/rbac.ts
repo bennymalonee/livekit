@@ -49,7 +49,8 @@ export const getMyRole = query({
 export async function requireRole(ctx: { auth: { getUserIdentity: () => Promise<{ subject: string } | null> }; db: any }, allowedRoles: AppRole[]): Promise<AppRole> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new Error("Unauthorized");
-  const userId = getUserIdFromIdentity(identity);
+  const userId = getUserIdFromIdentityOrNull(identity);
+  if (!userId) throw new Error("Unauthorized");
   const user = await ctx.db.get(userId);
   const role = resolveRole(user?.role as AppRole | undefined);
   if (!allowedRoles.includes(role)) throw new Error("Forbidden");
