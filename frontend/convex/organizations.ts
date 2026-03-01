@@ -25,11 +25,10 @@ export async function getCurrentOrganizationIdForContext(ctx: {
 
 const DEFAULT_ORG_SLUG = "default";
 
-/** List organizations the current user is a member of. */
+/** List organizations the current user is a member of. Returns [] when not authenticated. */
 export const listMyOrganizations = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, ["admin", "operator", "viewer"]);
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
     const userId = getUserIdFromIdentity(identity);
@@ -48,11 +47,10 @@ export const listMyOrganizations = query({
   },
 });
 
-/** Get the current user's selected organization id (from preferences or first org). */
+/** Get the current user's selected organization id (from preferences or first org). Returns null when not authenticated. */
 export const getCurrentOrganizationId = query({
   args: {},
   handler: async (ctx): Promise<Id<"organizations"> | null> => {
-    await requireRole(ctx, ["admin", "operator", "viewer"]);
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
     const userId = getUserIdFromIdentity(identity);
