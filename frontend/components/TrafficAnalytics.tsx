@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
-import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 export function TrafficAnalytics() {
   const analytics = useQuery(api.analytics.getOverview);
+  const seedDemoMetrics = useMutation(api.analytics.seedDemoMetrics);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -13,17 +15,11 @@ export function TrafficAnalytics() {
 
   const totalEgressLabel = analytics
     ? `${analytics.totalEgressGbps.toFixed(0)} GBPS`
-    : "42 GBPS";
+    : "0 GBPS";
 
   const regions =
-    analytics && analytics.regions.length > 0
-      ? analytics.regions
-      : [
-          { region: "EU-West-1", egressGbps: 32 },
-          { region: "US-East-2", egressGbps: 0 },
-          { region: "US-West-1", egressGbps: 2 },
-          { region: "AP-South-1", egressGbps: 8 },
-        ];
+    analytics && analytics.regions.length > 0 ? analytics.regions : [];
+  const hasData = regions.length > 0;
 
   return (
     <div className="bg-background-light dark:bg-[#0F172A] min-h-screen p-4 md:p-8 font-sans pt-6 pl-16 sm:pl-20">
@@ -59,13 +55,30 @@ export function TrafficAnalytics() {
 
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 lg:col-span-8 glass-panel rounded-3xl p-8 relative overflow-hidden grid-pattern-dash">
-            <div className="flex justify-between items-start mb-12">
+            <div className="flex justify-between items-start mb-12 flex-wrap gap-2">
               <div>
                 <h2 className="text-4xl font-light font-mono dark:text-white text-slate-900 leading-tight uppercase">
                   Traffic <br />
                   <span className="font-bold">Flow</span>
                 </h2>
               </div>
+              {!hasData && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setSeeding(true);
+                    try {
+                      await seedDemoMetrics();
+                    } finally {
+                      setSeeding(false);
+                    }
+                  }}
+                  disabled={seeding}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary/20 border border-primary/50 rounded-full font-mono text-[10px] tracking-widest uppercase text-primary disabled:opacity-50"
+                >
+                  {seeding ? "Seeding…" : "Seed demo data"}
+                </button>
+              )}
               <button
                 type="button"
                 className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 dark:bg-slate-700/30 border border-slate-600/30 rounded-full font-mono text-[10px] tracking-widest uppercase"
@@ -129,7 +142,7 @@ export function TrafficAnalytics() {
                 </svg>
               </div>
                 <div className="absolute right-0 flex flex-col justify-between h-full py-4 text-right space-y-4">
-                  {regions.map((r) => {
+                  {hasData ? regions.map((r) => {
                     const active = r.egressGbps > 0;
                     return (
                       <div key={r.region} className="flex items-center gap-4">
@@ -150,7 +163,11 @@ export function TrafficAnalytics() {
                         </div>
                       </div>
                     );
-                  })}
+                  }) : (
+                    <div className="text-slate-500 text-sm font-mono">
+                      No traffic data. Seed demo data to preview.
+                    </div>
+                  )}
                 </div>
             </div>
             <div className="mt-8 flex gap-12 items-end">
@@ -168,7 +185,9 @@ export function TrafficAnalytics() {
                   Network Load
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono dark:text-slate-300">MEDIUM LOAD</span>
+                  <span className="text-xs font-mono dark:text-slate-300">
+                    {analytics?.networkLoadLabel ?? "UNKNOWN"} LOAD
+                  </span>
                   <div className="w-24 h-4 overflow-hidden relative">
                     <svg className="absolute inset-0" viewBox="0 0 100 20">
                       <path

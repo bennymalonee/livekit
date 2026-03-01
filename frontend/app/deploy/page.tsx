@@ -1,8 +1,12 @@
 "use client";
 
 import { useAction, useMutation, useQuery } from "convex/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
+import type { CoolifyApplication } from "@/convex/coolify";
+
+const LIVEKIT_STACK_UUID = "mg44c8wgocck0oso440c84s4";
+const DASHBOARD_APP_UUID = "z4ww800cw0sw0g8gsw0w8ckg";
 
 export default function DeployPage() {
   const deployments = useQuery(api.deployments.listByUser);
@@ -11,6 +15,8 @@ export default function DeployPage() {
   const updateDeploymentStatus = useMutation(api.deployments.updateStatus);
   const setDeploySettings = useMutation(api.settings.setDeploySettings);
   const triggerDeploy = useAction(api.settings.triggerDeploy);
+  const listCoolifyApps = useAction(api.coolify.listApplications);
+  const getCoolifyEnvs = useAction(api.coolify.getApplicationEnvsForPrefill);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -18,6 +24,9 @@ export default function DeployPage() {
   const [settingsLivekit, setSettingsLivekit] = useState("");
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [coolifyApps, setCoolifyApps] = useState<CoolifyApplication[]>([]);
+  const [coolifyAppsLoading, setCoolifyAppsLoading] = useState(true);
+  const [coolifyAppsError, setCoolifyAppsError] = useState<string | null>(null);
 
   const livekitUrl =
     deploySettings?.livekitUrl ||
@@ -77,6 +86,37 @@ export default function DeployPage() {
     setSettingsLivekit(deploySettings.livekitUrl ?? "");
   }, [deploySettings?.webhookUrl, deploySettings?.livekitUrl]);
 
+  const fetchCoolifyApps = useCallback(async () => {
+    setCoolifyAppsLoading(true);
+    setCoolifyAppsError(null);
+    try {
+      const apps = await listCoolifyApps();
+      setCoolifyApps(apps);
+      const livekitApp = apps.find((a) => a.uuid === LIVEKIT_STACK_UUID);
+      if (livekitApp && !deploySettings?.livekitUrl) {
+        try {
+          const envs = await getCoolifyEnvs({ applicationUuid: LIVEKIT_STACK_UUID });
+          const url =
+            envs.NEXT_PUBLIC_LIVEKIT_URL ||
+            envs.LIVEKIT_URL ||
+            envs.PUBLIC_LIVEKIT_URL;
+          if (url) setSettingsLivekit(url);
+        } catch {
+          // ignore env fetch failure for prefill
+        }
+      }
+    } catch (e) {
+      setCoolifyAppsError(e instanceof Error ? e.message : "Failed to load Coolify apps");
+      setCoolifyApps([]);
+    } finally {
+      setCoolifyAppsLoading(false);
+    }
+  }, [listCoolifyApps, getCoolifyEnvs, deploySettings?.livekitUrl]);
+
+  useEffect(() => {
+    fetchCoolifyApps();
+  }, [fetchCoolifyApps]);
+
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100 pt-4 pl-16 sm:pl-20">
       <div className="max-w-2xl mx-auto p-6">
@@ -122,6 +162,43 @@ export default function DeployPage() {
               >
                 Open LiveKit →
               </a>
+            )}
+          </div>
+
+          <div>
+            <h2 className="text-sm font-medium text-zinc-400 mb-2">
+              Coolify applications
+            </h2>
+            {coolifyAppsLoading ? (
+              <p className="text-zinc-500 text-sm">Loading…</p>
+            ) : coolifyAppsError ? (
+              <p className="text-zinc-500 text-sm">
+                {coolifyAppsError}. Set COOLIFY_BASE_URL and COOLIFY_API_TOKEN in Convex to show apps.
+              </p>
+            ) : coolifyApps.length === 0 ? (
+              <p className="text-zinc-500 text-sm">No applications from Coolify.</p>
+            ) : (
+              <ul className="space-y-2">
+                {coolifyApps.map((app) => (
+                  <li
+                    key={app.uuid}
+                    className="flex items-center justify-between text-sm py-2 border-b border-zinc-800 last:border-0"
+                  >
+                    <span className="text-zinc-300 font-medium">{app.name}</span>
+                    <span
+                      className={`font-medium ${
+                        app.status === "running"
+                          ? "text-green-400"
+                          : app.status === "stopped" || app.status === "exited"
+                            ? "text-amber-400"
+                            : "text-zinc-400"
+                      }`}
+                    >
+                      {app.status ?? "—"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
 

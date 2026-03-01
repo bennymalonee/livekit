@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 export const getOverview = query({
   args: {},
@@ -63,6 +63,42 @@ export const getOverview = query({
       uptimeHours,
       networkLoadLabel,
     };
+  },
+});
+
+/** Seed demo traffic metrics for development/dashboard preview. */
+export const seedDemoMetrics = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const now = Date.now();
+    const hour = 60 * 60 * 1000;
+    const windowMs = 15 * 60 * 1000; // 15-min windows
+    const regions = [
+      { region: "EU-West-1", gbps: 32 },
+      { region: "US-East-2", gbps: 0 },
+      { region: "US-West-1", gbps: 2 },
+      { region: "AP-South-1", gbps: 8 },
+    ];
+
+    for (let i = 0; i < 4; i++) {
+      const windowStart = now - (i + 1) * hour;
+      const windowEnd = windowStart + windowMs;
+      for (const { region, gbps } of regions) {
+        const valueBps = gbps * 1_000_000_000;
+        await ctx.db.insert("trafficMetrics", {
+          metric: "egress_bps",
+          region,
+          windowStart,
+          windowEnd,
+          value: valueBps,
+          unit: "bps",
+        });
+      }
+    }
+    return { inserted: 4 * regions.length };
   },
 });
 

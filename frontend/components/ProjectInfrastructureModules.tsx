@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
-import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 export function ProjectInfrastructureModules() {
   const nodes = useQuery(api.nodes.listNodes);
   const dashboard = useQuery(api.dashboard.getOverview);
   const analytics = useQuery(api.analytics.getOverview);
+  const modules = useQuery(api.modules.listModules);
+  const setModuleEnabled = useMutation(api.modules.setModuleEnabled);
+  const seedModules = useMutation(api.modules.seedModules);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -62,13 +66,32 @@ export function ProjectInfrastructureModules() {
               Real-time edge streaming node management
             </p>
           </div>
-          <button
-            type="button"
-            className="flex items-center gap-2 bg-dash-primary hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold tracking-wider uppercase text-sm transition-all active:scale-95"
-          >
-            <span className="material-icons-round">add_box</span>
-            Deploy New Project
-          </button>
+          <div className="flex items-center gap-2">
+            {modules?.length === 0 && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setSeeding(true);
+                  try {
+                    await seedModules();
+                  } finally {
+                    setSeeding(false);
+                  }
+                }}
+                disabled={seeding}
+                className="flex items-center gap-2 bg-slate-600 hover:bg-slate-500 text-white px-6 py-3 rounded-xl font-bold tracking-wider uppercase text-sm transition-all disabled:opacity-50"
+              >
+                {seeding ? "Seeding…" : "Seed default modules"}
+              </button>
+            )}
+            <button
+              type="button"
+              className="flex items-center gap-2 bg-dash-primary hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold tracking-wider uppercase text-sm transition-all active:scale-95"
+            >
+              <span className="material-icons-round">add_box</span>
+              Deploy New Project
+            </button>
+          </div>
         </header>
 
         <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
@@ -77,7 +100,7 @@ export function ProjectInfrastructureModules() {
               Active Nodes
             </p>
             <p className="text-3xl font-display font-bold text-white">
-              {activeNodes ?? 42}
+              {activeNodes ?? 0}
               <span className="text-dash-primary text-sm ml-1">/ 50</span>
             </p>
           </div>
@@ -86,8 +109,8 @@ export function ProjectInfrastructureModules() {
               Total Throughput
             </p>
             <p className="text-3xl font-display font-bold text-white">
-              {(totalThroughputTbps ?? 8.4).toFixed(1)}
-              <span className="text-dash-primary text-sm ml-1"> TB/S</span>
+              {(totalThroughputTbps ?? 0).toFixed(1)}
+              <span className="text-dash-primary text-sm ml-1"> GB/S</span>
             </p>
           </div>
           <div className="glass-panel p-6 rounded-2xl">
@@ -103,119 +126,86 @@ export function ProjectInfrastructureModules() {
               Health Index
             </p>
             <p className="text-3xl font-display font-bold text-emerald-500">
-              {(healthIndex ?? 99.9).toFixed(1)}%
+              {(healthIndex ?? 0).toFixed(1)}%
             </p>
           </div>
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-          <div className="glass-panel rounded-[2rem] p-8 relative overflow-hidden transition-all duration-300">
-            <div className="flex justify-between items-start mb-8">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="w-2 h-2 rounded-full bg-dash-primary shadow-[0_0_10px_rgba(255,107,0,0.6)] animate-pulse" />
-                  <h3 className="font-display text-xl font-bold text-white tracking-wide uppercase">
-                    Zeus-X Alpha
-                  </h3>
+          {modules === undefined ? (
+            <p className="text-slate-500">Loading modules…</p>
+          ) : modules.length === 0 ? (
+            <div className="col-span-full glass-panel rounded-[2rem] p-8 text-center">
+              <p className="text-slate-500 mb-4">No modules defined. Seed default modules (LiveKit, TURN, Recording) to get started.</p>
+              <button
+                type="button"
+                onClick={async () => {
+                  setSeeding(true);
+                  try {
+                    await seedModules();
+                  } finally {
+                    setSeeding(false);
+                  }
+                }}
+                disabled={seeding}
+                className="bg-dash-primary hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold uppercase text-sm disabled:opacity-50"
+              >
+                {seeding ? "Seeding…" : "Seed default modules"}
+              </button>
+            </div>
+          ) : (
+            modules.map((mod) => (
+              <div key={mod._id} className="glass-panel rounded-[2rem] p-8 relative overflow-hidden transition-all duration-300">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          mod.enabled
+                            ? "bg-dash-primary shadow-[0_0_10px_rgba(255,107,0,0.6)] animate-pulse"
+                            : "bg-slate-500"
+                        }`}
+                      />
+                      <h3 className="font-display text-xl font-bold text-white tracking-wide uppercase">
+                        {mod.label}
+                      </h3>
+                    </div>
+                    <p className="text-xs text-slate-400 uppercase tracking-widest">
+                      {mod.key}
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={mod.enabled}
+                      onChange={async () => {
+                        await setModuleEnabled({ key: mod.key, enabled: !mod.enabled });
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-700 peer-focus:ring-2 peer-focus:ring-dash-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-dash-primary" />
+                    <span className="ml-2 text-xs font-mono text-slate-400">
+                      {mod.enabled ? "ON" : "OFF"}
+                    </span>
+                  </label>
                 </div>
-                <p className="text-xs text-slate-400 uppercase tracking-widest">
-                  PRIMARY EDGE CLUSTER
+                <p className="text-sm text-slate-400">
+                  {mod.key === "livekit"
+                    ? "Real-time video/audio infrastructure."
+                    : mod.key === "turn"
+                      ? "TURN relay for NAT traversal."
+                      : mod.key === "recording"
+                        ? "Session recording and egress."
+                        : "Stack module."}
                 </p>
+                {mod.config && (
+                  <p className="text-xs text-slate-500 mt-2 font-mono truncate" title={mod.config}>
+                    Config: {mod.config}
+                  </p>
+                )}
               </div>
-              <span className="px-3 py-1 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                ONLINE
-              </span>
-            </div>
-            <p className="text-sm text-slate-400 mb-6">
-              Handles mission-critical low-latency workloads across EU-West and US-East regions.
-            </p>
-            <div className="flex items-end justify-between text-xs text-slate-400">
-              <div>
-                <p className="uppercase tracking-widest mb-1">Throughput</p>
-                <p className="font-mono text-sm text-white">3.2 TB/s</p>
-              </div>
-              <div>
-                <p className="uppercase tracking-widest mb-1">Latency</p>
-                <p className="font-mono text-sm text-white">9 ms</p>
-              </div>
-              <div>
-                <p className="uppercase tracking-widest mb-1">Nodes</p>
-                <p className="font-mono text-sm text-white">12</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="glass-panel rounded-[2rem] p-8 relative overflow-hidden transition-all duration-300">
-            <div className="flex justify-between items-start mb-8">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.6)]" />
-                  <h3 className="font-display text-xl font-bold text-white tracking-wide uppercase">
-                    Apollo Edge
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-400 uppercase tracking-widest">
-                  BURST WORKLOAD CLUSTER
-                </p>
-              </div>
-              <span className="px-3 py-1 rounded-full text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                DEGRADED
-              </span>
-            </div>
-            <p className="text-sm text-slate-400 mb-6">
-              Optimized for traffic spikes and overflow routing with automatic autoscaling.
-            </p>
-            <div className="flex items-end justify-between text-xs text-slate-400">
-              <div>
-                <p className="uppercase tracking-widest mb-1">Throughput</p>
-                <p className="font-mono text-sm text-white">1.1 TB/s</p>
-              </div>
-              <div>
-                <p className="uppercase tracking-widest mb-1">Latency</p>
-                <p className="font-mono text-sm text-white">18 ms</p>
-              </div>
-              <div>
-                <p className="uppercase tracking-widest mb-1">Nodes</p>
-                <p className="font-mono text-sm text-white">8</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="glass-panel rounded-[2rem] p-8 relative overflow-hidden transition-all duration-300">
-            <div className="flex justify-between items-start mb-8">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="w-2 h-2 rounded-full bg-slate-400" />
-                  <h3 className="font-display text-xl font-bold text-white tracking-wide uppercase">
-                    Archive Nebula
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-400 uppercase tracking-widest">
-                  COLD STORAGE CLUSTER
-                </p>
-              </div>
-              <span className="px-3 py-1 rounded-full text-[10px] font-mono bg-slate-700/40 text-slate-300 border border-slate-500/50">
-                IDLE
-              </span>
-            </div>
-            <p className="text-sm text-slate-400 mb-6">
-              Long-term retention for compliance and analytics workloads, optimized for cost.
-            </p>
-            <div className="flex items-end justify-between text-xs text-slate-400">
-              <div>
-                <p className="uppercase tracking-widest mb-1">Capacity</p>
-                <p className="font-mono text-sm text-white">48 PB</p>
-              </div>
-              <div>
-                <p className="uppercase tracking-widest mb-1">Utilization</p>
-                <p className="font-mono text-sm text-white">32%</p>
-              </div>
-              <div>
-                <p className="uppercase tracking-widest mb-1">Regions</p>
-                <p className="font-mono text-sm text-white">4</p>
-              </div>
-            </div>
-          </div>
+            ))
+          )}
         </section>
       </main>
     </div>

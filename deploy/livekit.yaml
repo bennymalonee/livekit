@@ -38,6 +38,13 @@ keys:
 # Region tag for cluster node selection
 region: ${LIVEKIT_REGION}
 
+# Webhook - send room/participant events to Convex (set LIVEKIT_WEBHOOK_URL in Coolify)
+# e.g. LIVEKIT_WEBHOOK_URL=https://patient-crocodile-0.eu-west-1.convex.site/livekit-webhook
+webhook:
+  api_key: ${LIVEKIT_API_KEY}
+  urls:
+    - ${LIVEKIT_WEBHOOK_URL}
+
 # Logging
 logging:
   level: info

@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+
+const DASHBOARD_APP_UUID = "z4ww800cw0sw0g8gsw0w8ckg";
+const LIVEKIT_STACK_UUID = "mg44c8wgocck0oso440c84s4";
 
 export function EdgeDiagnostics() {
   const nodes = useQuery(api.nodes.listNodes);
   const analytics = useQuery(api.analytics.getOverview);
+  const diagnosticsEvents = useQuery(api.diagnostics.listRecent, { limit: 30 });
+  const getApplicationLogs = useAction(api.coolify.getApplicationLogs);
+  const [coolifyLogs, setCoolifyLogs] = useState<{ dashboard?: string; livekit?: string }>({});
+  const [coolifyLoading, setCoolifyLoading] = useState<"dashboard" | "livekit" | null>(null);
+  const [coolifyError, setCoolifyError] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -80,7 +88,7 @@ export function EdgeDiagnostics() {
                     Active Nodes
                   </p>
                   <p className="text-xl font-space-grotesk font-bold text-white">
-                    {activeNodes !== null ? activeNodes.toLocaleString() : "12,842"}
+                    {activeNodes !== null ? activeNodes.toLocaleString() : "0"}
                   </p>
                 </div>
                 <div className="border-l border-white/10 h-full" />
@@ -89,7 +97,7 @@ export function EdgeDiagnostics() {
                     Total Egress
                   </p>
                   <p className="text-xl font-space-grotesk font-bold text-dash-primary">
-                    {(totalEgressTbps ?? 842).toFixed(0)} TB/s
+                    {(totalEgressTbps ?? 0).toFixed(0)} GB/s
                   </p>
                 </div>
               </div>
@@ -359,6 +367,136 @@ export function EdgeDiagnostics() {
                 <span className="material-icons-outlined text-sm">settings</span>
               </button>
             </div>
+          </div>
+
+          <div className="md:col-span-2 bg-[#16171B] border border-white/5 rounded-2xl p-6 flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-space-grotesk text-sm font-bold tracking-[0.2em] text-white/50 uppercase">
+                Diagnostics events
+              </h3>
+              {diagnosticsEvents && diagnosticsEvents.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const header = "createdAt,level,code,message\n";
+                    const rows = diagnosticsEvents.map(
+                      (ev) =>
+                        `${new Date(ev.createdAt).toISOString()},${ev.level},${ev.code ?? ""},"${(ev.message ?? "").replace(/"/g, '""')}"`
+                    ).join("\n");
+                    const csv = header + rows;
+                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `diagnostics-${new Date().toISOString().slice(0, 10)}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="text-dash-primary hover:text-orange-400 text-[10px] font-bold uppercase tracking-widest"
+                >
+                  Export CSV
+                </button>
+              )}
+            </div>
+            <div className="flex-1 overflow-y-auto max-h-64 space-y-2 font-mono text-xs">
+              {diagnosticsEvents === undefined ? (
+                <p className="text-slate-500">Loading…</p>
+              ) : diagnosticsEvents.length === 0 ? (
+                <p className="text-slate-500">No events yet. Sync nodes or trigger deploys to see events.</p>
+              ) : (
+                diagnosticsEvents.map((ev) => (
+                  <div
+                    key={ev._id}
+                    className={`p-2 rounded border border-white/5 ${
+                      ev.level === "error"
+                        ? "text-red-400 border-red-500/30"
+                        : ev.level === "warning"
+                          ? "text-amber-400 border-amber-500/30"
+                          : "text-slate-300"
+                    }`}
+                  >
+                    <span className="text-slate-500 mr-2">
+                      {new Date(ev.createdAt).toLocaleTimeString()}
+                    </span>
+                    {ev.code && <span className="text-slate-500 mr-2">[{ev.code}]</span>}
+                    {ev.message}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="col-span-full bg-[#16171B] border border-white/5 rounded-2xl p-6 flex flex-col gap-4">
+            <h3 className="font-space-grotesk text-sm font-bold tracking-[0.2em] text-white/50 uppercase">
+              Coolify logs
+            </h3>
+            <p className="text-slate-500 text-xs">
+              Load recent logs from Coolify (requires COOLIFY_BASE_URL and COOLIFY_API_TOKEN in Convex).
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-white font-medium">Dashboard app</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setCoolifyError(null);
+                      setCoolifyLoading("dashboard");
+                      try {
+                        const { logs } = await getApplicationLogs({
+                          applicationUuid: DASHBOARD_APP_UUID,
+                          lines: 50,
+                        });
+                        setCoolifyLogs((p) => ({ ...p, dashboard: logs }));
+                      } catch (e) {
+                        setCoolifyError(e instanceof Error ? e.message : "Failed to load logs");
+                      } finally {
+                        setCoolifyLoading(null);
+                      }
+                    }}
+                    disabled={coolifyLoading !== null}
+                    className="bg-dash-primary/20 hover:bg-dash-primary/30 text-dash-primary px-3 py-1 rounded text-[10px] font-bold uppercase disabled:opacity-50"
+                  >
+                    {coolifyLoading === "dashboard" ? "Loading…" : "Load"}
+                  </button>
+                </div>
+                <pre className="bg-black/40 border border-white/5 rounded p-3 text-[10px] text-slate-400 overflow-x-auto overflow-y-auto max-h-40 whitespace-pre-wrap">
+                  {coolifyLogs.dashboard ?? "—"}
+                </pre>
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-white font-medium">LiveKit Stack</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setCoolifyError(null);
+                      setCoolifyLoading("livekit");
+                      try {
+                        const { logs } = await getApplicationLogs({
+                          applicationUuid: LIVEKIT_STACK_UUID,
+                          lines: 50,
+                        });
+                        setCoolifyLogs((p) => ({ ...p, livekit: logs }));
+                      } catch (e) {
+                        setCoolifyError(e instanceof Error ? e.message : "Failed to load logs");
+                      } finally {
+                        setCoolifyLoading(null);
+                      }
+                    }}
+                    disabled={coolifyLoading !== null}
+                    className="bg-dash-primary/20 hover:bg-dash-primary/30 text-dash-primary px-3 py-1 rounded text-[10px] font-bold uppercase disabled:opacity-50"
+                  >
+                    {coolifyLoading === "livekit" ? "Loading…" : "Load"}
+                  </button>
+                </div>
+                <pre className="bg-black/40 border border-white/5 rounded p-3 text-[10px] text-slate-400 overflow-x-auto overflow-y-auto max-h-40 whitespace-pre-wrap">
+                  {coolifyLogs.livekit ?? "—"}
+                </pre>
+              </div>
+            </div>
+            {coolifyError && (
+              <p className="text-red-400 text-xs">{coolifyError}</p>
+            )}
           </div>
 
           <div className="bg-[#16171B] border border-white/5 rounded-2xl p-6 relative overflow-hidden group">

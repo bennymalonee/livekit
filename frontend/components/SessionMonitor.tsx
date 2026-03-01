@@ -1,46 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-
-const FALLBACK_ROWS = [
-  {
-    id: "STREAM_0982_HD",
-    source: "AWS-US-EAST-1",
-    icon: "videocam",
-    participants: "1,204",
-    bitrate: "4.8 Mbps",
-    quality: 90,
-    status: "Optimal",
-    statusClass: "bg-green-500/10 text-green-500",
-  },
-  {
-    id: "LIVE_STAGE_PRO",
-    source: "GC-EUROPE-W1",
-    icon: "podcasts",
-    participants: "842",
-    bitrate: "2.1 Mbps",
-    quality: 68,
-    status: "Congested",
-    statusClass: "bg-yellow-500/10 text-yellow-500",
-  },
-  {
-    id: "DEV_CONF_MAIN",
-    source: "AZURE-US-WEST",
-    icon: "groups",
-    participants: "2,490",
-    bitrate: "8.4 Mbps",
-    quality: 95,
-    status: "Optimal",
-    statusClass: "bg-green-500/10 text-green-500",
-  },
-];
 
 export function SessionMonitor() {
   const activeSessions = useQuery(api.sessions.listActive);
   const totals = useQuery(api.sessions.getTotals);
+  const seedDemoSessions = useMutation(api.sessions.seedDemoSessions);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -60,10 +29,10 @@ export function SessionMonitor() {
             s.status === "Optimal"
               ? "bg-green-500/10 text-green-500"
               : s.status === "Congested"
-              ? "bg-yellow-500/10 text-yellow-500"
-              : "bg-slate-500/10 text-slate-300",
+                ? "bg-yellow-500/10 text-yellow-500"
+                : "bg-slate-500/10 text-slate-300",
         }))
-      : FALLBACK_ROWS;
+      : [];
 
   const totalDurationMs = totals?.totalDurationMs ?? 0;
   const hours = Math.floor(totalDurationMs / (60 * 60 * 1000));
@@ -112,18 +81,43 @@ export function SessionMonitor() {
 
         <div className="flex-1 grid grid-cols-12 gap-6 overflow-hidden">
           <section className="col-span-12 lg:col-span-8 bg-white dark:bg-card-dark rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center flex-wrap gap-2">
               <h3 className="font-space-grotesk font-semibold uppercase tracking-wider">
                 Active Rooms
               </h3>
-              <Link
-                href="/deploy"
-                className="bg-dash-primary px-4 py-2 rounded-lg text-white text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
-              >
-                + New Instance
-              </Link>
+              <div className="flex items-center gap-2">
+                {rows.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setSeeding(true);
+                      try {
+                        await seedDemoSessions();
+                      } finally {
+                        setSeeding(false);
+                      }
+                    }}
+                    disabled={seeding}
+                    className="bg-slate-600 hover:bg-slate-500 px-4 py-2 rounded-lg text-white text-xs font-bold uppercase tracking-widest disabled:opacity-50"
+                  >
+                    {seeding ? "Seeding…" : "Seed demo data"}
+                  </button>
+                )}
+                <Link
+                  href="/deploy"
+                  className="bg-dash-primary px-4 py-2 rounded-lg text-white text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
+                >
+                  + New Instance
+                </Link>
+              </div>
             </div>
               <div className="flex-1 overflow-y-auto p-6">
+              {rows.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-slate-500 text-sm">
+                  <span className="material-icons-outlined text-4xl mb-2">videocam_off</span>
+                  <p>No active sessions. Connect LiveKit or seed demo data.</p>
+                </div>
+              ) : (
               <table className="w-full text-left">
                 <thead>
                   <tr className="text-slate-400 text-[10px] uppercase tracking-[0.2em]">
@@ -201,6 +195,7 @@ export function SessionMonitor() {
                   ))}
                 </tbody>
               </table>
+              )}
             </div>
           </section>
 

@@ -67,3 +67,35 @@ export const updateModuleConfig = mutation({
   },
 });
 
+const DEFAULT_MODULES = [
+  { key: "livekit", label: "LiveKit", enabled: true },
+  { key: "turn", label: "TURN", enabled: true },
+  { key: "recording", label: "Recording", enabled: false },
+];
+
+/** Seed default stack modules (livekit, turn, recording). Idempotent. */
+export const seedModules = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    let inserted = 0;
+    for (const mod of DEFAULT_MODULES) {
+      const existing = await ctx.db
+        .query("modules")
+        .withIndex("by_key", (q) => q.eq("key", mod.key))
+        .unique();
+      if (!existing) {
+        await ctx.db.insert("modules", {
+          key: mod.key,
+          label: mod.label,
+          enabled: mod.enabled,
+        });
+        inserted += 1;
+      }
+    }
+    return { inserted };
+  },
+});
+

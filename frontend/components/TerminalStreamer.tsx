@@ -1,31 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useCallback, useEffect, useState } from "react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
-const STATIC_LOG_LINES = [
-  { time: "[14:22:01]", level: "INFO", msg: "System check initiated. All nodes operational.", levelClass: "text-blue-400" },
-  { time: "[14:22:05]", level: "WARN", msg: "Node-7 latency exceeding 150ms threshold. Rerouting...", levelClass: "text-primary" },
-  { time: "[14:22:08]", level: "OK", msg: "Traffic load balanced across clusters. Efficiency: 94%.", levelClass: "text-green-400" },
-  { time: "[14:22:15]", level: "ERR", msg: "Fatal exception in packet header parsing (ID: 0x909).", levelClass: "text-red-500 font-bold" },
-  { time: "[14:22:20]", level: "INFO", msg: "Streaming buffer flushed. Memory usage: 4.2GB.", levelClass: "text-blue-400" },
-  { time: "[14:22:24]", level: "WARN", msg: "Handshake timeout from client 192.168.1.45.", levelClass: "text-primary" },
-  { time: "[14:22:28]", level: "INFO", msg: "Establishing handshake protocol V3.0.", levelClass: "text-blue-400" },
-  { time: "[14:22:35]", level: "OK", msg: "Data stream secured with AES-256 encryption.", levelClass: "text-green-400" },
-  { time: "[14:22:42]", level: "INFO", msg: "Periodic snapshot saved to /mnt/logs/daily_archive.", levelClass: "text-blue-400" },
-  { time: "[14:22:50]", level: "WARN", msg: "Unusual surge in incoming requests (Cluster-C).", levelClass: "text-primary" },
-  { time: "[14:22:55]", level: "INFO", msg: "Auto-scaling group active. Spawning instance: i-0abc123.", levelClass: "text-blue-400" },
-];
+const LIVEKIT_STACK_UUID = "mg44c8wgocck0oso440c84s4";
 
 export function TerminalStreamer() {
   const [command, setCommand] = useState("");
   const commands = useQuery(api.terminal.listCommands, { limit: 50 });
   const recordCommand = useMutation(api.terminal.recordCommand);
+  const getApplicationLogs = useAction(api.coolify.getApplicationLogs);
+  const [coolifyLogs, setCoolifyLogs] = useState<string>("");
+  const [coolifyLoading, setCoolifyLoading] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
   }, []);
+
+  const loadCoolifyLogs = useCallback(async () => {
+    setCoolifyLoading(true);
+    try {
+      const { logs } = await getApplicationLogs({
+        applicationUuid: LIVEKIT_STACK_UUID,
+        lines: 80,
+      });
+      setCoolifyLogs(logs);
+    } catch {
+      setCoolifyLogs("(Failed to load Coolify logs. Set COOLIFY_BASE_URL and COOLIFY_API_TOKEN in Convex.)");
+    } finally {
+      setCoolifyLoading(false);
+    }
+  }, [getApplicationLogs]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,7 +41,7 @@ export function TerminalStreamer() {
     try {
       await recordCommand({ command: value });
     } catch {
-      // ignore errors here; UI remains static on failure
+      // ignore errors here
     }
   }
 
@@ -45,17 +51,18 @@ export function TerminalStreamer() {
           .slice()
           .reverse()
           .map((c) => ({
+            id: c._id,
             time: new Date(c.createdAt).toISOString().slice(11, 19),
             level: c.status.toUpperCase(),
-            msg: c.command,
+            msg: c.command + (c.output ? `\n${c.output}` : ""),
             levelClass:
               c.status === "failed"
                 ? "text-red-500 font-bold"
                 : c.status === "success"
-                ? "text-green-400"
-                : "text-primary",
+                  ? "text-green-400"
+                  : "text-primary",
           }))
-      : STATIC_LOG_LINES;
+      : [];
 
   return (
     <div className="bg-background-light dark:bg-[#0a0a0a] text-slate-800 dark:text-slate-300 font-sans min-h-screen overflow-hidden pt-2 pl-16 sm:pl-20">
@@ -126,13 +133,17 @@ export function TerminalStreamer() {
                 </div>
               </div>
               <div className="flex-1 p-6 font-mono text-sm overflow-y-auto space-y-1 bg-[#0d0d0d]/50">
-                {logLines.map((line, i) => (
-                  <div key={i} className="flex gap-4 text-slate-500">
-                    <span className="w-24 shrink-0">{line.time}</span>
-                    <span className={`shrink-0 ${line.levelClass}`}>{line.level}</span>
-                    <span className="dark:text-zinc-400">{line.msg}</span>
-                  </div>
-                ))}
+                {logLines.length === 0 ? (
+                  <p className="text-slate-600 text-sm">No command history yet. Run a command in the panel to the right to store it in Convex.</p>
+                ) : (
+                  logLines.map((line) => (
+                    <div key={line.id} className="flex gap-4 text-slate-500 flex-wrap">
+                      <span className="w-24 shrink-0">[{line.time}]</span>
+                      <span className={`shrink-0 ${line.levelClass}`}>{line.level}</span>
+                      <span className="dark:text-zinc-400 whitespace-pre-wrap break-all">{line.msg}</span>
+                    </div>
+                  ))
+                )}
               </div>
               <div className="p-4 bg-zinc-900/40 border-t border-white/5 flex items-center justify-between text-[10px] tracking-widest font-bold">
                 <div className="flex gap-6">
@@ -316,6 +327,25 @@ export function TerminalStreamer() {
                   </button>
                 </div>
               </form>
+            </div>
+            <div className="glass-panel rounded-2xl p-6 flex flex-col">
+              <h3 className="font-display text-sm tracking-widest font-bold text-slate-900 dark:text-white uppercase mb-2">
+                Coolify logs (LiveKit Stack)
+              </h3>
+              <p className="text-[10px] text-slate-500 mb-2">
+                One-shot load of recent Coolify application logs.
+              </p>
+              <button
+                type="button"
+                onClick={loadCoolifyLogs}
+                disabled={coolifyLoading}
+                className="mb-3 px-3 py-2 rounded-lg bg-primary/20 text-primary text-xs font-bold uppercase disabled:opacity-50 w-fit"
+              >
+                {coolifyLoading ? "Loading…" : "Load Coolify logs"}
+              </button>
+              <pre className="flex-1 min-h-[120px] bg-zinc-900/80 border border-white/5 rounded-lg p-3 text-[10px] text-slate-400 overflow-auto whitespace-pre-wrap font-mono">
+                {coolifyLogs || "—"}
+              </pre>
             </div>
           </div>
         </main>

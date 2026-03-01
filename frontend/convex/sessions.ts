@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 export const listActive = query({
   args: {},
@@ -61,6 +61,64 @@ export const getTotals = query({
       totalDurationMs,
       activeSessions,
     };
+  },
+});
+
+/** Seed demo sessions for development/dashboard preview. */
+export const seedDemoSessions = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const now = Date.now();
+    const hour = 60 * 60 * 1000;
+    const demo = [
+      {
+        roomName: "STREAM_0982_HD",
+        source: "AWS",
+        region: "US-EAST-1",
+        icon: "videocam",
+        participantCount: 1204,
+        bitrateMbps: 4.8,
+        qualityScore: 90,
+        status: "Optimal",
+        startedAt: now - 2 * hour,
+        endedAt: undefined as number | undefined,
+      },
+      {
+        roomName: "LIVE_STAGE_PRO",
+        source: "GC",
+        region: "EUROPE-W1",
+        icon: "podcasts",
+        participantCount: 842,
+        bitrateMbps: 2.1,
+        qualityScore: 68,
+        status: "Congested",
+        startedAt: now - 1 * hour,
+        endedAt: now - 30 * 60 * 1000,
+      },
+      {
+        roomName: "DEV_CONF_MAIN",
+        source: "AZURE",
+        region: "US-WEST",
+        icon: "groups",
+        participantCount: 2490,
+        bitrateMbps: 8.4,
+        qualityScore: 95,
+        status: "Optimal",
+        startedAt: now - 45 * 60 * 1000,
+        endedAt: undefined,
+      },
+    ];
+
+    for (const s of demo) {
+      await ctx.db.insert("sessions", {
+        ...s,
+        endedAt: s.endedAt,
+      });
+    }
+    return { inserted: demo.length };
   },
 });
 

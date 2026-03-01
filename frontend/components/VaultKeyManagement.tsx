@@ -1,17 +1,48 @@
 "use client";
 
-import { useEffect } from "react";
-import { useQuery } from "convex/react";
+import { useCallback, useEffect, useState } from "react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+
+const DASHBOARD_APP_UUID = "z4ww800cw0sw0g8gsw0w8ckg";
+const LIVEKIT_STACK_UUID = "mg44c8wgocck0oso440c84s4";
 
 export function VaultKeyManagement() {
   const keys = useQuery(api.vault.listKeys);
+  const createKey = useMutation(api.vault.createKey);
+  const deleteKey = useMutation(api.vault.deleteKey);
+  const getCoolifyEnvs = useAction(api.coolify.getApplicationEnvs);
+  const [coolifyEnvKeys, setCoolifyEnvKeys] = useState<{ dashboard: string[]; livekit: string[] }>({ dashboard: [], livekit: [] });
+  const [coolifyLoading, setCoolifyLoading] = useState(false);
+  const [formName, setFormName] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formValue, setFormValue] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
   }, []);
 
-  const totalKeys = keys?.length ?? 12;
+  const loadCoolifyEnvKeys = useCallback(async () => {
+    setCoolifyLoading(true);
+    try {
+      const [dashboard, livekit] = await Promise.all([
+        getCoolifyEnvs({ applicationUuid: DASHBOARD_APP_UUID }).catch(() => []),
+        getCoolifyEnvs({ applicationUuid: LIVEKIT_STACK_UUID }).catch(() => []),
+      ]);
+      setCoolifyEnvKeys({
+        dashboard: Array.isArray(dashboard) ? dashboard.map((e) => e.key) : [],
+        livekit: Array.isArray(livekit) ? livekit.map((e) => e.key) : [],
+      });
+    } catch {
+      setCoolifyEnvKeys({ dashboard: [], livekit: [] });
+    } finally {
+      setCoolifyLoading(false);
+    }
+  }, [getCoolifyEnvs]);
+
+  const totalKeys = keys?.length ?? 0;
 
   return (
     <div className="bg-background-light dark:bg-[#0A0B0D] text-slate-800 dark:text-slate-200 min-h-screen font-sans pt-2 pl-16 sm:pl-20">
@@ -167,6 +198,96 @@ export function VaultKeyManagement() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-panel-dark border border-panel-border rounded-xl p-6 space-y-4">
+              <h3 className="text-xs font-display font-bold uppercase text-slate-500 tracking-widest">
+                Vault keys (Convex)
+              </h3>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setCreateError(null);
+                  if (!formName.trim() || !formValue.trim()) return;
+                  setCreating(true);
+                  try {
+                    await createKey({
+                      name: formName.trim(),
+                      description: formDescription.trim() || undefined,
+                      encryptedValue: formValue,
+                    });
+                    setFormName("");
+                    setFormDescription("");
+                    setFormValue("");
+                  } catch (err) {
+                    setCreateError(err instanceof Error ? err.message : "Failed to create key");
+                  } finally {
+                    setCreating(false);
+                  }
+                }}
+                className="flex flex-wrap items-end gap-3"
+              >
+                <input
+                  type="text"
+                  placeholder="Key name"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-40"
+                />
+                <input
+                  type="text"
+                  placeholder="Description (optional)"
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48"
+                />
+                <input
+                  type="password"
+                  placeholder="Value (stored server-side)"
+                  value={formValue}
+                  onChange={(e) => setFormValue(e.target.value)}
+                  className="bg-[#0A0B0D] border border-panel-border rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 w-48"
+                />
+                <button
+                  type="submit"
+                  disabled={creating || !formName.trim() || !formValue.trim()}
+                  className="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase disabled:opacity-50"
+                >
+                  {creating ? "Adding…" : "Add key"}
+                </button>
+              </form>
+              {createError && <p className="text-red-400 text-sm">{createError}</p>}
+              <div className="border-t border-panel-border pt-4 space-y-2 max-h-40 overflow-y-auto">
+                {keys === undefined ? (
+                  <p className="text-slate-500 text-sm">Loading…</p>
+                ) : keys.length === 0 ? (
+                  <p className="text-slate-500 text-sm">No keys. Add one above.</p>
+                ) : (
+                  keys.map((k) => (
+                    <div
+                      key={k._id}
+                      className="flex items-center justify-between text-sm py-2 border-b border-panel-border last:border-0"
+                    >
+                      <div>
+                        <span className="font-mono text-white">{k.name}</span>
+                        {k.description && (
+                          <span className="text-slate-500 ml-2 text-xs">{k.description}</span>
+                        )}
+                        <span className="text-slate-600 text-xs ml-2">
+                          {new Date(k.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteKey({ id: k._id })}
+                        className="text-red-400 hover:text-red-300 text-xs uppercase"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -340,6 +461,58 @@ export function VaultKeyManagement() {
                   >
                     <span className="material-icons text-sm">lock_reset</span> ROTATE
                   </button>
+                </div>
+              </div>
+            </div>
+            <div className="bg-panel-dark border border-panel-border rounded-xl p-6">
+              <h3 className="text-xs font-display font-bold uppercase text-slate-500 mb-3 tracking-widest">
+                Coolify env (read-only, key names)
+              </h3>
+              <p className="text-slate-500 text-xs mb-3">
+                Key names from Coolify apps. Values are never stored in Convex.
+              </p>
+              <button
+                type="button"
+                onClick={loadCoolifyEnvKeys}
+                disabled={coolifyLoading}
+                className="bg-panel-dark border border-panel-border hover:border-primary px-3 py-2 rounded-lg text-xs font-bold uppercase mb-4 disabled:opacity-50"
+              >
+                {coolifyLoading ? "Loading…" : "Load Coolify env keys"}
+              </button>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Dashboard app</p>
+                  <div className="flex flex-wrap gap-1">
+                    {coolifyEnvKeys.dashboard.length === 0 ? (
+                      <span className="text-slate-600 text-xs">—</span>
+                    ) : (
+                      coolifyEnvKeys.dashboard.map((keyName) => (
+                        <span
+                          key={keyName}
+                          className="bg-slate-800/50 px-2 py-0.5 rounded text-[10px] font-mono text-slate-400"
+                        >
+                          {keyName}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">LiveKit Stack</p>
+                  <div className="flex flex-wrap gap-1">
+                    {coolifyEnvKeys.livekit.length === 0 ? (
+                      <span className="text-slate-600 text-xs">—</span>
+                    ) : (
+                      coolifyEnvKeys.livekit.map((keyName) => (
+                        <span
+                          key={keyName}
+                          className="bg-slate-800/50 px-2 py-0.5 rounded text-[10px] font-mono text-slate-400"
+                        >
+                          {keyName}
+                        </span>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

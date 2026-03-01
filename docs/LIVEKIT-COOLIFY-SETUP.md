@@ -36,3 +36,7 @@ To create LiveKit access tokens (server-side), use the same **API Key** and **AP
 4. In your Convex action (or API route), use the LiveKit server SDK to create an access token with that key/secret and the LiveKit URL (`NEXT_PUBLIC_LIVEKIT_URL` or from Convex/settings). The client then connects with that token to `ws://31.97.34.56:7880` (or your public URL).
 
 See [deploy/README.md](../deploy/README.md) for manual deploy and [LiveKit token docs](https://docs.livekit.io/realtime/authentication/) for token creation.
+
+## Webhook → Convex (Sessions)
+
+To send room/participant events to the dashboard **Sessions** and use **livekit.generateToken** in Convex, do the one-time setup in **[LIVEKIT-CONVEX-WEBHOOK-SETUP.md](LIVEKIT-CONVEX-WEBHOOK-SETUP.md)** (Convex env vars + `LIVEKIT_WEBHOOK_URL` on the LiveKit Stack app, then redeploy the stack).

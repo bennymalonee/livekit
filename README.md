@@ -2,6 +2,12 @@
 
 LivKit dashboard: Convex auth, Coolify deploy, and LiveKit stack. One app to log in, trigger LiveKit deployment on your VPS via Coolify, and manage infrastructure views (Stitch screens).
 
+**Dashboard functionality plan:** [docs/DASHBOARD-FUNCTIONALITY-PLAN.md](docs/DASHBOARD-FUNCTIONALITY-PLAN.md) — step-by-step plan to add real functionality to every section (Deploy, Nodes, Sessions, Analytics, Diagnostics, Modules, Vault, Terminal), including where to use **Coolify MCP** and **Convex MCP** (list apps, env vars, logs, deploy).
+
+### What's next
+
+After the dashboard is running, follow the plan in order: **Phase 1** (Deploy + Coolify list apps) then **Phase 2** (Nodes sync from Coolify). Full env reference: [docs/ENV-VARS.md](docs/ENV-VARS.md). Health check: `GET /api/health`. LiveKit webhook: point your LiveKit server at `https://<convex>.convex.site/livekit-webhook` to feed Sessions; use Convex action `livekit.generateToken` (with `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` in Convex env) for "Join test room" in the app.
+
 ## Local setup
 
 1. **Frontend and Convex (dev):**

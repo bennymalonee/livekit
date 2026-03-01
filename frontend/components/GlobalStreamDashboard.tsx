@@ -12,11 +12,18 @@ export function GlobalStreamDashboard() {
   const sessionTotals = useQuery(api.sessions.getTotals);
 
   useEffect(() => {
-    document.documentElement.classList.add("dark");
+    const stored = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
+    const preferDark = stored === "dark" || (!stored && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", preferDark);
   }, []);
 
   function toggleDark() {
-    document.documentElement.classList.toggle("dark");
+    const isDark = document.documentElement.classList.toggle("dark");
+    try {
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    } catch {
+      // ignore
+    }
   }
 
   return (
