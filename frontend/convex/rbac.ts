@@ -22,11 +22,16 @@ export function resolveRole(role: AppRole | undefined): AppRole {
 export const getMyRole = query({
   args: {},
   handler: async (ctx): Promise<AppRole> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return "viewer";
-    const userId = getUserIdFromIdentity(identity);
-    const user = await ctx.db.get(userId);
-    return resolveRole(user?.role as AppRole | undefined);
+    try {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity?.subject) return "viewer";
+      const userId = getUserIdFromIdentity(identity);
+      if (!userId) return "viewer";
+      const user = await ctx.db.get(userId);
+      return resolveRole(user?.role as AppRole | undefined);
+    } catch {
+      return "viewer";
+    }
   },
 });
 
