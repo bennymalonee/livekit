@@ -19,7 +19,10 @@ export function NodeInitialization() {
     setSyncError(null);
     setSyncing(true);
     try {
-      await syncFromCoolify();
+      const result = await syncFromCoolify();
+      if (result && !result.ok && result.error) {
+        setSyncError(result.error);
+      }
     } catch (e) {
       setSyncError(e instanceof Error ? e.message : "Sync failed");
     } finally {

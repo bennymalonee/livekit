@@ -151,24 +151,50 @@ function mapCoolifyStatusToNode(status: string | undefined): string {
 
 /**
  * Fetch Coolify applications and upsert them into Convex nodes table.
- * Requires auth. Cron uses internal.coolify_internal.syncApplicationsToNodes.
+ * Returns { ok, error? } so the client can show a message instead of a generic Server Error.
  */
 export const syncApplicationsToNodes = action({
   args: {},
-  handler: async (ctx): Promise<void> => {
-    await requireAuth(ctx);
-    await requireCoolifyRole(ctx, ["admin"]);
-    const identity = await ctx.auth.getUserIdentity();
-    await ctx.runAction(internal.coolify_internal.syncApplicationsToNodes, {});
-    if (identity) {
-      const { getUserIdFromIdentity } = await import("./rbac");
-      await ctx.runMutation(internal.auditLog.record, {
-        userId: getUserIdFromIdentity(identity),
-        action: "nodes.sync",
-        resourceType: "coolify",
-        details: JSON.stringify({ source: "syncApplicationsToNodes" }),
-      });
+  handler: async (ctx): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      await requireAuth(ctx);
+      await requireCoolifyRole(ctx, ["admin"]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { ok: false, error: msg };
     }
+    const identity = await ctx.auth.getUserIdentity();
+    let baseUrl: string;
+    let token: string;
+    try {
+      const config = getCoolifyConfig();
+      baseUrl = config.baseUrl;
+      token = config.token;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Coolify not configured";
+      return { ok: false, error: msg };
+    }
+    try {
+      await ctx.runAction(internal.coolify_internal.syncApplicationsToNodes, {});
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { ok: false, error: msg };
+    }
+    const { getUserIdFromIdentityOrNull } = await import("./rbac");
+    const userId = getUserIdFromIdentityOrNull(identity);
+    if (userId) {
+      try {
+        await ctx.runMutation(internal.auditLog.record, {
+          userId,
+          action: "nodes.sync",
+          resourceType: "coolify",
+          details: JSON.stringify({ source: "syncApplicationsToNodes" }),
+        });
+      } catch {
+        // non-fatal
+      }
+    }
+    return { ok: true };
   },
 });
 
@@ -183,30 +209,36 @@ export const getApplicationLogs = action({
     lines: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<{ logs: string; error?: string }> => {
-    await requireAuth(ctx);
-    await requireCoolifyRole(ctx, ["admin", "operator"]);
-    const uuid = (args.applicationUuid ?? "").trim();
-    if (!uuid) {
-      return {
-        logs: "",
-        error:
-          "Application UUID not set. Set NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID or NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID in your app environment.",
-      };
-    }
-
-    let baseUrl: string;
-    let token: string;
     try {
-      const config = getCoolifyConfig();
-      baseUrl = config.baseUrl;
-      token = config.token;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Coolify not configured";
-      return { logs: "", error: msg };
-    }
+      try {
+        await requireAuth(ctx);
+        await requireCoolifyRole(ctx, ["admin", "operator"]);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        return { logs: "", error: msg };
+      }
 
-    const lines = args.lines ?? 100;
-    try {
+      const uuid = (args.applicationUuid ?? "").trim();
+      if (!uuid) {
+        return {
+          logs: "",
+          error:
+            "Application UUID not set. Set NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID or NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID in your app environment.",
+        };
+      }
+
+      let baseUrl: string;
+      let token: string;
+      try {
+        const config = getCoolifyConfig();
+        baseUrl = config.baseUrl;
+        token = config.token;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Coolify not configured";
+        return { logs: "", error: msg };
+      }
+
+      const lines = args.lines ?? 100;
       const res = await fetch(
         `${baseUrl}/api/v1/applications/${encodeURIComponent(uuid)}/logs?lines=${lines}`,
         {
@@ -230,7 +262,7 @@ export const getApplicationLogs = action({
       return { logs: typeof data.logs === "string" ? data.logs : text || "" };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      return { logs: "", error: `Request failed: ${msg}` };
+      return { logs: "", error: msg };
     }
   },
 });

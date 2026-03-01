@@ -7,17 +7,21 @@ import { getUserIdFromIdentity, requireRole } from "./rbac";
 export const listKeys = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, ["admin"]);
-    const orgId = await getCurrentOrganizationIdForContext(ctx);
-    const rows = await ctx.db.query("vaultKeys").order("desc").take(500);
-    const filtered = orgId == null ? rows : rows.filter((r) => r.organizationId === undefined || r.organizationId === orgId);
-    return filtered.slice(0, 100).map((row) => ({
-      _id: row._id,
-      name: row.name,
-      description: row.description,
-      createdAt: row.createdAt,
-      lastUsedAt: row.lastUsedAt,
-    }));
+    try {
+      await requireRole(ctx, ["admin"]);
+      const orgId = await getCurrentOrganizationIdForContext(ctx);
+      const rows = await ctx.db.query("vaultKeys").order("desc").take(500);
+      const filtered = orgId == null ? rows : rows.filter((r) => r.organizationId === undefined || r.organizationId === orgId);
+      return filtered.slice(0, 100).map((row) => ({
+        _id: row._id,
+        name: row.name,
+        description: row.description,
+        createdAt: row.createdAt,
+        lastUsedAt: row.lastUsedAt,
+      }));
+    } catch {
+      return [];
+    }
   },
 });
 
