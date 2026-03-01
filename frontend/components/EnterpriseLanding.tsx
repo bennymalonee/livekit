@@ -324,12 +324,13 @@ export function EnterpriseLanding() {
             )}
           </div>
           <div className="grid lg:grid-cols-3 gap-6">
-            <div className="glass-panel p-6 rounded-2xl bg-surface-dark border border-white/10 hover:border-primary/50 transition-all duration-300 group">
+            <div className="glass-panel p-6 rounded-2xl bg-surface-dark/90 border border-white/10 hover:border-primary/50 transition-all duration-300 group relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
               <div className="flex justify-between items-start mb-8">
-                <div className="p-3 bg-white/5 rounded-lg border border-white/5 group-hover:border-primary/30 transition-colors">
+                <div className="p-3 bg-white/5 rounded-xl border border-white/5 group-hover:border-primary/30 transition-colors">
                   <span className="material-icons text-gray-300 group-hover:text-primary transition-colors">input</span>
                 </div>
-                <span className="font-mono text-xs text-green-500 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded shadow-[0_0_5px_rgba(34,197,94,0.2)]">ONLINE</span>
+                <span className="font-mono text-xs text-green-500 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-lg shadow-[0_0_5px_rgba(34,197,94,0.2)]">ONLINE</span>
               </div>
               <h3 className="font-display font-bold text-xl text-white mb-2 group-hover:text-primary transition-colors">Ingest Node</h3>
               <p className="text-sm text-gray-400 mb-6 leading-relaxed">High-bandwidth entry points accepting raw data streams from IoT devices and servers.</p>
@@ -343,13 +344,14 @@ export function EnterpriseLanding() {
                 </div>
               </div>
             </div>
-            <div className="glass-panel p-6 rounded-2xl bg-surface-dark border border-white/10 hover:border-primary/50 transition-all duration-300 group relative">
+            <div className="glass-panel p-6 rounded-2xl bg-surface-dark/90 border border-white/10 hover:border-primary/50 transition-all duration-300 group relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
               <div className="hidden lg:block absolute top-1/2 -left-3 w-6 h-[2px] bg-gradient-to-r from-transparent to-primary shadow-[0_0_5px_#ff4d00]" />
               <div className="flex justify-between items-start mb-8">
-                <div className="p-3 bg-white/5 rounded-lg border border-white/5 group-hover:border-primary/30 transition-colors">
+                <div className="p-3 bg-white/5 rounded-xl border border-white/5 group-hover:border-primary/30 transition-colors">
                   <span className="material-icons text-gray-300 group-hover:text-primary transition-colors">memory</span>
                 </div>
-                <span className="font-mono text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded shadow-[0_0_5px_rgba(255,77,0,0.2)]">PROCESSING</span>
+                <span className="font-mono text-xs text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded-lg shadow-[0_0_5px_rgba(255,77,0,0.2)]">PROCESSING</span>
               </div>
               <h3 className="font-display font-bold text-xl text-white mb-2 group-hover:text-primary transition-colors">Edge Compute</h3>
               <p className="text-sm text-gray-400 mb-6 leading-relaxed">Real-time processing and transcoding performed at the network edge to minimize latency.</p>
@@ -370,12 +372,13 @@ export function EnterpriseLanding() {
                 </div>
               </div>
             </div>
-            <div className="glass-panel p-6 rounded-2xl bg-surface-dark border border-white/10 hover:border-primary/50 transition-all duration-300 group">
+            <div className="glass-panel p-6 rounded-2xl bg-surface-dark/90 border border-white/10 hover:border-primary/50 transition-all duration-300 group relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
               <div className="flex justify-between items-start mb-8">
-                <div className="p-3 bg-white/5 rounded-lg border border-white/5 group-hover:border-primary/30 transition-colors">
+                <div className="p-3 bg-white/5 rounded-xl border border-white/5 group-hover:border-primary/30 transition-colors">
                   <span className="material-icons text-gray-300 group-hover:text-primary transition-colors">hub</span>
                 </div>
-                <span className="font-mono text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-1 rounded shadow-[0_0_5px_rgba(96,165,250,0.2)]">DISTRIBUTING</span>
+                <span className="font-mono text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-1 rounded-lg shadow-[0_0_5px_rgba(96,165,250,0.2)]">DISTRIBUTING</span>
               </div>
               <h3 className="font-display font-bold text-xl text-white mb-2 group-hover:text-primary transition-colors">Global Mesh</h3>
               <p className="text-sm text-gray-400 mb-6 leading-relaxed">Intelligent routing delivering processed data to end-users via the optimal path.</p>
@@ -592,28 +595,155 @@ export function EnterpriseLanding() {
         </div>
       </section>
 
-      {/* Ready to Scale — #pricing */}
-      <section id="pricing" className="py-20 relative overflow-hidden bg-background-dark">
-        <div className="absolute inset-0 bg-surface-darker z-0 opacity-80" />
-        <div className="absolute inset-0 bg-primary/5 z-0" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-1 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_20px_#ff4d00]" />
+      {/* Pricing — #pricing */}
+      <section id="pricing" className="py-24 relative overflow-hidden bg-background-dark">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(255,77,0,0.08),transparent)] z-0" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:48px_48px] z-0 opacity-50" />
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/5 text-primary text-xs font-mono tracking-widest uppercase mb-6">
+              Pricing
+            </div>
+            <h2 className="font-display font-bold text-4xl md:text-5xl text-white mb-4 tracking-tight">
+              Simple, transparent <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-orange-300">pricing</span>
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto text-lg font-light">
+              Scale from a single edge node to a global mesh. No hidden fees. Pay only for what you use.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+            {/* Starter */}
+            <div className="group relative flex flex-col rounded-2xl border border-white/10 bg-surface-dark/80 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_40px_rgba(255,77,0,0.08)]">
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              <div className="p-8 flex flex-col flex-1">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/30 transition-colors">
+                    <span className="material-icons text-gray-400 group-hover:text-primary transition-colors">rocket_launch</span>
+                  </div>
+                  <h3 className="font-display font-bold text-xl text-white tracking-wide">Starter</h3>
+                </div>
+                <div className="mb-6">
+                  <span className="text-4xl font-display font-black text-white">$0</span>
+                  <span className="text-gray-500 font-medium ml-1">/month</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-6 leading-relaxed flex-1">
+                  Perfect for trying the network. One region, full dashboard access.
+                </p>
+                <ul className="space-y-3 mb-8 text-sm text-gray-300">
+                  {["1 edge region", "Up to 10K sessions/mo", "Real-time dashboard", "Email support"].map((f) => (
+                    <li key={f} className="flex items-center gap-2">
+                      <span className="material-icons text-primary text-base">check_circle</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={isAuthenticated ? "/dashboard" : "/signup"}
+                  className="mt-auto w-full py-3.5 rounded-xl border border-white/20 hover:border-primary/50 hover:bg-primary/10 text-white font-semibold tracking-wide text-center transition-all duration-300"
+                >
+                  {isAuthenticated ? "Open dashboard" : "Get started free"}
+                </Link>
+              </div>
+            </div>
+
+            {/* Pro — featured */}
+            <div className="group relative flex flex-col rounded-2xl border-2 border-primary/60 bg-gradient-to-b from-primary/10 to-surface-dark/90 backdrop-blur-sm overflow-hidden transition-all duration-300 shadow-[0_0_60px_rgba(255,77,0,0.15)] hover:shadow-[0_0_80px_rgba(255,77,0,0.2)] hover:border-primary scale-[1.02] z-10">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_15px_#ff4d00]" />
+              <div className="absolute top-4 right-4 px-2 py-1 rounded-md bg-primary/20 border border-primary/40 text-primary text-[10px] font-bold tracking-widest uppercase">
+                Most popular
+              </div>
+              <div className="p-8 flex flex-col flex-1">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/40">
+                    <span className="material-icons text-primary">bolt</span>
+                  </div>
+                  <h3 className="font-display font-bold text-xl text-white tracking-wide">Pro</h3>
+                </div>
+                <div className="mb-6">
+                  <span className="text-4xl font-display font-black text-white">$99</span>
+                  <span className="text-gray-500 font-medium ml-1">/month</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-6 leading-relaxed flex-1">
+                  For teams scaling real-time apps. Multiple regions, priority support.
+                </p>
+                <ul className="space-y-3 mb-8 text-sm text-gray-300">
+                  {["5 edge regions", "Up to 100K sessions/mo", "LiveKit + Redis stack", "Priority support", "Custom domains"].map((f) => (
+                    <li key={f} className="flex items-center gap-2">
+                      <span className="material-icons text-primary text-base">check_circle</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={isAuthenticated ? "/deploy" : "/signup"}
+                  className="mt-auto w-full py-3.5 rounded-xl bg-primary hover:bg-orange-600 text-white font-bold tracking-widest text-center shadow-[0_0_20px_rgba(255,77,0,0.4)] transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,77,0,0.5)] border border-primary/50"
+                >
+                  {isAuthenticated ? "Deploy now" : "Start free trial"}
+                </Link>
+              </div>
+            </div>
+
+            {/* Enterprise */}
+            <div className="group relative flex flex-col rounded-2xl border border-white/10 bg-surface-dark/80 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_40px_rgba(255,77,0,0.08)]">
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              <div className="p-8 flex flex-col flex-1">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 group-hover:border-primary/30 transition-colors">
+                    <span className="material-icons text-gray-400 group-hover:text-primary transition-colors">hub</span>
+                  </div>
+                  <h3 className="font-display font-bold text-xl text-white tracking-wide">Enterprise</h3>
+                </div>
+                <div className="mb-6">
+                  <span className="text-4xl font-display font-black text-white">Custom</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-6 leading-relaxed flex-1">
+                  Global mesh, SLA, dedicated support. Built for the largest workloads.
+                </p>
+                <ul className="space-y-3 mb-8 text-sm text-gray-300">
+                  {["Unlimited regions", "Unlimited sessions", "Dedicated infrastructure", "24/7 support", "Custom contracts"].map((f) => (
+                    <li key={f} className="flex items-center gap-2">
+                      <span className="material-icons text-primary text-base">check_circle</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/dashboard"
+                  className="mt-auto w-full py-3.5 rounded-xl border border-white/20 hover:border-primary/50 hover:bg-primary/10 text-white font-semibold tracking-wide text-center transition-all duration-300"
+                >
+                  Contact sales
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-center text-gray-500 text-sm mt-10 font-mono">
+            All plans include 99.99% uptime SLA · No credit card required for Starter
+          </p>
+        </div>
+      </section>
+
+      {/* Ready to Scale — CTA strip */}
+      <section className="py-16 relative overflow-hidden bg-surface-darker border-t border-white/5">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
         <div className="container mx-auto px-6 relative z-10 text-center">
-          <h2 className="font-display font-bold text-4xl md:text-5xl text-white mb-6">READY TO SCALE?</h2>
-          <p className="text-gray-400 max-w-xl mx-auto mb-10 text-lg">
-            Join the network that powers the next generation of real-time applications. Start deploying nodes in seconds.
+          <h2 className="font-display font-bold text-2xl md:text-3xl text-white mb-4">Ready to scale?</h2>
+          <p className="text-gray-400 max-w-lg mx-auto mb-8 text-sm">
+            Join the network that powers the next generation of real-time applications.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             {isAuthenticated ? (
               <>
                 <Link
                   href="/dashboard"
-                  className="px-8 py-4 bg-primary hover:bg-orange-600 text-white font-bold tracking-widest rounded-lg shadow-[0_0_25px_rgba(255,77,0,0.5)] transition-all transform hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(255,77,0,0.7)] border border-primary"
+                  className="px-6 py-3 bg-primary hover:bg-orange-600 text-white font-bold tracking-widest rounded-lg text-sm transition-all hover:shadow-[0_0_25px_rgba(255,77,0,0.4)] border border-primary"
                 >
                   GO TO DASHBOARD
                 </Link>
                 <Link
                   href="/deploy"
-                  className="px-8 py-4 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white font-medium tracking-widest rounded-lg transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                  className="px-6 py-3 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white font-medium tracking-widest rounded-lg text-sm transition-all"
                 >
                   DEPLOY NODE
                 </Link>
@@ -622,13 +752,13 @@ export function EnterpriseLanding() {
               <>
                 <Link
                   href="/signup"
-                  className="px-8 py-4 bg-primary hover:bg-orange-600 text-white font-bold tracking-widest rounded-lg shadow-[0_0_25px_rgba(255,77,0,0.5)] transition-all transform hover:-translate-y-1 hover:shadow-[0_0_40px_rgba(255,77,0,0.7)] border border-primary"
+                  className="px-6 py-3 bg-primary hover:bg-orange-600 text-white font-bold tracking-widest rounded-lg text-sm transition-all hover:shadow-[0_0_25px_rgba(255,77,0,0.4)] border border-primary"
                 >
                   START FREE TRIAL
                 </Link>
                 <Link
                   href="/login"
-                  className="px-8 py-4 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white font-medium tracking-widest rounded-lg transition-all hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                  className="px-6 py-3 bg-transparent border border-white/20 hover:border-white hover:bg-white/5 text-white font-medium tracking-widest rounded-lg text-sm transition-all"
                 >
                   SIGN IN
                 </Link>

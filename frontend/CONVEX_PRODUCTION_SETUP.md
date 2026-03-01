@@ -56,6 +56,8 @@ Do this instead:
 3. **Always open the app using that same public URL.** If you use an IP address or a different host, cookies will not match and login will not persist.
 4. If your reverse proxy (e.g. Traefik/Caddy) can forward headers, set **X-Forwarded-Host** and **X-Forwarded-Proto** to the public host and scheme so the middleware sees the correct origin.
 
+5. **HTTP (no HTTPS):** On HTTP, the auth cookie must be set with `secure: false`. This repo applies a patch to `@convex-dev/auth` (see `patches/`) so that when `NEXT_PUBLIC_APP_URL` is `http://...`, the middleware’s `cookieConfig.secure: false` is respected. Run `npm install` (or redeploy) so `postinstall` applies the patch.
+
 ## 6. Create your first user (optional)
 
 If signup on the deployed app fails or you want a user beforehand, see [CREATE_PRODUCTION_USER.md](./CREATE_PRODUCTION_USER.md) (use the same production URL above).

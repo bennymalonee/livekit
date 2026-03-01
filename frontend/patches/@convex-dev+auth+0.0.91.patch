@@ -1,0 +1,77 @@
+diff --git a/node_modules/@convex-dev/auth/dist/nextjs/server/cookies.js b/node_modules/@convex-dev/auth/dist/nextjs/server/cookies.js
+index 637917f..7505989 100644
+--- a/node_modules/@convex-dev/auth/dist/nextjs/server/cookies.js
++++ b/node_modules/@convex-dev/auth/dist/nextjs/server/cookies.js
+@@ -19,14 +19,18 @@ export async function getResponseCookies(response, cookieConfig) {
+ }
+ function getCookieStore(requestHeaders, responseCookies, cookieConfig) {
+     const isLocalhost = utils.isLocalHost(requestHeaders.get("Host") ?? "");
+-    const prefix = isLocalhost ? "" : "__Host-";
++    const useSecure = cookieConfig?.secure !== false && !isLocalhost;
++    const prefix = useSecure ? "__Host-" : "";
+     const tokenName = prefix + "__convexAuthJWT";
+     const refreshTokenName = prefix + "__convexAuthRefreshToken";
+     const verifierName = prefix + "__convexAuthOAuthVerifier";
+-    function getValue(name) {
+-        return responseCookies.get(name)?.value ?? null;
++    const tokenNameFallback = "__convexAuthJWT";
++    const refreshTokenNameFallback = "__convexAuthRefreshToken";
++    const verifierNameFallback = "__convexAuthOAuthVerifier";
++    function getValue(name, fallback) {
++        return responseCookies.get(name)?.value ?? (fallback ? responseCookies.get(fallback)?.value ?? null : null);
+     }
+-    const cookieOptions = getCookieOptions(isLocalhost, cookieConfig);
++    const cookieOptions = getCookieOptions(isLocalhost, cookieConfig, useSecure);
+     function setValue(name, value) {
+         if (value === null) {
+             // Only request cookies have a `size` property
+@@ -47,36 +51,41 @@ function getCookieStore(requestHeaders, responseCookies, cookieConfig) {
+             responseCookies.set(name, value, cookieOptions);
+         }
+     }
++    const readTokenName = tokenName;
++    const readRefreshName = refreshTokenName;
++    const readVerifierName = verifierName;
++    const tryFallback = !isLocalhost;
+     return {
+         get token() {
+-            return getValue(tokenName);
++            return getValue(readTokenName, tryFallback ? tokenNameFallback : null);
+         },
+         set token(value) {
+             setValue(tokenName, value);
+         },
+         get refreshToken() {
+-            return getValue(refreshTokenName);
++            return getValue(readRefreshName, tryFallback ? refreshTokenNameFallback : null);
+         },
+         set refreshToken(value) {
+             setValue(refreshTokenName, value);
+         },
+         get verifier() {
+-            return getValue(verifierName);
++            return getValue(readVerifierName, tryFallback ? verifierNameFallback : null);
+         },
+         set verifier(value) {
+             setValue(verifierName, value);
+         },
+     };
+ }
+-function getCookieOptions(isLocalhost, cookieConfig) {
++function getCookieOptions(isLocalhost, cookieConfig, useSecure) {
+     // Safari does not send headers with `secure: true` on http:// domains including localhost,
+-    // so set `secure: false` (https://codedamn.com/news/web-development/safari-cookie-is-not-being-set)
++    // so set `secure: false`. When cookieConfig.secure === false (e.g. app on HTTP), respect it.
++    const secure = useSecure !== undefined ? useSecure : (isLocalhost ? false : true);
+     return {
+-        secure: isLocalhost ? false : true,
++        secure,
+         httpOnly: true,
+         sameSite: "lax",
+         path: "/",
+-        maxAge: cookieConfig.maxAge ?? undefined,
++        maxAge: cookieConfig?.maxAge ?? undefined,
+     };
+ }
+ //# sourceMappingURL=cookies.js.map
+\ No newline at end of file

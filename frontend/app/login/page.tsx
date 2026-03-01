@@ -245,7 +245,12 @@ export default function LoginPage() {
                 )}
                 {!diagnostic.authenticated && (
                   <p className="font-sans text-amber-300/90 mt-2">
-                    If Request Host is not your app’s host (e.g. an internal IP or container name), the auth cookie may not match. Open the app using the exact URL from NEXT_PUBLIC_APP_URL and ensure your proxy sends X-Forwarded-Host.
+                    {diagnostic.requestHost && diagnostic.requestHost === (typeof window !== "undefined" ? window.location.host : "") ? (
+                      <>Host and origin match but the server still doesn’t see a session. On HTTP, the auth cookie must be set with <code className="text-xs">secure: false</code> (this repo applies a patch to <code className="text-xs">@convex-dev/auth</code> so that works). Redeploy the app so the patch is applied, then sign in again.
+                      </>
+                    ) : (
+                      <>If Request Host is not your app’s host (e.g. an internal IP or container name), the auth cookie may not match. Open the app using the exact URL from NEXT_PUBLIC_APP_URL and ensure your proxy sends X-Forwarded-Host.</>
+                    )}
                   </p>
                 )}
               </div>
