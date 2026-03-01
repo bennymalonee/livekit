@@ -142,11 +142,12 @@ npm run convex:auth:env -- --prod   # production
 
 Use **short-lived access tokens** for mobile or web clients; do not ship API keys in the app.
 
-1. **Convex env:** Set `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` in your Convex deployment (Settings → Environment variables).
-2. **Token generation:** Call the Convex action `livekit.generateToken` with `roomName` (and optional `participantName`, `ttlSeconds`). Your backend (e.g. a Convex HTTP action or a protected API route) should invoke this action and return the token to the client.
-3. **Client:** The mobile or web app receives the token and connects to `NEXT_PUBLIC_LIVEKIT_URL` (or your LiveKit server URL) using the LiveKit SDK; it never sees the API key or secret.
+1. **Convex env:** Set `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` in your Convex deployment (Settings → Environment variables). These are also used to **verify LiveKit webhook** requests (signature check on `/livekit-webhook`).
+2. **Token generation:** Call the Convex action `livekit.generateToken` with `roomName` (and optional `participantName`, `ttlSeconds`, `metadata`, `attributes`). The default TTL is 30 minutes for self-hosted; pass `ttlSeconds` (e.g. `3600`) to override. Your backend should invoke this action and return the token to the client.
+3. **Token refresh:** On self-hosted, tokens are not revoked when a participant is removed. Use short-lived tokens and have the client request a new token from your backend when reconnecting or when the token is about to expire (LiveKit SDKs can use token callbacks).
+4. **Client:** The mobile or web app receives the token and connects to `NEXT_PUBLIC_LIVEKIT_URL` (or your LiveKit server URL) using the LiveKit SDK; it never sees the API key or secret.
 
-See [docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md](docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md) for webhook and token details.
+See [docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md](docs/LIVEKIT-CONVEX-WEBHOOK-SETUP.md) for webhook verification and token details.
 
 ## Documentation
 

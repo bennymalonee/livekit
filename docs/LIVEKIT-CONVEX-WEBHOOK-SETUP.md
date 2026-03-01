@@ -2,7 +2,19 @@
 
 One-time setup so room/participant events feed **Sessions** and **livekit.generateToken** works.
 
-## 1. Convex env (for token generation) — do this manually
+## Webhook verification
+
+When **`LIVEKIT_API_KEY`** and **`LIVEKIT_API_SECRET`** are set in Convex, the `/livekit-webhook` handler verifies the request signature using LiveKit’s **WebhookReceiver** (signed JWT in the `Authorization` header). If verification fails, the request is rejected with 401. Without these env vars (e.g. local testing), the handler accepts the payload without verification.
+
+## Events handled
+
+| Event | Handled |
+|-------|--------|
+| `room_started`, `room_finished` | Yes — create/update session, set participant count and `endedAt` |
+| `participant_joined`, `participant_left` | Yes — update session participant count |
+| `participant_connection_aborted`, `track_published`, `track_unpublished`, `egress_started`, `egress_updated`, `egress_ended`, `ingress_started`, `ingress_ended` | No — acknowledged (200) but not persisted |
+
+## 1. Convex env (for token generation and webhook verification) — do this manually
 
 The Convex MCP cannot set **production** environment variables (safety). Set them in the dashboard:
 
@@ -42,4 +54,8 @@ Crons and HTTP routes (including `/livekit-webhook`) are included when you run `
 | **Coolify** LiveKit Stack app env | `LIVEKIT_WEBHOOK_URL` = `https://<your-deployment>.convex.site/livekit-webhook` |
 | **Redeploy** | LiveKit Stack in Coolify after adding `LIVEKIT_WEBHOOK_URL` |
 
-After this, Sessions will receive events from LiveKit, and you can call the **`livekit.generateToken`** Convex action (with `roomName`, optional `participantName`) to get tokens for “Join test room” or similar.
+After this, Sessions will receive events from LiveKit, and you can call the **`livekit.generateToken`** Convex action (with `roomName`, optional `participantName`, `ttlSeconds`, `metadata`, `attributes`) to get tokens for “Join test room” or similar.
+
+## Token TTL and refresh
+
+Tokens use a **30-minute default TTL** for self-hosted (token revocation is Cloud-only). Pass `ttlSeconds` to `generateToken` to override (e.g. `3600` for 1 hour in dev). Mobile and web clients should request a new token from your backend when reconnecting or before expiry; use the LiveKit SDK’s token refresh callback where supported.

@@ -1,7 +1,7 @@
 import { httpRouter } from "convex/server";
 import { auth } from "./auth";
 import { httpAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 const http = httpRouter();
 
@@ -41,26 +41,39 @@ http.route({
   handler: coolifyWebhook,
 });
 
-/** LiveKit webhook: room_started, room_finished, participant_joined, participant_left. */
+/** LiveKit webhook: room_started, room_finished, participant_joined, participant_left, etc. Verifies signature in Node action when LIVEKIT_API_KEY/SECRET are set. */
 const livekitWebhook = httpAction(async (ctx, request) => {
   if (request.method.toUpperCase() !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
-  let payload: { event?: string; room?: { name?: string; num_participants?: number }; num_participants?: number };
+
+  const rawBody = await request.text();
+  const authHeader = request.headers.get("Authorization") ?? request.headers.get("Authorize");
+
+  let eventName: string;
+  let roomName: string;
+  let participantCount: number | undefined;
+
   try {
-    payload = (await request.json()) as typeof payload;
-  } catch {
-    return new Response("Bad request", { status: 400 });
+    const result = await ctx.runAction(api.livekit.verifyWebhookPayload, {
+      body: rawBody,
+      authHeader: authHeader ?? null,
+    });
+    eventName = result.event;
+    roomName = result.roomName;
+    participantCount = result.participantCount;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message === "BAD_REQUEST") return new Response("Bad request", { status: 400 });
+    return new Response("Unauthorized", { status: 401 });
   }
-  const event = payload?.event ?? "";
-  const roomName = payload?.room?.name ?? payload?.room ?? "";
-  const participantCount = payload?.room?.num_participants ?? payload?.num_participants;
+
   const timestamp = Math.floor(Date.now() / 1000);
-  if (!roomName && event !== "room_finished") {
+  if (!roomName && eventName !== "room_finished") {
     return new Response("ok", { status: 200 });
   }
   await ctx.runMutation(internal.sessions_internal.ingestWebhookEvent, {
-    event,
+    event: eventName,
     roomName: String(roomName),
     participantCount: typeof participantCount === "number" ? participantCount : undefined,
     timestamp,

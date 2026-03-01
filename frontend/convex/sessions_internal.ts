@@ -3,7 +3,11 @@ import { internalMutation } from "./_generated/server";
 
 /**
  * Ingests LiveKit webhook events into sessions table.
- * Called from Convex HTTP action POST /livekit-webhook.
+ * Called from Convex HTTP action POST /livekit-webhook (after optional signature verification).
+ *
+ * Handled: room_started, room_finished, participant_joined, participant_left.
+ * Ignored (no persistence): participant_connection_aborted, track_published, track_unpublished,
+ * egress_started, egress_updated, egress_ended, ingress_started, ingress_ended.
  */
 export const ingestWebhookEvent = internalMutation({
   args: {

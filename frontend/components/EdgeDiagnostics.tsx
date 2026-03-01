@@ -11,6 +11,7 @@ const LIVEKIT_STACK_UUID = process.env.NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUI
 export function EdgeDiagnostics() {
   const nodes = useQuery(api.nodes.listNodes);
   const analytics = useQuery(api.analytics.getOverview);
+  const dashboardOverview = useQuery(api.dashboard.getOverview);
   const diagnosticsEvents = useQuery(api.diagnostics.listRecent, { limit: 30 });
   const getApplicationLogs = useAction(api.coolify.getApplicationLogs);
   const [coolifyLogs, setCoolifyLogs] = useState<{ dashboard?: string; livekit?: string }>({});
@@ -30,19 +31,19 @@ export function EdgeDiagnostics() {
   const activeNodes =
     nodes && nodes.length > 0
       ? nodes.filter((n) => n.status === "online").length
-      : null;
+      : 0;
+  const totalNodes = nodes?.length ?? 0;
 
-  const totalEgressTbps =
-    analytics && analytics.totalEgressGbps > 0
-      ? analytics.totalEgressGbps
-      : null;
+  const totalEgressGbps = analytics?.totalEgressGbps ?? 0;
+  const networkLoadLabel = analytics?.networkLoadLabel ?? "UNKNOWN";
 
-  const rawRegionBars =
+  // Only live region data from traffic metrics; no mock regions
+  const regionBars =
     analytics && analytics.regions.length > 0
-      ? analytics.regions.slice(0, 4).map((r) => {
+      ? analytics.regions.slice(0, 6).map((r) => {
           const maxGbps = Math.max(
-            ...analytics!.regions.slice(0, 4).map((x) => x.egressGbps),
-            1
+            ...analytics.regions.slice(0, 6).map((x) => x.egressGbps),
+            0.001
           );
           const pct = maxGbps > 0 ? (r.egressGbps / maxGbps) * 100 : 0;
           const w =
@@ -53,21 +54,7 @@ export function EdgeDiagnostics() {
             inactive: r.egressGbps <= 0,
           };
         })
-      : [
-          { label: "US-EAST-1", w: "w-3/4", inactive: false },
-          { label: "EU-WEST-1", w: "w-1/4", inactive: false },
-          { label: "AP-SOUTH-2", w: "w-0", inactive: true },
-          { label: "SA-EAST-1", w: "w-0", inactive: true },
-        ];
-
-  const regionBars = [
-    ...rawRegionBars,
-    ...Array.from({ length: Math.max(0, 4 - rawRegionBars.length) }, (_, i) => ({
-      label: `REGION-${rawRegionBars.length + i + 1}`,
-      w: "w-0" as const,
-      inactive: true,
-    })),
-  ];
+      : [];
 
   const quickLinks = [
     { path: "/dashboard", icon: "hub", label: "Dashboard" },
@@ -154,7 +141,10 @@ export function EdgeDiagnostics() {
                     Active Nodes
                   </p>
                   <p className="text-xl font-space-grotesk font-bold text-white">
-                    {activeNodes !== null ? activeNodes.toLocaleString() : "0"}
+                    {activeNodes.toLocaleString()}
+                    {totalNodes > 0 && (
+                      <span className="text-slate-500 text-sm font-normal ml-1">/ {totalNodes}</span>
+                    )}
                   </p>
                 </div>
                 <div className="border-l border-white/10 h-full" />
@@ -163,7 +153,7 @@ export function EdgeDiagnostics() {
                     Total Egress
                   </p>
                   <p className="text-xl font-space-grotesk font-bold text-dash-primary">
-                    {(totalEgressTbps ?? 0).toFixed(0)} GB/s
+                    {totalEgressGbps.toFixed(2)} GB/s
                   </p>
                 </div>
               </div>
@@ -254,46 +244,50 @@ export function EdgeDiagnostics() {
               </svg>
             </div>
             <div className="relative z-10 flex flex-col justify-center h-64 ml-auto w-48 space-y-12 mr-10">
-              {regionBars.map((r) => (
-                <div key={r.label} className="flex items-center gap-3">
-                  <div
-                    className={`w-8 h-3 rounded-full border relative overflow-hidden ${
-                      r.inactive ? "bg-white/5 border-white/10" : "bg-dash-primary/20 border-dash-primary/50"
-                    }`}
-                  >
-                    {!r.inactive && (
-                      <div
-                        className={`absolute inset-y-0 left-0 ${r.w} bg-dash-primary shadow-[0_0_15px_rgba(255,107,0,0.4)]`}
-                      />
-                    )}
+              {regionBars.length === 0 ? (
+                <p className="text-slate-500 text-xs uppercase tracking-widest">No region data</p>
+              ) : (
+                regionBars.map((r) => (
+                  <div key={r.label} className="flex items-center gap-3">
+                    <div
+                      className={`w-8 h-3 rounded-full border relative overflow-hidden ${
+                        r.inactive ? "bg-white/5 border-white/10" : "bg-dash-primary/20 border-dash-primary/50"
+                      }`}
+                    >
+                      {!r.inactive && (
+                        <div
+                          className={`absolute inset-y-0 left-0 ${r.w} bg-dash-primary shadow-[0_0_15px_rgba(255,107,0,0.4)]`}
+                        />
+                      )}
+                    </div>
+                    <span
+                      className={`text-[11px] font-bold ${r.inactive ? "text-slate-500" : "text-white"}`}
+                    >
+                      {r.label}
+                    </span>
                   </div>
-                  <span
-                    className={`text-[11px] font-bold ${r.inactive ? "text-slate-500" : "text-white"}`}
-                  >
-                    {r.label}
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <div className="absolute bottom-8 left-8 flex gap-12">
               <div>
                 <p className="text-white font-space-grotesk text-2xl font-bold">
-                  12<span className="text-xs ml-1 text-slate-400">MS</span>
+                  —<span className="text-xs ml-1 text-slate-400">MS</span>
                 </p>
                 <p className="text-[10px] text-slate-500 tracking-tighter uppercase">
-                  Avg Latency
+                  Avg Latency (N/A)
                 </p>
               </div>
               <div className="border-l border-white/10 pl-12">
                 <div className="flex items-center gap-2">
-                  <div className="w-12 h-6 flex items-end gap-[2px]">
-                    <div className="w-1 bg-dash-primary h-2" />
-                    <div className="w-1 bg-dash-primary h-4" />
-                    <div className="w-1 bg-dash-primary/40 h-3" />
-                    <div className="w-1 bg-dash-primary h-5" />
-                    <div className="w-1 bg-dash-primary h-3" />
-                  </div>
-                  <span className="text-white font-bold text-xs">STABLE</span>
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      totalNodes === 0 ? "bg-slate-500" : activeNodes === totalNodes ? "bg-emerald-500" : activeNodes > 0 ? "bg-amber-500 animate-pulse" : "bg-red-500/80"
+                    }`}
+                  />
+                  <span className={`font-bold text-xs ${totalNodes === 0 ? "text-slate-500" : activeNodes === totalNodes ? "text-emerald-400" : activeNodes > 0 ? "text-amber-400" : "text-red-400"}`}>
+                    {totalNodes === 0 ? "No nodes" : activeNodes === totalNodes ? "Stable" : activeNodes > 0 ? "Degraded" : "Offline"}
+                  </span>
                 </div>
                 <p className="text-[10px] text-slate-500 tracking-tighter uppercase mt-1">
                   Connectivity Status
@@ -303,20 +297,21 @@ export function EdgeDiagnostics() {
           </div>
 
           <div className="bg-[#16171B] border border-white/5 rounded-2xl overflow-hidden flex flex-col">
-            <div
-              className="relative flex-1 bg-cover bg-center min-h-[300px]"
-              style={{
-                backgroundImage: "url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1000')",
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-[#16171B] via-[#16171B]/40 to-transparent" />
+            <div className="relative flex-1 min-h-[300px] bg-gradient-to-b from-white/[0.03] to-transparent">
               <div className="relative p-8 pt-12">
                 <div className="bg-dash-primary/20 backdrop-blur-md border border-dash-primary/30 rounded px-2 py-1 inline-block mb-4">
                   <span className="text-[10px] font-bold text-dash-primary tracking-[0.2em] uppercase">
-                    Edge Unit X-01
+                    {nodes && nodes.length > 0 ? nodes[0].name : "No edge unit"}
                   </span>
                 </div>
-                <h2 className="font-space-grotesk text-5xl font-bold text-white">PROMETHEUS</h2>
+                <h2 className="font-space-grotesk text-5xl font-bold text-white">
+                  {nodes && nodes.length > 0 ? nodes[0].region.toUpperCase() : "—"}
+                </h2>
+                {nodes && nodes.length > 0 && (
+                  <p className="text-slate-500 text-sm mt-1">
+                    {nodes[0].activeRooms} active room{nodes[0].activeRooms !== 1 ? "s" : ""} · CPU {nodes[0].cpuLoad}%
+                  </p>
+                )}
               </div>
               <div className="absolute bottom-8 left-0 right-0 px-8 flex flex-col items-center">
                 <div className="w-32 h-32 relative flex items-center justify-center">
@@ -330,23 +325,25 @@ export function EdgeDiagnostics() {
                       strokeWidth={8}
                     />
                     <circle
-                      className="shadow-[0_0_15px_rgba(255,107,0,0.4)]"
+                      className={nodes?.[0]?.status === "online" ? "stroke-dash-primary shadow-[0_0_15px_rgba(255,107,0,0.4)]" : "stroke-slate-600"}
                       cx="64"
                       cy="64"
                       fill="transparent"
                       r="56"
-                      stroke="#FF6B00"
+                      stroke={nodes?.[0]?.status === "online" ? "#FF6B00" : "#475569"}
                       strokeDasharray="351.85"
-                      strokeDashoffset="88"
+                      strokeDashoffset={nodes?.[0]?.status === "online" ? "88" : "351.85"}
                       strokeLinecap="round"
                       strokeWidth={8}
                     />
                   </svg>
                   <div className="flex flex-col items-center justify-center bg-[#16171B]/80 w-24 h-24 rounded-full border border-white/10">
-                    <span className="material-icons-outlined text-dash-primary text-3xl">
+                    <span className={`material-icons-outlined text-3xl ${nodes && nodes[0] && nodes[0].status === "online" ? "text-dash-primary" : "text-slate-500"}`}>
                       power_settings_new
                     </span>
-                    <span className="text-[10px] font-bold text-white mt-1">ON</span>
+                    <span className="text-[10px] font-bold text-white mt-1">
+                      {nodes && nodes[0] ? (nodes[0].status === "online" ? "ON" : "OFF") : "—"}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-6 flex gap-4">
@@ -384,16 +381,29 @@ export function EdgeDiagnostics() {
                   Compute Mode
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-white font-bold">X-STREAM</span>
-                  <span className="material-icons-outlined text-dash-primary text-xs">bolt</span>
+                  <span className="text-slate-400 font-bold">—</span>
                 </div>
               </div>
               <div>
                 <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">
-                  Uptime
+                  Last heartbeat
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-white font-bold">142D 12H</span>
+                  <span className="text-white font-bold">
+                    {nodes && nodes.length > 0
+                      ? (() => {
+                          const latest = Math.max(...nodes.map((n) => n.lastHeartbeatAt));
+                          const ms = Date.now() - latest;
+                          const m = Math.floor(ms / 60000);
+                          const h = Math.floor(ms / 3600000);
+                          const d = Math.floor(ms / 86400000);
+                          if (m < 1) return "&lt;1m ago";
+                          if (h < 1) return `${m}m ago`;
+                          if (d < 1) return `${h}h ago`;
+                          return `${d}D ${h % 24}H ago`;
+                        })()
+                      : "—"}
+                  </span>
                   <span className="material-icons-outlined text-slate-500 text-xs">schedule</span>
                 </div>
               </div>
@@ -402,7 +412,11 @@ export function EdgeDiagnostics() {
                   Avg Load
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-white font-bold">42%</span>
+                  <span className="text-white font-bold">
+                    {nodes && nodes.length > 0
+                      ? `${Math.round(nodes.reduce((a, n) => a + n.cpuLoad, 0) / nodes.length)}%`
+                      : "—"}
+                  </span>
                   <span className="material-icons-outlined text-slate-500 text-xs">analytics</span>
                 </div>
               </div>
@@ -411,8 +425,7 @@ export function EdgeDiagnostics() {
                   Internal Temp
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="text-white font-bold">34°C</span>
-                  <span className="material-icons-outlined text-slate-500 text-xs">thermostat</span>
+                  <span className="text-slate-400 font-bold">—</span>
                 </div>
               </div>
             </div>
@@ -607,26 +620,36 @@ export function EdgeDiagnostics() {
                     className="stroke-current text-dash-primary shadow-[0_0_15px_rgba(255,107,0,0.4)]"
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     fill="none"
-                    strokeDasharray="85, 100"
+                    strokeDasharray={
+                      networkLoadLabel === "HIGH"
+                        ? "85 15"
+                        : networkLoadLabel === "MEDIUM"
+                          ? "50 50"
+                          : networkLoadLabel === "LOW"
+                            ? "25 75"
+                            : "0 100"
+                    }
                     strokeLinecap="round"
                     strokeWidth={3}
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-sm font-bold text-white">85%</span>
+                  <span className="text-sm font-bold text-white">
+                    {networkLoadLabel === "UNKNOWN" ? "—" : networkLoadLabel === "HIGH" ? "High" : networkLoadLabel === "MEDIUM" ? "Med" : "Low"}
+                  </span>
                 </div>
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-bold text-white uppercase tracking-tighter">
-                  Peak Bandwidth
+                  Total Egress
                 </p>
                 <p className="text-2xl font-space-grotesk font-bold text-dash-primary">
-                  1.2 Gbps
+                  {totalEgressGbps.toFixed(2)} GB/s
                 </p>
                 <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className={`w-1.5 h-1.5 rounded-full ${networkLoadLabel === "UNKNOWN" ? "bg-slate-500" : networkLoadLabel === "HIGH" ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                    Optimized
+                    {networkLoadLabel === "UNKNOWN" ? "No data" : networkLoadLabel}
                   </span>
                 </div>
               </div>
@@ -634,12 +657,9 @@ export function EdgeDiagnostics() {
             <div className="mt-8 bg-black/40 border border-white/5 rounded-lg p-3 flex justify-between items-center">
               <div className="flex flex-col">
                 <span className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">
-                  Flash Mode
+                  From traffic metrics
                 </span>
-                <span className="text-xs font-bold text-white">AUTO-OPTIMIZE</span>
-              </div>
-              <div className="w-12 h-6 bg-dash-primary rounded-full relative p-1 cursor-pointer">
-                <div className="w-4 h-4 bg-white rounded-full ml-auto" />
+                <span className="text-xs font-bold text-slate-400">Live</span>
               </div>
             </div>
           </div>
@@ -648,43 +668,50 @@ export function EdgeDiagnostics() {
             <div>
               <div className="flex justify-between items-center mb-6">
                 <h3 className="font-space-grotesk text-sm font-bold tracking-[0.2em] text-white/50 uppercase">
-                  CPU Core Load
+                  CPU / Node Load
                 </h3>
               </div>
               <div className="flex items-center justify-center py-4">
                 <div className="bg-white/5 rounded-2xl p-6 border border-white/10 w-full relative">
-                  <div className="grid grid-cols-4 gap-4">
-                    {[
-                      { h: "h-3/4", opacity: "bg-dash-primary/40" },
-                      { h: "h-full", opacity: "bg-dash-primary shadow-[0_0_15px_rgba(255,107,0,0.4)]" },
-                      { h: "h-1/2", opacity: "bg-dash-primary/20" },
-                      { h: "h-4/5", opacity: "bg-dash-primary/60" },
-                    ].map((bar, i) => (
-                      <div key={i} className="space-y-2">
-                        <div className="h-24 w-full bg-white/5 rounded flex items-end">
-                          <div
-                            className={`w-full ${bar.h} ${bar.opacity} rounded-b`}
-                          />
-                        </div>
-                        <p className="text-[8px] text-center text-slate-500 font-bold">
-                          C-{i + 1}
-                        </p>
+                  {nodes && nodes.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-4 gap-4">
+                        {nodes.slice(0, 4).map((node, i) => {
+                          const pct = Math.min(100, Math.max(0, node.cpuLoad));
+                          const h = pct >= 75 ? "h-3/4" : pct >= 50 ? "h-2/3" : pct >= 25 ? "h-1/2" : pct > 0 ? "h-1/4" : "h-0";
+                          return (
+                            <div key={node._id} className="space-y-2">
+                              <div className="h-24 w-full bg-white/5 rounded flex items-end">
+                                <div
+                                  className={`w-full ${h} bg-dash-primary/60 rounded-b ${node.status === "online" ? "shadow-[0_0_8px_rgba(255,107,0,0.3)]" : "opacity-50"}`}
+                                />
+                              </div>
+                              <p className="text-[8px] text-center text-slate-500 font-bold truncate" title={node.name}>
+                                {node.name}
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#16171B]/90 px-3 py-1 border border-dash-primary/40 rounded shadow-xl backdrop-blur-sm">
-                    <span className="text-xs font-bold text-dash-primary">78.4% AVG</span>
-                  </div>
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#16171B]/90 px-3 py-1 border border-dash-primary/40 rounded shadow-xl backdrop-blur-sm">
+                        <span className="text-xs font-bold text-dash-primary">
+                          {Math.round(nodes.slice(0, 4).reduce((a, n) => a + n.cpuLoad, 0) / Math.min(4, nodes.length))}% AVG
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-slate-500 text-sm py-8 text-center">No node data</p>
+                  )}
                 </div>
               </div>
             </div>
             <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold tracking-widest mt-4">
-              <span>DC 12V / AC 220V</span>
+              <span>From synced nodes</span>
               <Link
-                href="/terminal"
+                href="/nodes"
                 className="bg-white/5 hover:bg-white/10 px-3 py-1 rounded text-white border border-white/5 transition-all flex items-center gap-1"
               >
-                DETAILS <span className="material-icons-outlined text-xs">chevron_right</span>
+                NODES <span className="material-icons-outlined text-xs">chevron_right</span>
               </Link>
             </div>
           </div>
@@ -693,16 +720,33 @@ export function EdgeDiagnostics() {
         <div className="bg-[#16171B] border border-white/5 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  dashboardOverview == null
+                    ? "bg-slate-500"
+                    : (dashboardOverview.systemHealthPercent ?? 0) >= 100
+                      ? "bg-emerald-500"
+                      : (dashboardOverview.systemHealthPercent ?? 0) > 0
+                        ? "bg-amber-500"
+                        : "bg-red-500/80"
+                }`}
+              />
               <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">
-                Global Mesh Health: Optimal
+                Global Mesh Health:{" "}
+                {dashboardOverview == null
+                  ? "—"
+                  : (dashboardOverview.systemHealthPercent ?? 0) >= 100
+                    ? "Optimal"
+                    : (dashboardOverview.systemHealthPercent ?? 0) > 0
+                      ? "Degraded"
+                      : "Offline"}
               </span>
             </div>
             <div className="h-4 w-px bg-white/10 hidden sm:block" />
             <div className="flex items-center gap-2">
               <span className="material-icons-outlined text-slate-500 text-sm">storage</span>
               <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">
-                Primary DB: Synced
+                Primary DB: {nodes !== undefined || analytics !== undefined ? "Synced" : "—"}
               </span>
             </div>
           </div>
