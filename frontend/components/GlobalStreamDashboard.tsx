@@ -11,6 +11,7 @@ export function GlobalStreamDashboard() {
   const overview = useQuery(api.dashboard.getOverview);
   const sessionTotals = useQuery(api.sessions.getTotals);
   const analyticsOverview = useQuery(api.analytics.getOverview);
+  const nodes = useQuery(api.nodes.listNodes);
 
   const streamRegions =
     analyticsOverview?.regions?.slice(0, 4).map((r) => ({
@@ -18,6 +19,13 @@ export function GlobalStreamDashboard() {
       egressGbps: r.egressGbps,
       active: r.egressGbps > 0,
     })) ?? [];
+
+  const capacityPercent =
+    nodes != null && nodes.length > 0
+      ? Math.round(
+          nodes.reduce((sum, n) => sum + n.memoryLoad, 0) / nodes.length
+        )
+      : null;
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
@@ -52,13 +60,21 @@ export function GlobalStreamDashboard() {
           >
             <span className="material-icons-round">dark_mode</span>
           </button>
-          <div className="flex items-center gap-2 bg-slate-200 dark:bg-slate-800 p-1 px-2 rounded-full">
+          <Link
+            href="/terminal"
+            className="flex items-center gap-2 bg-slate-200 dark:bg-slate-800 p-1 px-2 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+            aria-label="View logs and notifications"
+          >
             <span className="material-icons-round text-sm">notifications</span>
             <div className="w-2 h-2 bg-dash-primary rounded-full" />
-          </div>
-          <div className="w-10 h-10 rounded-full bg-slate-300 dark:bg-slate-700 overflow-hidden border-2 border-dash-primary/20 flex items-center justify-center">
+          </Link>
+          <Link
+            href="/vault"
+            className="w-10 h-10 rounded-full bg-slate-300 dark:bg-slate-700 overflow-hidden border-2 border-dash-primary/20 flex items-center justify-center hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors"
+            aria-label="Account and keys"
+          >
             <span className="material-icons-round text-slate-500">person</span>
-          </div>
+          </Link>
           <button
             type="button"
             onClick={() => void signOut()}
@@ -104,9 +120,6 @@ export function GlobalStreamDashboard() {
               <span className="text-3xl font-bold">
                 {overview ? overview.totalProjects.toLocaleString() : "—"}
               </span>
-              <span className="text-emerald-500 text-sm font-medium mb-1 flex items-center">
-                <span className="material-icons-round text-sm">trending_up</span> +12%
-              </span>
             </div>
           </div>
           <div className="bg-card-light dark:bg-card-dark p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -116,9 +129,6 @@ export function GlobalStreamDashboard() {
             <div className="flex items-end gap-3">
               <span className="text-3xl font-bold">
                 {overview ? overview.concurrentUsers.toLocaleString() : "—"}
-              </span>
-              <span className="text-emerald-500 text-sm font-medium mb-1 flex items-center">
-                <span className="material-icons-round text-sm">trending_up</span> +5.4%
               </span>
             </div>
           </div>
@@ -266,9 +276,9 @@ export function GlobalStreamDashboard() {
                 </div>
               </div>
               <div className="mt-20 flex gap-12 items-center">
-                <div>
+                <div title="Latency from LiveKit when available">
                   <p className="text-3xl font-bold">
-                    18 <span className="text-sm font-normal text-slate-500">MS</span>
+                    — <span className="text-sm font-normal text-slate-500">MS</span>
                   </p>
                   <p className="text-[10px] font-bold text-slate-400 tracking-wider">
                     NETWORK LATENCY
@@ -276,11 +286,25 @@ export function GlobalStreamDashboard() {
                 </div>
                 <div>
                   <div className="flex items-end gap-1 h-10">
-                    <div className="w-1 bg-slate-300 dark:bg-slate-700 h-2 rounded-full" />
-                    <div className="w-1 bg-dash-primary h-6 rounded-full" />
-                    <div className="w-1 bg-dash-primary h-4 rounded-full" />
-                    <div className="w-1 bg-dash-primary h-8 rounded-full" />
-                    <div className="w-1 bg-slate-300 dark:bg-slate-700 h-3 rounded-full" />
+                    {(() => {
+                      const values =
+                        analyticsOverview?.regions?.slice(0, 5).map((r) => r.egressGbps) ?? [];
+                      const max = Math.max(1, ...values);
+                      const heights = Array.from({ length: 5 }, (_, i) =>
+                        values[i] != null ? (values[i] / max) * 8 + 2 : 2
+                      );
+                      return heights.map((h, i) => (
+                        <div
+                          key={i}
+                          className={`w-1 rounded-full ${
+                            values[i] != null && values[i] > 0
+                              ? "bg-dash-primary"
+                              : "bg-slate-300 dark:bg-slate-700"
+                          }`}
+                          style={{ height: `${h}px` }}
+                        />
+                      ));
+                    })()}
                   </div>
                   <p className="text-[10px] font-bold text-slate-400 tracking-wider mt-1 uppercase">
                     Traffic Load
@@ -307,29 +331,41 @@ export function GlobalStreamDashboard() {
                   <div>
                     <p className="text-slate-400 mb-1">Uptime</p>
                     <p className="font-bold flex items-center gap-1">
-                      342D 12H{" "}
+                      {analyticsOverview != null && analyticsOverview.uptimeHours > 0
+                        ? analyticsOverview.uptimeHours >= 24
+                          ? "1 D"
+                          : `${analyticsOverview.uptimeHours} H`
+                        : "—"}{" "}
                       <span className="material-icons-round text-[10px]">schedule</span>
                     </p>
                   </div>
                   <div>
                     <p className="text-slate-400 mb-1">Frequency</p>
-                    <p className="font-bold flex items-center gap-1">
+                    <p className="font-bold flex items-center gap-1" title="Config in LiveKit">
                       60 HZ{" "}
                       <span className="material-icons-round text-[10px]">sensors</span>
                     </p>
                   </div>
                   <div>
                     <p className="text-slate-400 mb-1">Temp</p>
-                    <p className="font-bold flex items-center gap-1">
-                      42°C{" "}
+                    <p className="font-bold flex items-center gap-1" title="Hardware metric when available">
+                      —{" "}
                       <span className="material-icons-round text-[10px]">thermostat</span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 mb-1">Sessions (24h)</p>
+                    <p className="font-bold flex items-center gap-1">
+                      {sessionTotals != null ? sessionTotals.totalSessions.toLocaleString() : "—"}
                     </p>
                   </div>
                 </div>
               </div>
               <div className="bg-card-light dark:bg-card-dark p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between">
                 <div className="relative z-10">
-                  <p className="text-[10px] font-mono font-bold text-slate-400">Ω 15 | 1w</p>
+                  <p className="text-[10px] font-mono font-bold text-slate-400">
+                    {analyticsOverview?.networkLoadLabel ?? "UNKNOWN"} LOAD
+                  </p>
                 </div>
                 <div className="flex items-center justify-center my-4">
                   <div className="relative">
@@ -344,20 +380,38 @@ export function GlobalStreamDashboard() {
                 <div className="flex justify-between items-center z-10">
                   <p className="text-[10px] font-bold text-slate-400">FIBER LINK</p>
                   <div className="flex items-center gap-2 bg-slate-200 dark:bg-slate-800 px-3 py-1 rounded-full">
-                    <span className="text-[10px] font-bold">ON</span>
-                    <div className="w-4 h-2 bg-dash-primary rounded-full" />
+                    <span className="text-[10px] font-bold">
+                      {(overview?.activeNodes ?? 0) > 0 || streamRegions.length > 0 ? "ON" : "OFF"}
+                    </span>
+                    <div
+                      className={`w-4 h-2 rounded-full ${
+                        (overview?.activeNodes ?? 0) > 0 || streamRegions.length > 0
+                          ? "bg-dash-primary"
+                          : "bg-slate-400 dark:bg-slate-600"
+                      }`}
+                    />
                   </div>
                 </div>
               </div>
               <div className="bg-card-light dark:bg-card-dark p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
                 <div className="bg-slate-50 dark:bg-[#12151a] rounded-xl p-4 border border-slate-200 dark:border-slate-800 text-center">
-                  <p className="text-4xl font-mono font-bold">23.8</p>
+                  <p className="text-4xl font-mono font-bold">
+                    {analyticsOverview != null && analyticsOverview.totalEgressGbps > 0
+                      ? analyticsOverview.totalEgressGbps.toFixed(1)
+                      : "—"}
+                  </p>
                   <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">
                     Throughput Gbit/s
                   </p>
                 </div>
                 <div className="flex items-center justify-between text-[10px] font-bold mt-4">
-                  <p>TX 23.8G / RX 14G</p>
+                  <p>
+                    TX{" "}
+                    {analyticsOverview != null && analyticsOverview.totalEgressGbps > 0
+                      ? `${analyticsOverview.totalEgressGbps.toFixed(1)}G`
+                      : "—"}{" "}
+                    / <span title="Ingress not tracked">RX —</span>
+                  </p>
                   <Link href="/analytics" className="text-dash-primary hover:underline">
                     DETAILS
                   </Link>
@@ -429,7 +483,10 @@ export function GlobalStreamDashboard() {
                   <h3 className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-8">
                     Capacity Utilization
                   </h3>
-                  <div className="relative flex items-center justify-center">
+                  <div
+                    className="relative flex items-center justify-center"
+                    title={capacityPercent == null ? "Add nodes in Coolify" : undefined}
+                  >
                     <svg className="w-64 h-32" viewBox="0 0 200 100">
                       <path
                         className="text-slate-200 dark:text-slate-800"
@@ -441,16 +498,24 @@ export function GlobalStreamDashboard() {
                       />
                       <path
                         className="text-dash-primary"
-                        d="M 20 100 A 80 80 0 0 1 140 35"
+                        d="M 20 100 A 80 80 0 0 1 180 100"
                         fill="none"
                         stroke="currentColor"
                         strokeLinecap="round"
                         strokeWidth={12}
+                        strokeDasharray="126"
+                        strokeDashoffset={
+                          capacityPercent != null
+                            ? 126 * (1 - capacityPercent / 100)
+                            : 126
+                        }
                       />
                     </svg>
                     <div className="absolute bottom-0 text-center">
                       <span className="material-icons-round text-dash-primary mb-1">memory</span>
-                      <p className="text-4xl font-bold font-mono">74%</p>
+                      <p className="text-4xl font-bold font-mono">
+                        {capacityPercent != null ? `${capacityPercent}%` : "—"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex justify-between mt-2 text-[10px] font-bold text-slate-400 px-12">
@@ -459,11 +524,11 @@ export function GlobalStreamDashboard() {
                   </div>
                 </div>
                 <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-4">
-                  <div>
+                  <div title="Hardware metrics when available">
                     <p className="text-[10px] font-bold text-slate-400 uppercase">Power Draw</p>
                     <p className="font-mono text-sm">5A / 220V</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right" title="Hardware metrics when available">
                     <p className="text-[10px] font-bold text-slate-400 uppercase">Input Stream</p>
                     <p className="font-mono text-sm">200 KWH</p>
                   </div>
