@@ -9,6 +9,18 @@ import type { CoolifyApplication } from "@/convex/coolify";
 const LIVEKIT_STACK_UUID = process.env.NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID ?? "";
 const DASHBOARD_APP_UUID = process.env.NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID ?? "";
 
+const DEPLOY_QUICK_LINKS = [
+  { path: "/dashboard", icon: "hub", label: "Dashboard" },
+  { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
+  { path: "/nodes", icon: "dns", label: "Nodes" },
+  { path: "/sessions", icon: "sensors", label: "Sessions" },
+  { path: "/analytics", icon: "bar_chart", label: "Analytics" },
+  { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
+  { path: "/modules", icon: "view_module", label: "Modules" },
+  { path: "/vault", icon: "shield", label: "Vault" },
+  { path: "/terminal", icon: "terminal", label: "Terminal" },
+];
+
 export default function DeployPage() {
   const deployments = useQuery(api.deployments.listByUser);
   const deploySettings = useQuery(api.settings.getDeploySettings);
@@ -118,32 +130,20 @@ export default function DeployPage() {
     fetchCoolifyApps();
   }, [fetchCoolifyApps]);
 
-  const quickLinks = [
-    { path: "/dashboard", icon: "hub", label: "Dashboard" },
-    { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
-    { path: "/nodes", icon: "dns", label: "Nodes" },
-    { path: "/sessions", icon: "sensors", label: "Sessions" },
-    { path: "/analytics", icon: "bar_chart", label: "Analytics" },
-    { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
-    { path: "/modules", icon: "view_module", label: "Modules" },
-    { path: "/vault", icon: "shield", label: "Vault" },
-    { path: "/terminal", icon: "terminal", label: "Terminal" },
-  ];
-
   return (
     <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
       <nav className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-zinc-800 bg-zinc-900/50">
         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mr-2">
           Quick links
         </span>
-        {quickLinks.map(({ path, icon, label }) => (
+        {DEPLOY_QUICK_LINKS.map((link) => (
           <Link
-            key={path}
-            href={path}
+            key={link.path}
+            href={link.path}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 text-xs font-medium transition-colors"
           >
-            <span className="material-icons-round text-base">{icon}</span>
-            {label}
+            <span className="material-icons-round text-base">{link.icon}</span>
+            {link.label}
           </Link>
         ))}
       </nav>
@@ -354,7 +354,6 @@ export default function DeployPage() {
             )}
           </div>
         </div>
-      </div>
       </div>
     </main>
   );

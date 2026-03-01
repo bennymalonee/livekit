@@ -8,6 +8,18 @@ import { api } from "@/convex/_generated/api";
 const DASHBOARD_APP_UUID = process.env.NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID ?? "";
 const LIVEKIT_STACK_UUID = process.env.NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUID ?? "";
 
+const VAULT_QUICK_LINKS = [
+  { path: "/dashboard", icon: "hub", label: "Dashboard" },
+  { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
+  { path: "/nodes", icon: "dns", label: "Nodes" },
+  { path: "/sessions", icon: "sensors", label: "Sessions" },
+  { path: "/analytics", icon: "bar_chart", label: "Analytics" },
+  { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
+  { path: "/modules", icon: "view_module", label: "Modules" },
+  { path: "/vault", icon: "shield", label: "Vault" },
+  { path: "/terminal", icon: "terminal", label: "Terminal" },
+];
+
 export function VaultKeyManagement() {
   const keys = useQuery(api.vault.listKeys);
   const createKey = useMutation(api.vault.createKey);
@@ -46,32 +58,20 @@ export function VaultKeyManagement() {
 
   const totalKeys = keys?.length ?? 0;
 
-  const quickLinks = [
-    { path: "/dashboard", icon: "hub", label: "Dashboard" },
-    { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
-    { path: "/nodes", icon: "dns", label: "Nodes" },
-    { path: "/sessions", icon: "sensors", label: "Sessions" },
-    { path: "/analytics", icon: "bar_chart", label: "Analytics" },
-    { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
-    { path: "/modules", icon: "view_module", label: "Modules" },
-    { path: "/vault", icon: "shield", label: "Vault" },
-    { path: "/terminal", icon: "terminal", label: "Terminal" },
-  ];
-
   return (
     <div className="bg-background-light dark:bg-[#0A0B0D] text-slate-800 dark:text-slate-200 min-h-screen font-sans flex flex-col">
       <nav className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-white/10 bg-white/5">
         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-2">
           Quick links
         </span>
-        {quickLinks.map(({ path, icon, label }) => (
+        {VAULT_QUICK_LINKS.map((link) => (
           <Link
-            key={path}
-            href={path}
+            key={link.path}
+            href={link.path}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white text-xs font-medium transition-colors"
           >
-            <span className="material-icons-round text-base">{icon}</span>
-            {label}
+            <span className="material-icons-round text-base">{link.icon}</span>
+            {link.label}
           </Link>
         ))}
       </nav>
@@ -572,7 +572,6 @@ export function VaultKeyManagement() {
             </div>
           </div>
         </main>
-      </div>
       </div>
     </div>
   );
