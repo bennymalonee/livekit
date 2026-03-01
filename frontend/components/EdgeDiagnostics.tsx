@@ -10,7 +10,7 @@ const LIVEKIT_STACK_UUID = process.env.NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUI
 
 export function EdgeDiagnostics() {
   const nodes = useQuery(api.nodes.listNodes);
-  const analytics = useQuery(api.analytics.getOverview);
+  const analytics = useQuery(api.analytics.getOverview, {});
   const dashboardOverview = useQuery(api.dashboard.getOverview);
   const diagnosticsEvents = useQuery(api.diagnostics.listRecent, { limit: 30 });
   const getApplicationLogs = useAction(api.coolify.getApplicationLogs);

@@ -29,7 +29,7 @@ export function AuditLogView() {
         (e.details ?? "").replace(/"/g, '""'),
       ]
     );
-    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
+    const csv = [headers.join(","), ...rows.map((r: string[]) => r.map((c: string) => `"${c}"`).join(","))].join("\n");
     downloadCsv(csv, `audit-log-${new Date().toISOString().slice(0, 10)}.csv`);
   }
 

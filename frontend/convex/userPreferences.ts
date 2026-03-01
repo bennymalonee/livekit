@@ -33,6 +33,7 @@ export const setPreferences = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
     const userId = getUserIdFromIdentity(identity);
     const now = Date.now();
     const prefs = await ctx.db

@@ -26,7 +26,7 @@ export function SessionMonitor() {
     sinceMs: timeRange ?? 24 * 60 * 60 * 1000,
   });
   const nodes = useQuery(api.nodes.listNodes);
-  const analyticsOverview = useQuery(api.analytics.getOverview);
+  const analyticsOverview = useQuery(api.analytics.getOverview, {});
 
   const activeNodesCount =
     nodes && nodes.length > 0

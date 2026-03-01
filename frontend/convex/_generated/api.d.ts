@@ -32,11 +32,13 @@ import type * as nodes_internal from "../nodes_internal.js";
 import type * as organizations from "../organizations.js";
 import type * as rateLimit_internal from "../rateLimit_internal.js";
 import type * as rbac from "../rbac.js";
+import type * as runbooks from "../runbooks.js";
 import type * as sessions from "../sessions.js";
 import type * as sessions_internal from "../sessions_internal.js";
 import type * as settings from "../settings.js";
 import type * as terminal from "../terminal.js";
 import type * as tokenGenerations from "../tokenGenerations.js";
+import type * as userPreferences from "../userPreferences.js";
 import type * as vault from "../vault.js";
 
 import type {
@@ -70,11 +72,13 @@ declare const fullApi: ApiFromModules<{
   organizations: typeof organizations;
   rateLimit_internal: typeof rateLimit_internal;
   rbac: typeof rbac;
+  runbooks: typeof runbooks;
   sessions: typeof sessions;
   sessions_internal: typeof sessions_internal;
   settings: typeof settings;
   terminal: typeof terminal;
   tokenGenerations: typeof tokenGenerations;
+  userPreferences: typeof userPreferences;
   vault: typeof vault;
 }>;
 

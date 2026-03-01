@@ -16,7 +16,7 @@ function downloadCsv(content: string, filename: string) {
 }
 
 export function TrafficAnalytics() {
-  const analytics = useQuery(api.analytics.getOverview);
+  const analytics = useQuery(api.analytics.getOverview, {});
   const nodes = useQuery(api.nodes.listNodes);
 
   function exportCsv() {
@@ -33,7 +33,7 @@ export function TrafficAnalytics() {
     if (rows.length === 0) {
       rows.push(["—", "0", totalEgress.toFixed(2), analytics.networkLoadLabel, String(analytics.uptimeHours)]);
     }
-    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
+    const csv = [headers.join(","), ...rows.map((r: string[]) => r.map((c: string) => `"${c}"`).join(","))].join("\n");
     downloadCsv(csv, `analytics-${new Date().toISOString().slice(0, 10)}.csv`);
   }
 

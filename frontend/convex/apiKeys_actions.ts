@@ -74,7 +74,7 @@ export function hasScope(scopes: string[], required: string): boolean {
 /** List nodes via API key. Requires nodes:list (or *) scope. For use from Convex HTTP routes. */
 export const listNodesWithApiKey = action({
   args: { rawKey: v.string() },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ allowed: boolean; nodes: unknown }> => {
     const result = await ctx.runAction(api.apiKeys_actions.validateApiKey, { rawKey: args.rawKey });
     if (!result) return { allowed: false, nodes: null };
     if (!hasScope(result.scopes, "nodes:list")) return { allowed: false, nodes: null };
@@ -90,7 +90,7 @@ export const listSessionsWithApiKey = action({
     roomName: v.optional(v.string()),
     sinceMs: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ allowed: boolean; sessions: unknown }> => {
     const result = await ctx.runAction(api.apiKeys_actions.validateApiKey, { rawKey: args.rawKey });
     if (!result) return { allowed: false, sessions: null };
     if (!hasScope(result.scopes, "sessions:list")) return { allowed: false, sessions: null };
@@ -108,7 +108,7 @@ export const getAnalyticsWithApiKey = action({
     rawKey: v.string(),
     sinceMs: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ allowed: boolean; analytics: unknown }> => {
     const result = await ctx.runAction(api.apiKeys_actions.validateApiKey, { rawKey: args.rawKey });
     if (!result) return { allowed: false, analytics: null };
     if (!hasScope(result.scopes, "analytics:read")) return { allowed: false, analytics: null };

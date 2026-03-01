@@ -9,7 +9,7 @@ import type { CoolifyApplication } from "@/convex/coolify";
 export function ProjectInfrastructureModules() {
   const nodes = useQuery(api.nodes.listNodes);
   const dashboard = useQuery(api.dashboard.getOverview);
-  const analytics = useQuery(api.analytics.getOverview);
+  const analytics = useQuery(api.analytics.getOverview, {});
   const modules = useQuery(api.modules.listModules);
   const setModuleEnabled = useMutation(api.modules.setModuleEnabled);
   const seedModules = useMutation(api.modules.seedModules);
@@ -42,7 +42,7 @@ export function ProjectInfrastructureModules() {
       : null;
 
   const healthIndex =
-    dashboard && dashboard.systemHealthPercent > 0
+    dashboard && dashboard.systemHealthPercent != null && dashboard.systemHealthPercent > 0
       ? dashboard.systemHealthPercent
       : null;
 

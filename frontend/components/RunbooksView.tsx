@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
 
 export function RunbooksView() {
@@ -92,7 +92,7 @@ export function RunbooksView() {
           <p className="text-slate-500">No runbooks yet. Create one above.</p>
         ) : (
           <ul className="space-y-4">
-            {runbooks.map((rb) => (
+            {runbooks.map((rb: Doc<"runbooks">) => (
               <li
                 key={rb._id}
                 className="rounded-lg border border-slate-800 bg-slate-900/50 overflow-hidden"
