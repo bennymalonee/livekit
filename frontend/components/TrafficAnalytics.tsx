@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 export function TrafficAnalytics() {
   const analytics = useQuery(api.analytics.getOverview);
+  const nodes = useQuery(api.nodes.listNodes);
   const seedDemoMetrics = useMutation(api.analytics.seedDemoMetrics);
   const [seeding, setSeeding] = useState(false);
 
@@ -14,15 +16,48 @@ export function TrafficAnalytics() {
   }, []);
 
   const totalEgressLabel = analytics
-    ? `${analytics.totalEgressGbps.toFixed(0)} GBPS`
+    ? `${analytics.totalEgressGbps.toFixed(1)} GBPS`
     : "0 GBPS";
 
   const regions =
     analytics && analytics.regions.length > 0 ? analytics.regions : [];
   const hasData = regions.length > 0;
 
+  const capacityPercent =
+    nodes != null && nodes.length > 0
+      ? Math.round(
+          nodes.reduce((sum, n) => sum + n.memoryLoad, 0) / nodes.length
+        )
+      : null;
+
   return (
-    <div className="bg-background-light dark:bg-[#0F172A] min-h-screen p-4 md:p-8 font-sans pt-6 pl-16 sm:pl-20">
+    <div className="bg-background-light dark:bg-[#0F172A] min-h-screen flex flex-col font-sans">
+      <nav className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-white/5 dark:bg-slate-900/50">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mr-2">
+          Quick links
+        </span>
+        {[
+          { path: "/dashboard", icon: "hub", label: "Dashboard" },
+          { path: "/deploy", icon: "rocket_launch", label: "Deploy" },
+          { path: "/nodes", icon: "dns", label: "Nodes" },
+          { path: "/sessions", icon: "sensors", label: "Sessions" },
+          { path: "/diagnostics", icon: "bolt", label: "Diagnostics" },
+          { path: "/modules", icon: "view_module", label: "Modules" },
+          { path: "/vault", icon: "shield", label: "Vault" },
+          { path: "/terminal", icon: "terminal", label: "Terminal" },
+        ].map(({ path, icon, label }) => (
+          <Link
+            key={path}
+            href={path}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white text-xs font-medium transition-colors"
+          >
+            <span className="material-icons-round text-base">{icon}</span>
+            {label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="flex-1 p-4 md:p-8 pt-6 pl-4 sm:pl-6">
       <div className="max-w-[1440px] mx-auto space-y-6">
         <header className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
@@ -30,26 +65,28 @@ export function TrafficAnalytics() {
               <span className="material-icons-outlined text-white text-xl">bolt</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tighter font-mono dark:text-white text-slate-900 uppercase">
-              Phoenix
+              Analytics
             </h1>
           </div>
           <span className="hidden md:inline text-slate-400 font-mono text-xs tracking-widest uppercase">
-            Statistics
+            Traffic &amp; throughput
           </span>
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              className="p-2 rounded-full glass-panel dark:text-slate-400 text-slate-600 hover:text-primary"
+            <Link
+              href="/modules"
+              className="p-2 rounded-full glass-panel dark:text-slate-400 text-slate-600 hover:text-primary transition-colors"
+              aria-label="Modules"
             >
               <span className="material-icons-outlined">apps</span>
-            </button>
-            <button
-              type="button"
-              className="p-2 rounded-full glass-panel dark:text-slate-400 text-slate-600 hover:text-primary relative"
+            </Link>
+            <Link
+              href="/terminal"
+              className="p-2 rounded-full glass-panel dark:text-slate-400 text-slate-600 hover:text-primary relative transition-colors"
+              aria-label="Logs and notifications"
             >
               <span className="material-icons-outlined">notifications</span>
               <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
-            </button>
+            </Link>
           </div>
         </header>
 
@@ -171,16 +208,22 @@ export function TrafficAnalytics() {
                   )}
                 </div>
             </div>
-            <div className="mt-8 flex gap-12 items-end">
+            <div className="mt-8 flex gap-12 items-end flex-wrap">
               <div>
                 <p className="font-mono text-3xl dark:text-white text-slate-900">
-                  {analytics ? analytics.uptimeHours : 24}
+                  {analytics ? analytics.uptimeHours : 0}
                   <span className="text-sm font-normal text-slate-500 ml-1">HRS</span>
                 </p>
                 <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-1">
                   Uptime Duration
                 </p>
               </div>
+              <Link
+                href="/dashboard"
+                className="text-primary hover:underline font-mono text-xs uppercase tracking-widest"
+              >
+                View dashboard →
+              </Link>
               <div>
                 <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-1">
                   Network Load
@@ -240,9 +283,12 @@ export function TrafficAnalytics() {
             <div className="flex-1 p-8 flex flex-col justify-center space-y-8">
               <div className="text-center">
                 <h4 className="text-[11px] font-mono text-slate-500 uppercase tracking-[0.2em] mb-4">
-                  Ingress Load Capacity
+                  Capacity (nodes)
                 </h4>
-                <div className="relative w-48 h-24 mx-auto">
+                <div
+                  className="relative w-48 h-24 mx-auto"
+                  title={capacityPercent == null ? "Add nodes in Coolify" : undefined}
+                >
                   <svg className="w-full h-full" viewBox="0 0 100 50">
                     <path
                       d="M 10 45 A 40 40 0 0 1 90 45"
@@ -253,18 +299,26 @@ export function TrafficAnalytics() {
                     />
                     <path
                       className="glow-orange"
-                      d="M 10 45 A 40 40 0 0 1 70 15"
+                      d="M 10 45 A 40 40 0 0 1 90 45"
                       fill="none"
                       stroke="#F97316"
                       strokeLinecap="round"
                       strokeWidth={6}
+                      strokeDasharray="126"
+                      strokeDashoffset={
+                        capacityPercent != null
+                          ? 126 * (1 - capacityPercent / 100)
+                          : 126
+                      }
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-end">
                     <span className="material-icons-outlined text-primary text-xs mb-1">
                       flash_on
                     </span>
-                    <span className="text-3xl font-bold font-mono dark:text-white">74%</span>
+                    <span className="text-3xl font-bold font-mono dark:text-white">
+                      {capacityPercent != null ? `${capacityPercent}%` : "—"}
+                    </span>
                   </div>
                 </div>
                 <div className="flex justify-between px-8 mt-2 text-[10px] font-mono text-slate-500">
@@ -273,11 +327,11 @@ export function TrafficAnalytics() {
                 </div>
               </div>
               <div className="flex justify-between items-center text-[11px] font-mono">
-                <div className="flex flex-col">
+                <div className="flex flex-col" title="Hardware metrics when available">
                   <span className="text-slate-500 uppercase">Power Output</span>
                   <span className="dark:text-white font-bold">5A / 220V</span>
                 </div>
-                <div className="flex flex-col text-right">
+                <div className="flex flex-col text-right" title="Hardware metrics when available">
                   <span className="text-slate-500 uppercase">Input Throughput</span>
                   <span className="dark:text-white font-bold">200 KWH</span>
                 </div>
@@ -285,6 +339,7 @@ export function TrafficAnalytics() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
