@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { CoolifyApplication } from "@/convex/coolify";
 
 export function ProjectInfrastructureModules() {
+  const router = useRouter();
   const nodes = useQuery(api.nodes.listNodes);
+  const myRole = useQuery(api.rbac.getMyRole);
   const dashboard = useQuery(api.dashboard.getOverview);
   const analytics = useQuery(api.analytics.getOverview, {});
   const modules = useQuery(api.modules.listModules);
@@ -15,6 +18,7 @@ export function ProjectInfrastructureModules() {
   const seedModules = useMutation(api.modules.seedModules);
   const listCoolifyApps = useAction(api.coolify.listApplications);
   const [seeding, setSeeding] = useState(false);
+  const [togglingKey, setTogglingKey] = useState<string | null>(null);
   const [coolifyApps, setCoolifyApps] = useState<CoolifyApplication[] | null>(null);
 
   const fetchCoolifyApps = useCallback(() => {
@@ -31,20 +35,24 @@ export function ProjectInfrastructureModules() {
     document.documentElement.classList.add("dark");
   }, []);
 
+  const totalNodes = nodes?.length ?? 0;
   const activeNodes =
     nodes && nodes.length > 0
       ? nodes.filter((n: { status: string }) => n.status === "online").length
-      : null;
+      : 0;
 
-  const totalThroughputTbps =
-    analytics && analytics.totalEgressGbps > 0
+  const totalThroughputGbps =
+    analytics && typeof analytics.totalEgressGbps === "number"
       ? analytics.totalEgressGbps
       : null;
 
   const healthIndex =
-    dashboard && dashboard.systemHealthPercent != null && dashboard.systemHealthPercent > 0
+    dashboard && dashboard.systemHealthPercent != null
       ? dashboard.systemHealthPercent
       : null;
+
+  const isAdmin = myRole === "admin";
+  const canEditModules = isAdmin;
 
   const quickLinks = [
     { path: "/dashboard", icon: "hub", label: "Dashboard" },
@@ -108,8 +116,20 @@ export function ProjectInfrastructureModules() {
               Real-time edge streaming node management
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {modules?.length === 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                fetchCoolifyApps();
+                router.refresh();
+              }}
+              className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition-all"
+              title="Refresh Coolify apps and data"
+            >
+              <span className="material-icons-round text-lg">refresh</span>
+              Refresh
+            </button>
+            {modules?.length === 0 && canEditModules && (
               <button
                 type="button"
                 onClick={async () => {
@@ -123,9 +143,16 @@ export function ProjectInfrastructureModules() {
                 disabled={seeding}
                 className="flex items-center gap-2 bg-slate-600 hover:bg-slate-500 text-white px-6 py-3 rounded-xl font-bold tracking-wider uppercase text-sm transition-all disabled:opacity-50"
               >
-                {seeding ? "Initializing…" : "Initialize default modules"}
+                {seeding ? "Creating…" : "Create default modules"}
               </button>
             )}
+            <Link
+              href="/nodes"
+              className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition-all"
+            >
+              <span className="material-icons-round text-lg">sync</span>
+              Sync from Coolify
+            </Link>
             <Link
               href="/deploy"
               className="flex items-center gap-2 bg-dash-primary hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold tracking-wider uppercase text-sm transition-all active:scale-95"
@@ -137,38 +164,40 @@ export function ProjectInfrastructureModules() {
         </header>
 
         <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-          <div className="glass-panel p-6 rounded-2xl">
+          <div className="glass-panel p-6 rounded-2xl" title={totalNodes === 0 ? "Sync from Coolify on Nodes to load" : undefined}>
             <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-1">
               Active Nodes
             </p>
             <p className="text-3xl font-display font-bold text-white">
-              {activeNodes ?? 0}
-              <span className="text-dash-primary text-sm ml-1">/ 50</span>
+              {totalNodes === 0 ? "—" : `${activeNodes} / ${totalNodes}`}
             </p>
+            {totalNodes === 0 && (
+              <Link href="/nodes" className="text-xs text-dash-primary hover:underline mt-1 inline-block">Sync from Coolify →</Link>
+            )}
           </div>
-          <div className="glass-panel p-6 rounded-2xl">
+          <div className="glass-panel p-6 rounded-2xl" title={totalThroughputGbps == null ? "From sessions/traffic" : undefined}>
             <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-1">
               Total Throughput
             </p>
             <p className="text-3xl font-display font-bold text-white">
-              {(totalThroughputTbps ?? 0).toFixed(1)}
-              <span className="text-dash-primary text-sm ml-1"> GB/S</span>
+              {totalThroughputGbps != null ? totalThroughputGbps.toFixed(2) : "—"}
+              <span className="text-dash-primary text-sm ml-1"> GB/s</span>
             </p>
           </div>
-          <div className="glass-panel p-6 rounded-2xl" title="When available from LiveKit">
+          <div className="glass-panel p-6 rounded-2xl" title="Live metric when available from infrastructure">
             <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-1">
               Global Latency
             </p>
             <p className="text-3xl font-display font-bold text-white">
-              —<span className="text-dash-primary text-sm ml-1"> MS</span>
+              —<span className="text-slate-500 text-sm ml-1">ms</span>
             </p>
           </div>
-          <div className="glass-panel p-6 rounded-2xl">
+          <div className="glass-panel p-6 rounded-2xl" title={healthIndex == null ? "Based on synced nodes" : undefined}>
             <p className="text-[10px] font-bold tracking-widest uppercase text-slate-500 mb-1">
               Health Index
             </p>
             <p className="text-3xl font-display font-bold text-emerald-500">
-              {(healthIndex ?? 0).toFixed(1)}%
+              {healthIndex != null ? `${healthIndex.toFixed(1)}%` : "—"}
             </p>
           </div>
         </section>
@@ -178,22 +207,35 @@ export function ProjectInfrastructureModules() {
             <p className="text-slate-500">Loading modules…</p>
           ) : modules.length === 0 ? (
             <div className="col-span-full glass-panel rounded-[2rem] p-8 text-center">
-              <p className="text-slate-500 mb-4">No modules defined. Initialize default module labels (LiveKit, TURN, Recording) for your stack, or manage your stack in Coolify.</p>
-              <button
-                type="button"
-                onClick={async () => {
-                  setSeeding(true);
-                  try {
-                    await seedModules();
-                  } finally {
-                    setSeeding(false);
-                  }
-                }}
-                disabled={seeding}
-                className="bg-dash-primary hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold uppercase text-sm disabled:opacity-50"
-              >
-                {seeding ? "Initializing…" : "Initialize default modules"}
-              </button>
+              <p className="text-slate-500 mb-4">
+                No modules yet. {canEditModules ? "Create default module labels (LiveKit, TURN, Recording) to track your stack, or sync nodes from Coolify." : "Sync nodes from Coolify or ask an admin to create default modules."}
+              </p>
+              {canEditModules && (
+                <div className="flex flex-wrap justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setSeeding(true);
+                      try {
+                        await seedModules();
+                      } finally {
+                        setSeeding(false);
+                      }
+                    }}
+                    disabled={seeding}
+                    className="bg-dash-primary hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold uppercase text-sm disabled:opacity-50"
+                  >
+                    {seeding ? "Creating…" : "Create default modules"}
+                  </button>
+                  <Link
+                    href="/nodes"
+                    className="bg-slate-600 hover:bg-slate-500 text-white px-6 py-3 rounded-xl font-bold uppercase text-sm inline-flex items-center gap-2"
+                  >
+                    <span className="material-icons-round text-lg">sync</span>
+                    Sync from Coolify
+                  </Link>
+                </div>
+              )}
             </div>
           ) : (
             modules.map((mod: { _id: string; key: string; label: string; enabled: boolean; config?: string }) => {
@@ -232,18 +274,28 @@ export function ProjectInfrastructureModules() {
                       {mod.key}
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label
+                    className={`relative inline-flex items-center ${canEditModules ? "cursor-pointer" : "cursor-not-allowed opacity-80"}`}
+                    title={!canEditModules ? "Admin only" : undefined}
+                  >
                     <input
                       type="checkbox"
                       checked={mod.enabled}
+                      disabled={!canEditModules || togglingKey === mod.key}
                       onChange={async () => {
-                        await setModuleEnabled({ key: mod.key, enabled: !mod.enabled });
+                        if (!canEditModules) return;
+                        setTogglingKey(mod.key);
+                        try {
+                          await setModuleEnabled({ key: mod.key, enabled: !mod.enabled });
+                        } finally {
+                          setTogglingKey(null);
+                        }
                       }}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-slate-700 peer-focus:ring-2 peer-focus:ring-dash-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-dash-primary" />
+                    <div className="w-11 h-6 bg-slate-700 peer-focus:ring-2 peer-focus:ring-dash-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-dash-primary peer-disabled:opacity-60" />
                     <span className="ml-2 text-xs font-mono text-slate-400">
-                      {mod.enabled ? "ON" : "OFF"}
+                      {togglingKey === mod.key ? "…" : mod.enabled ? "ON" : "OFF"}
                     </span>
                   </label>
                 </div>
@@ -261,6 +313,29 @@ export function ProjectInfrastructureModules() {
                     Config: {mod.config}
                   </p>
                 )}
+                <div className="mt-4 pt-4 border-t border-white/5 flex flex-wrap gap-3">
+                  <Link
+                    href="/diagnostics"
+                    className="text-xs font-medium text-dash-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    <span className="material-icons-round text-sm">bolt</span>
+                    Diagnostics
+                  </Link>
+                  <Link
+                    href="/nodes"
+                    className="text-xs font-medium text-slate-400 hover:text-white inline-flex items-center gap-1"
+                  >
+                    <span className="material-icons-round text-sm">dns</span>
+                    Nodes
+                  </Link>
+                  <Link
+                    href="/sessions"
+                    className="text-xs font-medium text-slate-400 hover:text-white inline-flex items-center gap-1"
+                  >
+                    <span className="material-icons-round text-sm">sensors</span>
+                    Sessions
+                  </Link>
+                </div>
               </div>
             );
             })
