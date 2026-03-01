@@ -1,15 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
 
 export function NodeInitialization() {
   const nodes = useQuery(api.nodes.listNodes);
+  const myRole = useQuery(api.rbac.getMyRole);
+  const myUserId = useQuery(api.rbac.getMyUserId);
   const syncFromCoolify = useAction(api.coolify.syncApplicationsToNodes);
+  const bootstrapSetRole = useMutation(api.rbac.bootstrapSetRole);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [bootstrapLoading, setBootstrapLoading] = useState(false);
+  const [bootstrapMessage, setBootstrapMessage] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -96,7 +101,38 @@ export function NodeInitialization() {
             </Link>
           </div>
           {syncError && (
-            <p className="text-red-400 text-sm">{syncError}</p>
+            <div className="space-y-2">
+              <p className="text-red-400 text-sm">{syncError}</p>
+              {myRole === "viewer" && myUserId && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 p-3 text-sm">
+                  <p className="text-amber-200 mb-2">No admin or operator role yet. If you’re the first user, you can make yourself admin:</p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setBootstrapMessage(null);
+                      setBootstrapLoading(true);
+                      try {
+                        await bootstrapSetRole({ userId: myUserId, role: "admin" });
+                        setBootstrapMessage("You are now admin. Refreshing…");
+                        setSyncError(null);
+                        window.location.reload();
+                      } catch (e) {
+                        setBootstrapMessage(e instanceof Error ? e.message : "Bootstrap failed");
+                      } finally {
+                        setBootstrapLoading(false);
+                      }
+                    }}
+                    disabled={bootstrapLoading}
+                    className="bg-amber-600 hover:bg-amber-500 text-white font-medium px-3 py-1.5 rounded disabled:opacity-50"
+                  >
+                    {bootstrapLoading ? "Please wait…" : "Make me admin"}
+                  </button>
+                  {bootstrapMessage && (
+                    <p className="mt-2 text-amber-200 text-xs">{bootstrapMessage}</p>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {nodes === undefined ? (

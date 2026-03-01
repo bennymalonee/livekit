@@ -30,12 +30,15 @@ async function requireAuth(ctx: { auth: { getUserIdentity: () => Promise<unknown
   if (!identity) throw new Error("Unauthorized");
 }
 
+const FORBIDDEN_MESSAGE =
+  "This action requires an admin or operator role. Ask an administrator to update your role in the dashboard.";
+
 async function requireCoolifyRole(
   ctx: { runQuery: (fn: any) => Promise<string> },
   allowedRoles: ("admin" | "operator")[]
 ) {
   const role = await ctx.runQuery(api.rbac.getMyRole);
-  if (!role || !allowedRoles.includes(role as "admin" | "operator")) throw new Error("Forbidden");
+  if (!role || !allowedRoles.includes(role as "admin" | "operator")) throw new Error(FORBIDDEN_MESSAGE);
 }
 
 /**
@@ -163,7 +166,7 @@ export const syncApplicationsToNodes = action({
   handler: async (ctx): Promise<{ ok: boolean; error?: string }> => {
     try {
       await requireAuth(ctx);
-      await requireCoolifyRole(ctx, ["admin"]);
+      await requireCoolifyRole(ctx, ["admin", "operator"]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return { ok: false, error: msg };

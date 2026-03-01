@@ -45,6 +45,15 @@ export const getMyRole = query({
   },
 });
 
+/** Current user's Convex user id, or null if not authenticated. Used e.g. for bootstrap "Make me admin". */
+export const getMyUserId = query({
+  args: {},
+  handler: async (ctx): Promise<Id<"users"> | null> => {
+    const identity = await ctx.auth.getUserIdentity();
+    return getUserIdFromIdentityOrNull(identity);
+  },
+});
+
 /** Require one of the given roles in a mutation or query. Throws if unauthenticated or role not allowed. */
 export async function requireRole(ctx: { auth: { getUserIdentity: () => Promise<{ subject: string } | null> }; db: any }, allowedRoles: AppRole[]): Promise<AppRole> {
   const identity = await ctx.auth.getUserIdentity();
@@ -79,5 +88,26 @@ export const setUserRole = mutation({
         details: JSON.stringify({ targetUserId: args.userId, newRole: args.role }),
       });
     }
+  },
+});
+
+/**
+ * Bootstrap: set a user's role when there are no admins yet.
+ * Only succeeds when zero users have role "admin". Use from Convex dashboard/MCP for first-time setup.
+ * After the first admin exists, use setUserRole (admin-only) to change roles.
+ */
+export const bootstrapSetRole = mutation({
+  args: {
+    userId: v.id("users"),
+    role: v.union(v.literal("admin"), v.literal("operator"), v.literal("viewer")),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+    const allUsers = await ctx.db.query("users").collect();
+    const hasAdmin = allUsers.some((u) => u.role === "admin");
+    if (hasAdmin) throw new Error("Bootstrap only allowed when no admin exists. Use setUserRole as an admin instead.");
+    await ctx.db.patch(args.userId, { role: args.role });
+    return { ok: true, userId: args.userId, role: args.role };
   },
 });

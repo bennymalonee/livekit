@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 const DASHBOARD_APP_UUID = process.env.NEXT_PUBLIC_COOLIFY_DASHBOARD_APP_UUID ?? "";
@@ -10,13 +10,18 @@ const LIVEKIT_STACK_UUID = process.env.NEXT_PUBLIC_COOLIFY_LIVEKIT_STACK_APP_UUI
 
 export function EdgeDiagnostics() {
   const nodes = useQuery(api.nodes.listNodes);
+  const myRole = useQuery(api.rbac.getMyRole);
+  const myUserId = useQuery(api.rbac.getMyUserId);
   const analytics = useQuery(api.analytics.getOverview, {});
   const dashboardOverview = useQuery(api.dashboard.getOverview);
   const diagnosticsEvents = useQuery(api.diagnostics.listRecent, { limit: 30 });
   const getApplicationLogs = useAction(api.coolify.getApplicationLogs);
+  const bootstrapSetRole = useMutation(api.rbac.bootstrapSetRole);
   const [coolifyLogs, setCoolifyLogs] = useState<{ dashboard?: string; livekit?: string }>({});
   const [coolifyLoading, setCoolifyLoading] = useState<"dashboard" | "livekit" | null>(null);
   const [coolifyError, setCoolifyError] = useState<string | null>(null);
+  const [bootstrapLoading, setBootstrapLoading] = useState(false);
+  const [bootstrapMessage, setBootstrapMessage] = useState<string | null>(null);
   const [levelFilter, setLevelFilter] = useState<"all" | "info" | "warning" | "error">("all");
 
   const filteredEvents =
@@ -613,7 +618,35 @@ export function EdgeDiagnostics() {
               </div>
             </div>
             {coolifyError && (
-              <p className="text-red-400 text-xs">{coolifyError}</p>
+              <div className="space-y-2">
+                <p className="text-red-400 text-xs">{coolifyError}</p>
+                {myRole === "viewer" && myUserId && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 p-3 text-xs">
+                    <p className="text-amber-200 mb-2">Need admin or operator role. If you’re the first user:</p>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setBootstrapMessage(null);
+                        setBootstrapLoading(true);
+                        try {
+                          await bootstrapSetRole({ userId: myUserId, role: "admin" });
+                          setBootstrapMessage("You are now admin. Refreshing…");
+                          window.location.reload();
+                        } catch (e) {
+                          setBootstrapMessage(e instanceof Error ? e.message : "Bootstrap failed");
+                        } finally {
+                          setBootstrapLoading(false);
+                        }
+                      }}
+                      disabled={bootstrapLoading}
+                      className="bg-amber-600 hover:bg-amber-500 text-white font-medium px-2 py-1 rounded disabled:opacity-50 text-[10px] uppercase"
+                    >
+                      {bootstrapLoading ? "Wait…" : "Make me admin"}
+                    </button>
+                    {bootstrapMessage && <p className="mt-2 text-amber-200">{bootstrapMessage}</p>}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
