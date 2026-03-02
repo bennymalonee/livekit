@@ -1,7 +1,7 @@
 # Extend LiveKit server to expand env vars in config at runtime.
 # The repo's livekit.yaml uses ${REDIS_PASSWORD} etc.; LiveKit does not substitute them.
 FROM livekit/livekit-server:v1.9
-RUN apk add --no-cache gettext
+RUN apk add --no-cache gettext && mkdir -p /etc/livekit
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
