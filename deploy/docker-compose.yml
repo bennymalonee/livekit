@@ -10,7 +10,7 @@ services:
     image: livekit/livekit-server:v1.9
     container_name: livekit-server
     # Entrypoint expands ${REDIS_PASSWORD} etc. in livekit.yaml and starts server
-    command: []
+    command: null
     restart: unless-stopped
     network_mode: host
     volumes:
