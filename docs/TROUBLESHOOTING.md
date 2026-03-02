@@ -28,6 +28,14 @@ See [DASHBOARD-SETUP-CHECKLIST.md](DASHBOARD-SETUP-CHECKLIST.md).
 
 ---
 
+## LiveKit Stack: Degraded (unhealthy)
+
+- **Cause:** Coolify marks the app **Degraded (unhealthy)** when its health check fails. LiveKit server does **not** expose an HTTP health endpoint (it uses WebSocket on port 7880), so Coolify’s default HTTP health check fails and the app shows unhealthy even when LiveKit is running.
+- **Fix:** In **Coolify** → open **livekit-stack** → **Health Check** (or **Configuration** → **Health Check**) → **Disable** the health check. Save. Optionally **Restart** the app so the status clears.
+- If containers are actually failing, check **Logs** and env vars (`LIVEKIT_PUBLIC_IP`, `REDIS_PASSWORD`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`). See [LIVEKIT-COOLIFY-SETUP.md](LIVEKIT-COOLIFY-SETUP.md).
+
+---
+
 ## Coolify LiveKit stack: “Servers unavailable”
 
 - **Cause:** Coolify may show “some servers are unavailable” when the destination server is unreachable, or after a transient failure.

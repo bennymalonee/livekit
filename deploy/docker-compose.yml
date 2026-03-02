@@ -6,11 +6,11 @@ services:
   livekit-server:
     image: livekit/livekit-server:v1.9
     container_name: livekit-server
-    command: --config /etc/livekit/livekit.yaml
+    command: --config /etc/livekit/livekit.yaml/livekit.yaml
     restart: unless-stopped
     network_mode: host
     volumes:
-      - ./livekit.yaml:/etc/livekit/livekit.yaml:ro
+      - ./livekit.yaml:/etc/livekit/livekit.yaml/livekit.yaml:ro
     depends_on:
       redis:
         condition: service_healthy
