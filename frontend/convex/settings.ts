@@ -68,20 +68,51 @@ export const setDeploySettings = mutation({
 
 export const triggerDeploy = action({
   args: {},
-  handler: async (ctx) => {
+  handler: async (
+    ctx
+  ): Promise<{
+    ok: boolean;
+    error?: string;
+  }> => {
     const role = await ctx.runQuery(api.rbac.getMyRole);
-    if (!role || role !== "admin") throw new Error("Forbidden");
+    if (!role || role !== "admin") {
+      return {
+        ok: false,
+        error:
+          "You must be an admin to trigger a deploy. Ask an administrator to update your role.",
+      };
+    }
+
     const identity = await ctx.auth.getUserIdentity();
     const settings = await ctx.runQuery(api.settings.getDeploySettings, {});
     const webhookUrl = settings?.webhookUrl;
+
     if (!webhookUrl) {
-      throw new Error("Coolify webhook not configured. Set it in Deploy settings.");
+      return {
+        ok: false,
+        error:
+          "Coolify webhook not configured. Set it in Deploy settings, or rely on the /api/deploy fallback route.",
+      };
     }
-    const res = await fetch(webhookUrl, { method: "POST" });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Webhook failed: ${res.status} ${text}`);
+
+    try {
+      const res = await fetch(webhookUrl, { method: "POST" });
+      if (!res.ok) {
+        const text = await res.text();
+        return {
+          ok: false,
+          error: `Coolify webhook failed: ${res.status} ${text}`,
+        };
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unknown error triggering deploy";
+      return {
+        ok: false,
+        error: `Failed to trigger deploy via webhook: ${message}`,
+      };
     }
+
     if (identity) {
       const { getUserIdFromIdentity } = await import("./rbac");
       await ctx.runMutation(internal.auditLog.record, {

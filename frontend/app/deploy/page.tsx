@@ -52,19 +52,25 @@ export default function DeployPage() {
     setLoading(true);
     try {
       const deploymentId = await createDeployment({ status: "pending" });
-      try {
-        await triggerDeploy();
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "";
-        if (msg.includes("not configured")) {
+      const result = await triggerDeploy();
+
+      if (!result?.ok) {
+        const msg = result.error ?? "";
+        if (
+          msg.includes("not configured") ||
+          msg.toLowerCase().includes("coolify not configured")
+        ) {
           const res = await fetch("/api/deploy", { method: "POST" });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
             setError(data.error || `Deploy failed (${res.status})`);
+            await updateDeploymentStatus({ deploymentId, status: "failed" });
             return;
           }
         } else {
-          throw e;
+          setError(msg || "Deploy failed");
+          await updateDeploymentStatus({ deploymentId, status: "failed" });
+          return;
         }
       }
       await updateDeploymentStatus({ deploymentId, status: "running" });
