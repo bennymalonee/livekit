@@ -256,6 +256,19 @@ export const getApplicationLogs = action({
       );
       const text = await res.text();
       if (!res.ok) {
+        // Special-case common Coolify error when the app is stopped.
+        try {
+          const parsed = JSON.parse(text) as { message?: string };
+          if (res.status === 400 && parsed?.message === "Application is not running.") {
+            return {
+              logs: "",
+              error:
+                'LiveKit Stack application is not running in Coolify. Start the LiveKit Stack app in Coolify, wait until it is running, then click "Load Coolify logs" again.',
+            };
+          }
+        } catch {
+          // If the body is not JSON, fall through to generic error formatting.
+        }
         return {
           logs: "",
           error: `Coolify API error (${res.status}): ${text.slice(0, 200)}${text.length > 200 ? "…" : ""}`,
