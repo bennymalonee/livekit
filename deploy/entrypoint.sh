@@ -1,0 +1,11 @@
+#!/bin/sh
+# Expand env vars in LiveKit config template and start the server.
+# Required in container: REDIS_PASSWORD, TURN_HOST, TURN_CREDENTIAL,
+#   LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_REGION, LIVEKIT_WEBHOOK_URL
+set -e
+TEMPLATE="${LIVEKIT_CONFIG_TEMPLATE:-/etc/livekit/config.yaml.template}"
+OUTPUT="${LIVEKIT_CONFIG_OUTPUT:-/tmp/config.yaml}"
+# Substitute only our known vars so values containing $ are safe
+export REDIS_PASSWORD TURN_HOST TURN_CREDENTIAL LIVEKIT_API_KEY LIVEKIT_API_SECRET LIVEKIT_REGION LIVEKIT_WEBHOOK_URL LIVEKIT_PUBLIC_IP
+envsubst '$REDIS_PASSWORD $TURN_HOST $TURN_CREDENTIAL $LIVEKIT_API_KEY $LIVEKIT_API_SECRET $LIVEKIT_REGION $LIVEKIT_WEBHOOK_URL $LIVEKIT_PUBLIC_IP' < "$TEMPLATE" > "$OUTPUT"
+exec livekit-server --config "$OUTPUT" "$@"
