@@ -6,8 +6,8 @@ port: 7880
 
 # Redis - required for distributed/cluster mode
 redis:
-  # Use 127.0.0.1 when LiveKit runs with host network (redis port published to host)
-  address: 127.0.0.1:6379
+  # Set REDIS_ADDRESS=redis:6379 for bridge network, or 127.0.0.1:6379 for host network
+  address: ${REDIS_ADDRESS}
   password: ${REDIS_PASSWORD}
   db: 0
 

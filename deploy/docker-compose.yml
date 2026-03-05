@@ -1,6 +1,6 @@
 # LiveKit cluster-ready deployment
 # https://github.com/livekit/livekit
-# Base: livekit-server + redis. Coturn added via docker-compose.coturn.yml when certs present.
+# Uses bridge network so Redis is at hostname "redis" (avoids host-network issues on Coolify/Docker Desktop).
 
 services:
   livekit-server:
@@ -9,15 +9,26 @@ services:
       dockerfile: Dockerfile.livekit
     image: livekit/livekit-server:v1.9
     container_name: livekit-server
-    # Entrypoint expands ${REDIS_PASSWORD} etc. in livekit.yaml and starts server (no command = use image ENTRYPOINT)
     restart: unless-stopped
-    network_mode: host
-    # Template is baked into image (Dockerfile) so we don't rely on Coolify's volume path
+    ports:
+      - "7880:7880"   # WebSocket/API
+      - "7881:7881"   # ICE TCP
+      - "50000-60000:50000-60000/udp"   # WebRTC UDP
+    environment:
+      REDIS_ADDRESS: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      TURN_HOST: ${TURN_HOST}
+      TURN_CREDENTIAL: ${TURN_CREDENTIAL}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      LIVEKIT_REGION: ${LIVEKIT_REGION}
+      LIVEKIT_WEBHOOK_URL: ${LIVEKIT_WEBHOOK_URL}
+      LIVEKIT_PUBLIC_IP: ${LIVEKIT_PUBLIC_IP:-}
     depends_on:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "7880"]
+      test: ["CMD", "nc", "-z", "localhost", "7880"]
       interval: 10s
       timeout: 5s
       retries: 3

@@ -1,8 +1,7 @@
 #!/bin/sh
 # Expand env vars in LiveKit config template and start the server.
-# Required in container: REDIS_PASSWORD, TURN_HOST, TURN_CREDENTIAL,
-#   LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_REGION, LIVEKIT_WEBHOOK_URL
-# Template: use LIVEKIT_CONFIG_TEMPLATE path if set and file exists; else use embedded template.
+# Required: REDIS_PASSWORD, TURN_HOST, TURN_CREDENTIAL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_REGION, LIVEKIT_WEBHOOK_URL
+# Optional: REDIS_ADDRESS (default 127.0.0.1:6379), LIVEKIT_PUBLIC_IP
 set -e
 
 # Required env vars (fail fast with clear error for Coolify logs)
@@ -15,11 +14,12 @@ for var in $REQUIRED; do
   fi
 done
 
+REDIS_ADDRESS="${REDIS_ADDRESS:-127.0.0.1:6379}"
 OUTPUT="${LIVEKIT_CONFIG_OUTPUT:-/etc/livekit/livekit.yaml}"
 TEMPLATE_FILE="${LIVEKIT_CONFIG_TEMPLATE:-/etc/livekit/livekit.yaml.template}"
 TEMPLATE_TMP="/tmp/livekit.yaml.template.$$"
 
-# Use mounted/copied template if present; otherwise use embedded template (works even when Coolify doesn't provide the file)
+# Use mounted/copied template if present; otherwise use embedded template
 if [ -f "$TEMPLATE_FILE" ]; then
   cp "$TEMPLATE_FILE" "$TEMPLATE_TMP"
 else
@@ -27,7 +27,7 @@ else
 port: 7880
 
 redis:
-  address: 127.0.0.1:6379
+  address: ${REDIS_ADDRESS}
   password: ${REDIS_PASSWORD}
   db: 0
 
@@ -65,8 +65,8 @@ TEMPLATE_EOF
 fi
 
 # Substitute only our known vars so values containing $ are safe
-export REDIS_PASSWORD TURN_HOST TURN_CREDENTIAL LIVEKIT_API_KEY LIVEKIT_API_SECRET LIVEKIT_REGION LIVEKIT_WEBHOOK_URL LIVEKIT_PUBLIC_IP
-envsubst '$REDIS_PASSWORD $TURN_HOST $TURN_CREDENTIAL $LIVEKIT_API_KEY $LIVEKIT_API_SECRET $LIVEKIT_REGION $LIVEKIT_WEBHOOK_URL $LIVEKIT_PUBLIC_IP' < "$TEMPLATE_TMP" > "$OUTPUT"
+export REDIS_ADDRESS REDIS_PASSWORD TURN_HOST TURN_CREDENTIAL LIVEKIT_API_KEY LIVEKIT_API_SECRET LIVEKIT_REGION LIVEKIT_WEBHOOK_URL LIVEKIT_PUBLIC_IP
+envsubst '$REDIS_ADDRESS $REDIS_PASSWORD $TURN_HOST $TURN_CREDENTIAL $LIVEKIT_API_KEY $LIVEKIT_API_SECRET $LIVEKIT_REGION $LIVEKIT_WEBHOOK_URL $LIVEKIT_PUBLIC_IP' < "$TEMPLATE_TMP" > "$OUTPUT"
 rm -f "$TEMPLATE_TMP"
 
 # Ensure no unsubstituted placeholders remain (would break LiveKit)
@@ -76,13 +76,15 @@ if grep -q '\${' "$OUTPUT" 2>/dev/null; then
   exit 1
 fi
 
-# Brief wait for Redis (host network: 127.0.0.1:6379) in case depends_on race
+# Wait for Redis at REDIS_ADDRESS (e.g. redis:6379 or 127.0.0.1:6379)
+redis_host="${REDIS_ADDRESS%:*}"
+redis_port="${REDIS_ADDRESS#*:}"
 for i in 1 2 3 4 5 6 7 8 9 10; do
-  if nc -z 127.0.0.1 6379 2>/dev/null; then
+  if nc -z "$redis_host" "$redis_port" 2>/dev/null; then
     break
   fi
   if [ "$i" -eq 10 ]; then
-    echo "ERROR: Redis not reachable at 127.0.0.1:6379 after 10 attempts." >&2
+    echo "ERROR: Redis not reachable at $REDIS_ADDRESS after 10 attempts." >&2
     exit 1
   fi
   sleep 1
