@@ -28,6 +28,23 @@ See [DASHBOARD-SETUP-CHECKLIST.md](DASHBOARD-SETUP-CHECKLIST.md).
 
 ---
 
+## LiveKit Stack: Restart loop (e.g. “Restarting (13x restarts)”)
+
+- **Cause:** Coolify may restart the app when its **application-level** health check fails (e.g. HTTP to a port where LiveKit only speaks WebSocket), or the container exits due to missing env vars or config errors.
+- **Fix (manual):**
+  1. In **Coolify** → **livekit-stack** → **Health Check** (or **Configuration** → **Health Check**) → **Disable** the health check. Save.
+  2. **Restart** the app once. The stack’s Docker healthcheck (TCP to port 7880) will then report the container healthy; Coolify’s own HTTP check must stay disabled.
+  3. If it still restarts, check **Application logs**. The entrypoint prints clear **ERROR:** lines for missing env vars or invalid config (e.g. `Required env var X is not set` or `Config still contains unsubstituted placeholders`). Ensure all required env vars are set in Coolify → livekit-stack → Environment variables: `REDIS_PASSWORD`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_PUBLIC_IP`, `TURN_HOST`, `TURN_CREDENTIAL`, `LIVEKIT_REGION`, `LIVEKIT_WEBHOOK_URL`. See [LIVEKIT-COOLIFY-SETUP.md](LIVEKIT-COOLIFY-SETUP.md).
+- **Fix (Coolify MCP):** If you use the **Coolify MCP** in Cursor (or elsewhere):
+  1. **list_servers** → note the server that hosts the stack (e.g. localhost) and its `uuid`.
+  2. **validate_server** with that server `uuid` to refresh connectivity.
+  3. **list_applications** → find **livekit-stack** and note its `uuid`.
+  4. **control** with `resource: "application"`, `action: "restart"`, and the application `uuid` to restart once.
+  5. Use **find_issues** to list unhealthy apps and **get_application_logs** (if available) to debug if restarts continue.
+  6. Disable the app’s health check in the **Coolify UI** (Health Check → Disable); MCP may not expose health-check toggles.
+
+---
+
 ## LiveKit Stack: Degraded (unhealthy)
 
 - **Cause:** Coolify marks the app **Degraded (unhealthy)** when its health check fails. LiveKit server does **not** expose an HTTP health endpoint (it uses WebSocket on port 7880), so Coolify’s default HTTP health check fails and the app shows unhealthy even when LiveKit is running.
