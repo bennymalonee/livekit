@@ -2,6 +2,7 @@
 # The repo's livekit.yaml uses ${REDIS_PASSWORD} etc.; LiveKit does not substitute them.
 FROM livekit/livekit-server:v1.9
 RUN apk add --no-cache gettext netcat-openbsd && mkdir -p /etc/livekit
+COPY livekit.yaml /etc/livekit/livekit.yaml.template
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

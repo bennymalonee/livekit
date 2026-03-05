@@ -12,9 +12,7 @@ services:
     # Entrypoint expands ${REDIS_PASSWORD} etc. in livekit.yaml and starts server (no command = use image ENTRYPOINT)
     restart: unless-stopped
     network_mode: host
-    volumes:
-      # Mount template so entrypoint can write expanded config to /etc/livekit/livekit.yaml (file, not directory)
-      - ./livekit.yaml:/etc/livekit/livekit.yaml.template:ro
+    # Template is baked into image (Dockerfile) so we don't rely on Coolify's volume path
     depends_on:
       redis:
         condition: service_healthy
