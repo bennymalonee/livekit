@@ -9,8 +9,7 @@ services:
       dockerfile: Dockerfile.livekit
     image: livekit/livekit-server:v1.9
     container_name: livekit-server
-    # Entrypoint expands ${REDIS_PASSWORD} etc. in livekit.yaml and starts server
-    command: null
+    # Entrypoint expands ${REDIS_PASSWORD} etc. in livekit.yaml and starts server (no command = use image ENTRYPOINT)
     restart: unless-stopped
     network_mode: host
     volumes:
