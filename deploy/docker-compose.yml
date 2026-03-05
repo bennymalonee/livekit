@@ -13,7 +13,8 @@ services:
     ports:
       - "7880:7880"   # WebSocket/API
       - "7881:7881"   # ICE TCP
-      - "50000-60000:50000-60000/udp"   # WebRTC UDP
+      # Smaller UDP range to avoid Docker/Windows timeout when binding 10k+ ports
+      - "50000-50100:50000-50100/udp"   # WebRTC UDP (increase range for more participants)
     environment:
       REDIS_ADDRESS: redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}

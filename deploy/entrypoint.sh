@@ -33,7 +33,7 @@ redis:
 
 rtc:
   port_range_start: 50000
-  port_range_end: 60000
+  port_range_end: 50100
   tcp_port: 7881
   use_external_ip: true
   turn_servers:
