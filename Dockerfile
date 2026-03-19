@@ -20,5 +20,5 @@ EXPOSE 3000
 # No-op HEALTHCHECK so Coolify's inspect .State.Health exists; use Coolify UI health check (path /api/health, port 3000) for real checks.
 # Coolify relies on Docker container health. Make the healthcheck actually verify
 # the Next.js health endpoint so the container becomes `healthy` quickly.
-HEALTHCHECK --interval=2s --timeout=2s --start-period=10s --retries=3 CMD ["sh", "-c", "curl -fsS http://localhost:3000/api/health || exit 1"]
+HEALTHCHECK --interval=5s --timeout=3s --start-period=20s --retries=3 CMD ["sh", "-c", "curl -fsS http://localhost:3000/api/health || exit 1"]
 CMD ["node", "server.js"]
