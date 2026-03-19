@@ -86,10 +86,21 @@ export default function DeployPage() {
     e.preventDefault();
     setSettingsSaving(true);
     setSettingsSaved(false);
+    setError(null);
     try {
+      const nextWebhook = settingsWebhook.trim();
+      const nextLivekit = settingsLivekit.trim();
+
+      if (/\/livekit-webhook(?:\/|$|\?)/i.test(nextWebhook)) {
+        setError(
+          "That URL looks like the LiveKit event webhook (/livekit-webhook). Paste the Coolify *Deploy/Webhook* URL instead (for your livekit_main app), then try again."
+        );
+        return;
+      }
+
       await setDeploySettings({
-        webhookUrl: settingsWebhook.trim(),
-        livekitUrl: settingsLivekit.trim(),
+        webhookUrl: nextWebhook,
+        livekitUrl: nextLivekit,
       });
       setSettingsSaved(true);
     } finally {

@@ -9,3 +9,5 @@ agent/dist/
 frontend/public/stitch/images/*.png
 frontend/public/stitch/images/*.webp
 frontend/public/stitch/html/*.html
+
+.env.local

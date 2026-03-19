@@ -87,6 +87,20 @@ export const triggerDeploy = action({
     const settings = await ctx.runQuery(api.settings.getDeploySettings, {});
     const webhookUrl = settings?.webhookUrl;
 
+    // Guard against a very common configuration mix-up:
+    // the "Coolify deploy webhook" field must not contain the LiveKit
+    // event endpoint (`/livekit-webhook`).
+    const looksLikeLivekitWebhook =
+      typeof webhookUrl === "string" &&
+      /\/livekit-webhook(?:\/|$|\?)/i.test(webhookUrl);
+    if (looksLikeLivekitWebhook) {
+      return {
+        ok: false,
+        error:
+          "Invalid deploy webhook URL: the provided webhookUrl looks like the LiveKit event endpoint (/livekit-webhook). Paste the Coolify *Deploy/Webhook* URL for your `livekit_main` app instead.",
+      };
+    }
+
     if (!webhookUrl) {
       return {
         ok: false,
