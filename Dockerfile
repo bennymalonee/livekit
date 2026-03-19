@@ -21,5 +21,5 @@ EXPOSE 3000
 # Coolify relies on Docker container health and expects the healthcheck command
 # to actually probe the app using curl/wget. Next.js needs some time to boot,
 # so retry more slowly to avoid "connection refused" during startup.
-HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=3 CMD ["sh", "-c", "curl -fsS http://localhost:3000/api/health || exit 1"]
+HEALTHCHECK --interval=5s --timeout=3s --start-period=35s --retries=3 CMD ["sh", "-c", "curl -fsS http://localhost:3000/api/health || exit 1"]
 CMD ["node", "server.js"]
