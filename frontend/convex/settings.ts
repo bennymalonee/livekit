@@ -85,7 +85,7 @@ export const triggerDeploy = action({
 
     const identity = await ctx.auth.getUserIdentity();
     const settings = await ctx.runQuery(api.settings.getDeploySettings, {});
-    const webhookUrl = settings?.webhookUrl;
+    const webhookUrl = settings?.webhookUrl?.trim();
 
     // Guard against a very common configuration mix-up:
     // the "Coolify deploy webhook" field must not contain the LiveKit
@@ -109,13 +109,28 @@ export const triggerDeploy = action({
       };
     }
 
+    const isCoolifyApiDeployUrl = /\/api\/v1\/deploy(?:\/|$|\?)/i.test(webhookUrl);
+    const method = isCoolifyApiDeployUrl ? "GET" : "POST";
+    const headers: Record<string, string> = {};
+    if (isCoolifyApiDeployUrl) {
+      const token = process.env.COOLIFY_API_TOKEN?.trim();
+      if (!token) {
+        return {
+          ok: false,
+          error:
+            "This looks like a Coolify API deploy URL and requires COOLIFY_API_TOKEN in Convex environment variables.",
+        };
+      }
+      headers.Authorization = `Bearer ${token}`;
+    }
+
     try {
-      const res = await fetch(webhookUrl, { method: "POST" });
+      const res = await fetch(webhookUrl, { method, headers });
       if (!res.ok) {
         const text = await res.text();
         return {
           ok: false,
-          error: `Coolify webhook failed: ${res.status} ${text}`,
+          error: `Coolify deploy trigger failed: ${res.status} ${text}`,
         };
       }
     } catch (err) {
@@ -123,7 +138,7 @@ export const triggerDeploy = action({
         err instanceof Error ? err.message : "Unknown error triggering deploy";
       return {
         ok: false,
-        error: `Failed to trigger deploy via webhook: ${message}`,
+        error: `Failed to trigger deploy: ${message}`,
       };
     }
 
@@ -139,7 +154,9 @@ export const triggerDeploy = action({
     await ctx.runMutation(internal.diagnostics_internal.recordEventInternal, {
       level: "info",
       code: "deploy.trigger",
-      message: "Deploy triggered via Coolify webhook",
+      message: isCoolifyApiDeployUrl
+        ? "Deploy triggered via Coolify API URL"
+        : "Deploy triggered via Coolify webhook",
     });
     return { ok: true };
   },

@@ -6,7 +6,9 @@ import { mutation, query } from "./_generated/server";
 const SUB_DIVIDER = "|";
 
 /** Minimum length for a valid Convex doc id (Crockford Base32, typically 31–37 chars). */
-const MIN_VALID_ID_LENGTH = 20;
+const MIN_VALID_ID_LENGTH = 30;
+/** Convex doc ids are Crockford base32 (no i/l/o/u). */
+const CROCKFORD_BASE32_RE = /^[0-9a-hjkmnp-tv-z]+$/i;
 
 export type AppRole = "admin" | "operator" | "viewer";
 
@@ -20,7 +22,8 @@ export function getUserIdFromIdentity(identity: { subject: string }): Id<"users"
 export function getUserIdFromIdentityOrNull(identity: { subject: string } | null): Id<"users"> | null {
   if (!identity?.subject || typeof identity.subject !== "string") return null;
   const rawId = identity.subject.split(SUB_DIVIDER)[0];
-  if (!rawId || !/^[a-z0-9]+$/i.test(rawId) || rawId.length < MIN_VALID_ID_LENGTH) return null;
+  if (!rawId || rawId.length < MIN_VALID_ID_LENGTH) return null;
+  if (!CROCKFORD_BASE32_RE.test(rawId)) return null;
   return rawId as Id<"users">;
 }
 
@@ -39,7 +42,7 @@ export const getMyRole = query({
       if (!userId) return "viewer";
       const user = await ctx.db.get(userId);
       return resolveRole(user?.role as AppRole | undefined);
-    } catch {
+    } catch (err) {
       return "viewer";
     }
   },

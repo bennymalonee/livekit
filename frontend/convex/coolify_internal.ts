@@ -1,14 +1,10 @@
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 
-function getCoolifyConfig(): { baseUrl: string; token: string } {
+function getCoolifyConfig(): { baseUrl: string; token: string } | null {
   const baseUrl = process.env.COOLIFY_BASE_URL?.replace(/\/$/, "");
   const token = process.env.COOLIFY_API_TOKEN;
-  if (!baseUrl || !token) {
-    throw new Error(
-      "Coolify not configured. Set COOLIFY_BASE_URL and COOLIFY_API_TOKEN in Convex environment variables."
-    );
-  }
+  if (!baseUrl || !token) return null;
   return { baseUrl, token };
 }
 
@@ -26,7 +22,12 @@ function mapCoolifyStatusToNode(status: string | undefined): string {
 export const syncApplicationsToNodes = internalAction({
   args: {},
   handler: async (ctx) => {
-    const { baseUrl, token } = getCoolifyConfig();
+    const cfg = getCoolifyConfig();
+    if (!cfg) {
+      // Cron runs every 15m; skip quietly when Coolify is not set up.
+      return { synced: 0, skipped: true as const };
+    }
+    const { baseUrl, token } = cfg;
     const res = await fetch(`${baseUrl}/api/v1/applications`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
