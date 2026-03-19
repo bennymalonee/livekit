@@ -8,6 +8,11 @@ RUN npm ci && npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+#
+# Coolify's healthcheck often shells out to `curl` or `wget` inside the container.
+# Alpine doesn't include them by default, so install them to ensure the container
+# becomes "healthy" and deploy doesn't get rolled back.
+RUN apk add --no-cache curl wget
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
