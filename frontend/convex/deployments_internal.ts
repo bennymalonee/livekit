@@ -9,7 +9,6 @@ export const updateLatestFromWebhook = internalMutation({
     // Find the most recent deployment and update its status.
     const latest = await ctx.db
       .query("deployments")
-      .withIndex("by_user", (q) => q)
       .order("desc")
       .first();
 

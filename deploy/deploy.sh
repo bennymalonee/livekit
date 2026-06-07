@@ -37,6 +37,7 @@ fi
 SKIP_COTURN=false
 if [ "$1" = "--skip-certs" ]; then
   SKIP_COTURN=true
+  TURN_DOMAIN=""
   echo "Deploying without coturn (--skip-certs)"
 elif [ ! -f "certs/fullchain.pem" ] || [ ! -f "certs/privkey.pem" ]; then
   echo "ERROR: TLS certs not found. Place Let's Encrypt certs in certs/"
@@ -158,11 +159,7 @@ set +a
 # Start containers
 # -----------------------------------------------------------------------------
 echo "Starting containers..."
-if [ "$SKIP_COTURN" = true ]; then
-  docker compose up -d
-else
-  docker compose -f docker-compose.yml -f docker-compose.coturn.yml up -d
-fi
+docker compose up -d
 
 # -----------------------------------------------------------------------------
 # Wait and verify

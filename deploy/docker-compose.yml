@@ -1,6 +1,7 @@
 # LiveKit cluster-ready deployment
 # https://github.com/livekit/livekit
-# Uses bridge network so Redis is at hostname "redis" (avoids host-network issues on Coolify/Docker Desktop).
+# Consolidates LiveKit Server, Redis, Coturn, Egress, and MinIO.
+# TURN and Egress/MinIO are skipped gracefully if their respective env variables are not set.
 
 services:
   livekit-server:
@@ -60,5 +61,125 @@ services:
         max-size: "20m"
         max-file: "2"
 
+  coturn:
+    image: coturn/coturn:latest
+    container_name: livekit-coturn
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      LIVEKIT_PUBLIC_IP: ${LIVEKIT_PUBLIC_IP:-}
+      TURN_HOST: ${TURN_HOST:-}
+      TURN_CREDENTIAL: ${TURN_CREDENTIAL:-}
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - ./certs:/etc/coturn/certs:ro
+    entrypoint: >
+      /bin/sh -c "
+      if [ -z \"$${TURN_HOST}\" ]; then
+        echo 'Coturn TURN_HOST not set, skipping coturn service.';
+        exit 0;
+      fi;
+      mkdir -p /tmp/coturn &&
+      sed -e \"s|PLACEHOLDER_EXTERNAL_IP|$${LIVEKIT_PUBLIC_IP:-127.0.0.1}|g\" \
+          -e \"s|PLACEHOLDER_TURN_REALM|$${TURN_HOST}|g\" \
+          -e \"s|PLACEHOLDER_TURN_CREDENTIAL|$${TURN_CREDENTIAL}|g\" \
+          /etc/coturn/turnserver.conf > /tmp/coturn/turnserver.conf &&
+      exec turnserver -c /tmp/coturn/turnserver.conf
+      "
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "2"
+
+  egress:
+    image: livekit/egress:latest
+    container_name: livekit-egress
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - SYS_ADMIN
+    environment:
+      EGRESS_CONFIG_FILE: /tmp/egress.yaml
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - ./egress/egress.yaml.template:/etc/egress/egress.yaml.template:ro
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      if [ -z \"$${LIVEKIT_API_KEY}\" ]; then
+        echo 'Egress LIVEKIT_API_KEY not set, skipping egress service.';
+        exit 0;
+      fi;
+      sed -e \"s|API_KEY|$${LIVEKIT_API_KEY}|g\" \
+          -e \"s|API_SECRET|$${LIVEKIT_API_SECRET}|g\" \
+          -e \"s|WS_URL|ws://127.0.0.1:7880|g\" \
+          -e \"s|REDIS_PASSWORD|$${REDIS_PASSWORD}|g\" \
+          -e \"s|MINIO_USER|$${MINIO_ROOT_USER:-minioadmin}|g\" \
+          -e \"s|MINIO_PASS|$${MINIO_ROOT_PASSWORD:-minioadmin}|g\" \
+          /etc/egress/egress.yaml.template > /tmp/egress.yaml &&
+      exec /livekit-egress
+      "
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  minio:
+    image: minio/minio:latest
+    container_name: livekit-minio
+    restart: unless-stopped
+    command: server /data
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "2"
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: livekit-minio-init
+    restart: "no"
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
+    entrypoint: >
+      /bin/sh -c "
+      if [ -z \"$${LIVEKIT_API_KEY}\" ]; then
+        echo 'Egress/MinIO not configured, skipping init.';
+        exit 0;
+      fi;
+      sleep 5;
+      mc config host add local http://minio:9000 $${MINIO_ROOT_USER:-minioadmin} $${MINIO_ROOT_PASSWORD:-minioadmin} || true;
+      mc mb local/livekit-hls --ignore-existing;
+      mc anonymous set download local/livekit-hls;
+      echo 'MinIO bucket livekit-hls ready';
+      "
+
 volumes:
   redis-data:
+  minio-data:
